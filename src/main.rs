@@ -1,8 +1,8 @@
 // EarthCraft — globo 3D estilo Google Earth (Windows, macOS, Linux)
 //
-// Renderização: ray-casting em CPU (paralelo com rayon) de uma esfera texturizada
-// com tiles Web Mercator baixados sob demanda (Esri / OSM / OpenTopoMap).
-// Interface: egui/eframe.
+// Rendering: CPU ray-casting (parallel via rayon) of a sphere textured with
+// Web Mercator tiles downloaded on demand (Esri / OSM / OpenTopoMap).
+// UI: egui/eframe.
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
 use eframe::egui::{self, Align2, Color32, FontId, Key, PointerButton, Pos2, Rect, Sense, Stroke, Vec2};
@@ -18,12 +18,55 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 const R_KM: f64 = 6371.0088;
 const R_M: f64 = R_KM * 1000.0;
-const FOV_TAN: f64 = 0.414_213_562_373_095_1; // tan(22.5°) => FOV vertical de 45°
+const FOV_TAN: f64 = 0.414_213_562_373_095_1; // tan(22.5°) => 45° vertical FOV
 const MIN_ALT: f64 = 0.15; // km
 const MAX_ALT: f64 = 40_000.0; // km
 const MAX_INFLIGHT: usize = 48;
 
-// ───────────────────────────── Matemática ─────────────────────────────
+// ───────────────────────────── Languages ─────────────────────────────
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Lang {
+    En,
+    PtBr,
+}
+impl Lang {
+    const ALL: [Lang; 2] = [Lang::En, Lang::PtBr];
+    fn code(self) -> &'static str {
+        match self {
+            Lang::En => "en",
+            Lang::PtBr => "pt-BR",
+        }
+    }
+    fn label(self) -> &'static str {
+        match self {
+            Lang::En => "English",
+            Lang::PtBr => "Português (Brasil)",
+        }
+    }
+    /// Picks the text for the current language.
+    fn pick(self, en: &'static str, pt: &'static str) -> &'static str {
+        match self {
+            Lang::En => en,
+            Lang::PtBr => pt,
+        }
+    }
+}
+fn lang_file() -> PathBuf {
+    cache_dir().join("lang.txt")
+}
+fn load_lang() -> Lang {
+    match std::fs::read_to_string(lang_file()).ok().as_deref().map(str::trim) {
+        Some("pt-BR") => Lang::PtBr,
+        _ => Lang::En, // English is the default
+    }
+}
+fn save_lang(l: Lang) {
+    let _ = std::fs::create_dir_all(cache_dir());
+    let _ = std::fs::write(lang_file(), l.code());
+}
+
+// ───────────────────────────── Math ─────────────────────────────
 
 #[derive(Clone, Copy, Debug)]
 struct V3 {
@@ -114,7 +157,7 @@ fn fmt_alt(km: f64) -> String {
     }
 }
 
-/// Ponto subsolar (lat, lon) aproximado para o instante Unix dado.
+/// Approximate subsolar point (lat, lon) for the given Unix time.
 fn subsolar(unix: f64) -> (f64, f64) {
     let n = unix / 86400.0 - 10957.5; // dias desde J2000
     let l = (280.460 + 0.9856474 * n).rem_euclid(360.0);
@@ -130,19 +173,19 @@ fn now_unix() -> f64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs_f64()).unwrap_or(0.0)
 }
 
-// ───────────────────────────── Câmera ─────────────────────────────
+// ───────────────────────────── Camera ─────────────────────────────
 
 #[derive(Clone, Copy, Debug)]
 struct Cam {
     lat: f64,
     lon: f64,
-    heading: f64, // graus: direção (azimute) para a qual o "topo" da tela aponta
-    alt: f64,     // km acima da superfície
+    heading: f64, // degrees: bearing the top of the screen points to
+    alt: f64,     // km above the surface
 }
 
 #[derive(Clone, Copy)]
 struct Basis {
-    c: V3, // posição da câmera (raios terrestres)
+    c: V3, // camera position (Earth radii)
     f: V3,
     r: V3,
     u: V3,
@@ -169,7 +212,7 @@ impl Basis {
     }
     fn project(&self, p: V3, rect: Rect) -> Option<Pos2> {
         if p.dot(self.c) < 1.0 {
-            return None; // atrás do horizonte
+            return None; // behind the horizon
         }
         let v = p - self.c;
         let z = v.dot(self.f);
@@ -221,11 +264,11 @@ impl Provider {
             _ => Provider::Topo,
         }
     }
-    fn name(self) -> &'static str {
+    fn name(self, lg: Lang) -> &'static str {
         match self {
-            Provider::Satellite => "Satélite (Esri World Imagery)",
-            Provider::Streets => "Ruas (OpenStreetMap)",
-            Provider::Topo => "Relevo/Topografia (OpenTopoMap)",
+            Provider::Satellite => lg.pick("Satellite (Esri World Imagery)", "Satélite (Esri World Imagery)"),
+            Provider::Streets => lg.pick("Streets (OpenStreetMap)", "Ruas (OpenStreetMap)"),
+            Provider::Topo => lg.pick("Terrain/Topography (OpenTopoMap)", "Relevo/Topografia (OpenTopoMap)"),
         }
     }
     fn dir(self) -> &'static str {
@@ -251,10 +294,10 @@ impl Provider {
             Provider::Topo => format!("https://tile.opentopomap.org/{z}/{x}/{y}.png"),
         }
     }
-    fn attribution(self) -> &'static str {
+    fn attribution(self, lg: Lang) -> &'static str {
         match self {
-            Provider::Satellite => "Imagens © Esri, Maxar, Earthstar Geographics",
-            Provider::Streets => "© contribuidores do OpenStreetMap",
+            Provider::Satellite => lg.pick("Imagery © Esri, Maxar, Earthstar Geographics", "Imagens © Esri, Maxar, Earthstar Geographics"),
+            Provider::Streets => lg.pick("© OpenStreetMap contributors", "© contribuidores do OpenStreetMap"),
             Provider::Topo => "© OpenTopoMap (CC-BY-SA), © OpenStreetMap",
         }
     }
@@ -454,7 +497,7 @@ fn worker(cache: Arc<TileCache>, rx: Arc<Mutex<mpsc::Receiver<TileKey>>>, ctx: e
     }
 }
 
-// ───────────────────────────── Renderização ─────────────────────────────
+// ───────────────────────────── Rendering ─────────────────────────────
 
 struct RenderCfg {
     provider: Provider,
@@ -498,7 +541,7 @@ fn mix(a: [f32; 3], b: [f32; 3], t: f32) -> [f32; 3] {
     [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]
 }
 
-/// Amostra o tile do nível `z`; se ainda não carregou, usa os níveis mais grosseiros (pai).
+/// Samples the tile at level `z`; if it has not loaded yet, falls back to coarser (parent) levels.
 fn sample_chain(loc: &mut Local, prov: Provider, z: i32, u: f64, v: f64, dist: f32) -> [f32; 3] {
     let mut zz = z;
     while zz >= 0 {
@@ -525,7 +568,7 @@ fn render_row(
 ) -> Vec<(TileKey, f32)> {
     let mut loc = Local { cache, map: HashMap::default(), misses: Vec::new() };
     let ny = 1.0 - (y as f64 + 0.5) / h as f64 * 2.0;
-    let pa = 2.0 * FOV_TAN / h as f64; // ângulo por pixel
+    let pa = 2.0 * FOV_TAN / h as f64; // angle per pixel
     let cc = b.c.dot(b.c);
     let maxz = cfg.provider.max_zoom() as f64;
 
@@ -542,13 +585,13 @@ fn render_row(
             let cosinc = (-d.dot(p)).max(0.0);
             let (lat, lon) = v3_to_ll(p);
             let coslat = lat.to_radians().cos().max(0.02);
-            // Nível de detalhe (LOD): limite do grazing mais brando e viés para mais nitidez,
-            // o que amplia bastante a área em alta resolução.
+            // Level of detail (LOD): softer grazing-angle limit and a sharpness bias,
+            // which greatly enlarges the high-resolution area.
             let mpp = t * R_M * pa / cosinc.max(0.2).sqrt();
             let zf = ((2.0 * PI * R_M * coslat) / (256.0 * mpp)).log2();
             let lod = zf + 0.5;
-            // Satélite: mistura suave entre dois níveis (sem círculos).
-            // Mapas com texto: nível único, um pouco mais nítido, para não duplicar rótulos.
+            // Satellite: smooth blend between two levels (no visible circles).
+            // Text maps: single, slightly sharper level so labels are not duplicated.
             let (zl, frac) = if cfg.provider == Provider::Satellite {
                 let f = lod.floor();
                 (f, lod - f)
@@ -616,7 +659,7 @@ fn render_row(
     loc.misses
 }
 
-// ───────────────────────────── Dados do usuário ─────────────────────────────
+// ───────────────────────────── User data ─────────────────────────────
 
 #[derive(Clone)]
 struct Placemark {
@@ -647,11 +690,12 @@ fn parse_latlon(s: &str) -> Option<(f64, f64)> {
     }
 }
 
-fn geocode(q: &str) -> Result<Vec<GeoResult>, String> {
+fn geocode(q: &str, lang: &str) -> Result<Vec<GeoResult>, String> {
     let resp = ureq::get("https://nominatim.openstreetmap.org/search")
         .set("User-Agent", "EarthCraft/0.1 (visualizador educacional de globo 3D)")
         .query("format", "json")
         .query("limit", "6")
+        .query("accept-language", lang)
         .query("q", q)
         .call()
         .map_err(|e| e.to_string())?;
@@ -704,7 +748,7 @@ fn save_kml(path: &str, pms: &[Placemark]) -> std::io::Result<()> {
     s += "</Document>\n</kml>\n";
     std::fs::write(path, s)
 }
-fn load_kml(path: &str) -> Result<Vec<Placemark>, String> {
+fn load_kml(path: &str, lg: Lang) -> Result<Vec<Placemark>, String> {
     let txt = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
     let mut out = Vec::new();
     let mut rest = txt.as_str();
@@ -716,7 +760,7 @@ fn load_kml(path: &str) -> Result<Vec<Placemark>, String> {
             let nums: Vec<f64> = c.trim().split(',').filter_map(|x| x.trim().parse().ok()).collect();
             if nums.len() >= 2 {
                 out.push(Placemark {
-                    name: between(block, "<name>", "</name>").map(xml_unescape).unwrap_or_else(|| "Sem nome".into()),
+                    name: between(block, "<name>", "</name>").map(xml_unescape).unwrap_or_else(|| lg.pick("Unnamed", "Sem nome").into()),
                     desc: between(block, "<description>", "</description>").map(xml_unescape).unwrap_or_default(),
                     lat: nums[1],
                     lon: nums[0],
@@ -728,7 +772,7 @@ fn load_kml(path: &str) -> Result<Vec<Placemark>, String> {
     Ok(out)
 }
 
-// ───────────────────────────── Aplicativo ─────────────────────────────
+// ───────────────────────────── Application ─────────────────────────────
 
 struct Fly {
     a: Cam,
@@ -739,6 +783,7 @@ struct Fly {
 }
 
 struct App {
+    lang: Lang,
     cam: Cam,
     fly: Option<Fly>,
     cache: Arc<TileCache>,
@@ -776,7 +821,9 @@ impl App {
         let mut vis = egui::Visuals::dark();
         vis.window_rounding = 6.0.into();
         cc.egui_ctx.set_visuals(vis);
+        let lang = load_lang();
         App {
+            lang,
             cam: Cam { lat: -15.0, lon: -50.0, heading: 0.0, alt: 14_000.0 },
             fly: None,
             cache: TileCache::new(cc.egui_ctx.clone()),
@@ -794,7 +841,7 @@ impl App {
             query: String::new(),
             results: vec![],
             search_rx: None,
-            status: "Pronto. Arraste para girar, role para aproximar.".into(),
+            status: lang.pick("Ready. Drag to rotate, scroll to zoom.", "Pronto. Arraste para girar, role para aproximar.").into(),
             placemarks: vec![],
             new_name: String::new(),
             kml_path: "placemarks.kml".into(),
@@ -804,6 +851,12 @@ impl App {
             cursor: None,
             show_help: false,
         }
+    }
+
+    fn set_lang(&mut self, l: Lang) {
+        self.lang = l;
+        save_lang(l);
+        self.status = l.pick("Ready. Drag to rotate, scroll to zoom.", "Pronto. Arraste para girar, role para aproximar.").into();
     }
 
     fn touch(&mut self) {
@@ -864,18 +917,19 @@ impl App {
     }
 
     fn poll_search(&mut self) {
+        let lg = self.lang;
         let Some(rx) = &self.search_rx else { return };
         if let Ok(res) = rx.try_recv() {
             self.search_rx = None;
             match res {
-                Ok(v) if v.is_empty() => self.status = "Nenhum resultado encontrado.".into(),
+                Ok(v) if v.is_empty() => self.status = lg.pick("No results found.", "Nenhum resultado encontrado.").into(),
                 Ok(v) => {
-                    self.status = format!("{} resultado(s).", v.len());
+                    self.status = format!("{} {}", v.len(), lg.pick("result(s).", "resultado(s)."));
                     let first = v[0].clone();
                     self.results = v;
                     self.fly_to(first.lat, first.lon, first.alt);
                 }
-                Err(e) => self.status = format!("Erro na busca: {e}"),
+                Err(e) => self.status = format!("{} {e}", lg.pick("Search error:", "Erro na busca:")),
             }
         }
     }
@@ -887,69 +941,85 @@ impl App {
         }
         if let Some((lat, lon)) = parse_latlon(&q) {
             self.fly_to(lat, lon, 3.0);
-            self.status = format!("Indo para {lat:.5}, {lon:.5}");
+            self.status = format!("{} {lat:.5}, {lon:.5}", self.lang.pick("Going to", "Indo para"));
             return;
         }
         let (tx, rx) = mpsc::channel();
         self.search_rx = Some(rx);
-        self.status = "Buscando…".into();
+        self.status = self.lang.pick("Searching…", "Buscando…").into();
         let ctx = ctx.clone();
+        let lang_code = self.lang.code();
         std::thread::spawn(move || {
-            let _ = tx.send(geocode(&q));
+            let _ = tx.send(geocode(&q, lang_code));
             ctx.request_repaint();
         });
     }
 
-    // ───────── Painéis ─────────
+    // ───────── Panels ─────────
 
     fn top_bar(&mut self, ctx: &egui::Context) {
+        let lg = self.lang;
         egui::TopBottomPanel::top("top").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.strong("🌍 EarthCraft");
                 ui.separator();
                 let r = ui.add(
                     egui::TextEdit::singleline(&mut self.query)
-                        .hint_text("Buscar lugar, endereço ou “lat, lon”")
+                        .hint_text(lg.pick("Search a place, address or “lat, lon”", "Buscar lugar, endereço ou “lat, lon”"))
                         .desired_width(340.0),
                 );
                 let enter = r.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter));
-                if ui.button("🔍 Buscar").clicked() || enter {
+                if ui.button(lg.pick("🔍 Search", "🔍 Buscar")).clicked() || enter {
                     self.start_search(ctx);
                 }
                 ui.separator();
                 ui.label(&self.status);
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    let mut chosen = self.lang;
+                    egui::ComboBox::from_id_source("lang_select")
+                        .selected_text(format!("🌐 {}", chosen.label()))
+                        .show_ui(ui, |ui| {
+                            for l in Lang::ALL {
+                                ui.selectable_value(&mut chosen, l, l.label());
+                            }
+                        });
+                    if chosen != self.lang {
+                        self.set_lang(chosen);
+                    }
+                });
             });
         });
     }
 
     fn side_panel(&mut self, ctx: &egui::Context) {
+        let lg = self.lang;
         let mut goto: Option<(f64, f64, f64)> = None;
         let mut del: Option<usize> = None;
         egui::SidePanel::left("side").default_width(270.0).show(ctx, |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
-                egui::CollapsingHeader::new("Camadas").default_open(true).show(ui, |ui| {
+                egui::CollapsingHeader::new(lg.pick("Layers", "Camadas")).default_open(true).show(ui, |ui| {
                     for p in Provider::ALL {
-                        ui.radio_value(&mut self.provider, p, p.name());
+                        ui.radio_value(&mut self.provider, p, p.name(lg));
                     }
                     ui.separator();
-                    ui.checkbox(&mut self.show_grid, "Grade de latitude/longitude");
-                    ui.checkbox(&mut self.show_atmo, "Atmosfera e estrelas");
-                    ui.checkbox(&mut self.show_sun, "Luz do sol em tempo real (dia/noite)");
-                    ui.checkbox(&mut self.auto_rotate, "Girar automaticamente");
+                    ui.checkbox(&mut self.show_grid, lg.pick("Latitude/longitude grid", "Grade de latitude/longitude"));
+                    ui.checkbox(&mut self.show_atmo, lg.pick("Atmosphere and stars", "Atmosfera e estrelas"));
+                    ui.checkbox(&mut self.show_sun, lg.pick("Real-time sunlight (day/night)", "Luz do sol em tempo real (dia/noite)"));
+                    ui.checkbox(&mut self.auto_rotate, lg.pick("Auto-rotate", "Girar automaticamente"));
                 });
 
-                egui::CollapsingHeader::new("Navegação").default_open(true).show(ui, |ui| {
+                egui::CollapsingHeader::new(lg.pick("Navigation", "Navegação")).default_open(true).show(ui, |ui| {
                     ui.horizontal(|ui| {
-                        if ui.button("🧭 Norte para cima").clicked() {
+                        if ui.button(lg.pick("🧭 North up", "🧭 Norte para cima")).clicked() {
                             self.cam.heading = 0.0;
                         }
-                        if ui.button("🌐 Visão global").clicked() {
+                        if ui.button(lg.pick("🌐 Global view", "🌐 Visão global")).clicked() {
                             self.fly_to(self.cam.lat, self.cam.lon, 14_000.0);
                         }
                     });
                     if !self.results.is_empty() {
                         ui.separator();
-                        ui.label("Resultados da busca:");
+                        ui.label(lg.pick("Search results:", "Resultados da busca:"));
                         for r in &self.results {
                             let short: String = r.name.chars().take(48).collect();
                             if ui.button(short).on_hover_text(&r.name).clicked() {
@@ -959,12 +1029,12 @@ impl App {
                     }
                 });
 
-                egui::CollapsingHeader::new("Locais (Placemarks)").default_open(true).show(ui, |ui| {
+                egui::CollapsingHeader::new(lg.pick("Placemarks", "Locais (Placemarks)")).default_open(true).show(ui, |ui| {
                     ui.horizontal(|ui| {
-                        ui.add(egui::TextEdit::singleline(&mut self.new_name).hint_text("Nome").desired_width(120.0));
-                        if ui.button("➕ No centro").clicked() {
+                        ui.add(egui::TextEdit::singleline(&mut self.new_name).hint_text(lg.pick("Name", "Nome")).desired_width(120.0));
+                        if ui.button(lg.pick("➕ At center", "➕ No centro")).clicked() {
                             let name =
-                                if self.new_name.trim().is_empty() { format!("Local {}", self.placemarks.len() + 1) } else { self.new_name.trim().to_string() };
+                                if self.new_name.trim().is_empty() { format!("{} {}", lg.pick("Place", "Local"), self.placemarks.len() + 1) } else { self.new_name.trim().to_string() };
                             self.placemarks.push(Placemark { name, desc: String::new(), lat: self.cam.lat, lon: self.cam.lon });
                             self.new_name.clear();
                         }
@@ -972,7 +1042,7 @@ impl App {
                     for (i, p) in self.placemarks.iter_mut().enumerate() {
                         ui.horizontal(|ui| {
                             ui.add(egui::TextEdit::singleline(&mut p.name).desired_width(110.0));
-                            if ui.small_button("Ir").on_hover_text(format!("{:.5}, {:.5}", p.lat, p.lon)).clicked() {
+                            if ui.small_button(lg.pick("Go", "Ir")).on_hover_text(format!("{:.5}, {:.5}", p.lat, p.lon)).clicked() {
                                 goto = Some((p.lat, p.lon, 3.0));
                             }
                             if ui.small_button("🗑").clicked() {
@@ -983,58 +1053,64 @@ impl App {
                     ui.separator();
                     ui.add(egui::TextEdit::singleline(&mut self.kml_path).desired_width(220.0));
                     ui.horizontal(|ui| {
-                        if ui.button("💾 Salvar KML").clicked() {
+                        if ui.button(lg.pick("💾 Save KML", "💾 Salvar KML")).clicked() {
                             self.status = match save_kml(&self.kml_path, &self.placemarks) {
-                                Ok(_) => format!("Salvo em {}", self.kml_path),
-                                Err(e) => format!("Erro ao salvar: {e}"),
+                                Ok(_) => format!("{} {}", lg.pick("Saved to", "Salvo em"), self.kml_path),
+                                Err(e) => format!("{} {e}", lg.pick("Error saving:", "Erro ao salvar:")),
                             };
                         }
-                        if ui.button("📂 Abrir KML").clicked() {
-                            match load_kml(&self.kml_path) {
+                        if ui.button(lg.pick("📂 Open KML", "📂 Abrir KML")).clicked() {
+                            match load_kml(&self.kml_path, lg) {
                                 Ok(v) => {
-                                    self.status = format!("{} local(is) importado(s).", v.len());
+                                    self.status = format!("{} {}", v.len(), lg.pick("placemark(s) imported.", "local(is) importado(s)."));
                                     self.placemarks.extend(v);
                                 }
-                                Err(e) => self.status = format!("Erro ao abrir: {e}"),
+                                Err(e) => self.status = format!("{} {e}", lg.pick("Error opening:", "Erro ao abrir:")),
                             }
                         }
                     });
                 });
 
-                egui::CollapsingHeader::new("Régua").default_open(true).show(ui, |ui| {
-                    ui.checkbox(&mut self.ruler, "Medir distâncias (clique no globo)");
+                egui::CollapsingHeader::new(lg.pick("Ruler", "Régua")).default_open(true).show(ui, |ui| {
+                    ui.checkbox(&mut self.ruler, lg.pick("Measure distances (click on the globe)", "Medir distâncias (clique no globo)"));
                     let total: f64 = self.ruler_pts.windows(2).map(|w| haversine_km(w[0], w[1])).sum();
-                    ui.label(format!("Pontos: {}   Total: {}", self.ruler_pts.len(), fmt_dist(total)));
-                    if ui.button("Limpar régua").clicked() {
+                    ui.label(format!("{}: {}   Total: {}", lg.pick("Points", "Pontos"), self.ruler_pts.len(), fmt_dist(total)));
+                    if ui.button(lg.pick("Clear ruler", "Limpar régua")).clicked() {
                         self.ruler_pts.clear();
                     }
                 });
 
-                egui::CollapsingHeader::new("Exportar").default_open(false).show(ui, |ui| {
-                    if ui.button("📷 Salvar captura (PNG)").clicked() {
+                egui::CollapsingHeader::new(lg.pick("Export", "Exportar")).default_open(false).show(ui, |ui| {
+                    if ui.button(lg.pick("📷 Save screenshot (PNG)", "📷 Salvar captura (PNG)")).clicked() {
                         self.status = match &self.image {
                             Some((w, h, buf)) => {
                                 let name = format!("earthcraft_{}.png", now_unix() as u64);
                                 match image::save_buffer(&name, buf, *w as u32, *h as u32, image::ColorType::Rgba8) {
-                                    Ok(_) => format!("Captura salva: {name}"),
-                                    Err(e) => format!("Erro: {e}"),
+                                    Ok(_) => format!("{} {name}", lg.pick("Screenshot saved:", "Captura salva:")),
+                                    Err(e) => format!("{} {e}", lg.pick("Error:", "Erro:")),
                                 }
                             }
-                            None => "Nada para salvar ainda.".into(),
+                            None => lg.pick("Nothing to save yet.", "Nada para salvar ainda.").into(),
                         };
                     }
                 });
 
-                ui.checkbox(&mut self.show_help, "Mostrar ajuda de controles");
+                ui.checkbox(&mut self.show_help, lg.pick("Show controls help", "Mostrar ajuda de controles"));
                 if self.show_help {
-                    ui.label(
+                    ui.label(lg.pick(
+                        "• Drag (left): rotate the globe\n\
+                         • Right-drag / Shift+drag: rotate the view\n\
+                         • Wheel / pinch or +/-: zoom\n\
+                         • Double-click: fly to the point\n\
+                         • Arrow keys: move   • N: north up\n\
+                         • Right-click: context menu",
                         "• Arrastar (esq.): girar o globo\n\
                          • Botão direito/Shift+arrastar: girar a vista\n\
                          • Roda/pinça ou +/-: zoom\n\
                          • Duplo clique: voar até o ponto\n\
                          • Setas: mover   • N: norte para cima\n\
                          • Botão direito (clique): menu de contexto",
-                    );
+                    ));
                 }
             });
         });
@@ -1047,6 +1123,7 @@ impl App {
     }
 
     fn bottom_bar(&mut self, ctx: &egui::Context) {
+        let lg = self.lang;
         egui::TopBottomPanel::bottom("bottom").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 match self.cursor {
@@ -1054,13 +1131,13 @@ impl App {
                     None => ui.monospace("Cursor: —"),
                 };
                 ui.separator();
-                ui.monospace(format!("Centro: {:.4}°, {:.4}°", self.cam.lat, self.cam.lon));
+                ui.monospace(format!("{}: {:.4}°, {:.4}°", lg.pick("Center", "Centro"), self.cam.lat, self.cam.lon));
                 ui.separator();
-                ui.monospace(format!("Altitude da câmera: {}", fmt_alt(self.cam.alt)));
+                ui.monospace(format!("{}: {}", lg.pick("Camera altitude", "Altitude da câmera"), fmt_alt(self.cam.alt)));
                 ui.separator();
                 let n = self.cache.inflight.load(Ordering::Relaxed);
                 if n > 0 {
-                    ui.monospace(format!("⏳ carregando {n} tiles"));
+                    ui.monospace(format!("⏳ {} {n} tiles", lg.pick("loading", "carregando")));
                 } else {
                     ui.monospace("✔ tiles ok");
                 }
@@ -1071,13 +1148,14 @@ impl App {
     // ───────── Globo ─────────
 
     fn globe_view(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
+        let lg = self.lang;
         let rect = ui.available_rect_before_wrap();
         let resp = ui.allocate_rect(rect, Sense::click_and_drag());
         let ppp = ctx.pixels_per_point();
         let aspect = (rect.width() / rect.height()) as f64;
         let shift = ctx.input(|i| i.modifiers.shift);
 
-        // ── entrada
+        // ── input
         let mut interacting = false;
         if resp.dragged_by(PointerButton::Primary) && !shift {
             let d = resp.drag_delta();
@@ -1163,7 +1241,7 @@ impl App {
             self.menu_pick = resp.interact_pointer_pos().and_then(|p| basis.pick(rect, p));
         }
 
-        // ── renderização
+        // ── rendering
         let idle = self.last_interact.elapsed() > Duration::from_millis(250) && !resp.dragged();
         let scale = if idle { 1.0 } else { 0.4 };
         let w = ((rect.width() * ppp * scale) as usize).clamp(64, 2000);
@@ -1202,7 +1280,7 @@ impl App {
             ctx.request_repaint_after(Duration::from_millis(260));
         }
 
-        // ── desenho
+        // ── drawing
         let painter = ui.painter_at(rect);
         painter.rect_filled(rect, 0.0, Color32::BLACK);
         if let Some(tex) = &self.texture {
@@ -1210,7 +1288,7 @@ impl App {
         }
         self.draw_overlays(&painter, &basis, rect);
 
-        // bússola
+        // compass
         let ccenter = Pos2::new(rect.right() - 48.0, rect.top() + 56.0);
         painter.circle_filled(ccenter, 24.0, Color32::from_black_alpha(150));
         painter.circle_stroke(ccenter, 24.0, Stroke::new(1.0, Color32::from_gray(160)));
@@ -1220,11 +1298,11 @@ impl App {
         painter.line_segment([ccenter, ccenter - nd * 16.0], Stroke::new(3.0, Color32::from_gray(220)));
         painter.text(ccenter + nd * 31.0, Align2::CENTER_CENTER, "N", FontId::proportional(13.0), Color32::WHITE);
         let cresp = ui.interact(Rect::from_center_size(ccenter, Vec2::splat(50.0)), ui.id().with("compass"), Sense::click());
-        if cresp.on_hover_text("Clique para alinhar ao norte").clicked() {
+        if cresp.on_hover_text(lg.pick("Click to align north up", "Clique para alinhar ao norte")).clicked() {
             self.cam.heading = 0.0;
         }
 
-        // barra de escala
+        // scale bar
         if self.cam.alt < 3000.0 {
             let mpp = self.cam.alt * 1000.0 * 2.0 * FOV_TAN / rect.height() as f64;
             let target = mpp * 120.0;
@@ -1241,43 +1319,43 @@ impl App {
         painter.text(
             rect.right_bottom() - Vec2::new(8.0, 6.0),
             Align2::RIGHT_BOTTOM,
-            self.provider.attribution(),
+            self.provider.attribution(lg),
             FontId::proportional(11.0),
             Color32::from_white_alpha(200),
         );
 
-        // menu de contexto (botão direito)
+        // context menu (right-click)
         let pick = self.menu_pick;
         let mut act: Option<u8> = None;
         resp.context_menu(|ui| match pick {
             Some((la, lo)) => {
                 ui.label(format!("{la:.5}, {lo:.5}"));
                 ui.separator();
-                if ui.button("📍 Adicionar local aqui").clicked() {
+                if ui.button(lg.pick("📍 Add placemark here", "📍 Adicionar local aqui")).clicked() {
                     act = Some(0);
                     ui.close_menu();
                 }
-                if ui.button("✈ Voar até aqui").clicked() {
+                if ui.button(lg.pick("✈ Fly here", "✈ Voar até aqui")).clicked() {
                     act = Some(1);
                     ui.close_menu();
                 }
-                if ui.button("📏 Adicionar ponto na régua").clicked() {
+                if ui.button(lg.pick("📏 Add ruler point", "📏 Adicionar ponto na régua")).clicked() {
                     act = Some(2);
                     ui.close_menu();
                 }
-                if ui.button("📋 Copiar coordenadas").clicked() {
+                if ui.button(lg.pick("📋 Copy coordinates", "📋 Copiar coordenadas")).clicked() {
                     act = Some(3);
                     ui.close_menu();
                 }
             }
             None => {
-                ui.label("Clique sobre o globo.");
+                ui.label(lg.pick("Click on the globe.", "Clique sobre o globo."));
             }
         });
         if let (Some(a), Some((la, lo))) = (act, pick) {
             match a {
                 0 => self.placemarks.push(Placemark {
-                    name: format!("Local {}", self.placemarks.len() + 1),
+                    name: format!("{} {}", lg.pick("Place", "Local"), self.placemarks.len() + 1),
                     desc: String::new(),
                     lat: la,
                     lon: lo,
@@ -1291,7 +1369,7 @@ impl App {
             }
         }
 
-        // rotação automática (mantém repaint)
+        // auto-rotate (keeps repainting)
         if self.auto_rotate && self.fly.is_none() {
             let dt = ctx.input(|i| i.unstable_dt).min(0.1) as f64;
             self.cam.lon = wrap_lon(self.cam.lon + 6.0 * dt);
@@ -1322,7 +1400,7 @@ impl App {
             .map(|(y, row)| render_row(y, w, h, &basis, &cfg, cache, row))
             .collect();
 
-        // pede os tiles faltantes: zoom menor primeiro, depois mais perto do centro
+        // request missing tiles: lowest zoom first, then closest to the center
         let mut misses: HashMap<TileKey, f32> = HashMap::new();
         for (k, d) in per_row.into_iter().flatten() {
             let e = misses.entry(k).or_insert(f32::MAX);
@@ -1346,7 +1424,7 @@ impl App {
     }
 
     fn draw_overlays(&self, painter: &egui::Painter, basis: &Basis, rect: Rect) {
-        // régua
+        // ruler
         let stroke = Stroke::new(2.5, Color32::from_rgb(255, 80, 80));
         for pair in self.ruler_pts.windows(2) {
             let pts: Vec<Option<Pos2>> = great_circle(pair[0], pair[1], 48).into_iter().map(|p| basis.project(p, rect)).collect();
