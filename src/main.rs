@@ -782,6 +782,360 @@ struct Fly {
     bump: f64,
 }
 
+type Line = Vec<(f64, f64)>;
+
+#[derive(Default)]
+struct BoundaryData {
+    countries: Vec<Line>,
+    states: Vec<Line>,
+    cities: Vec<Line>,
+    metro: Vec<Line>,
+    labels: Vec<MapLabel>,
+}
+
+struct MapLabel { lat: f64, lon: f64, en: String, pt: String, kind: LabelKind, rank: u8 }
+impl MapLabel {
+    fn text(&self, lg: Lang) -> &str {
+        match lg { Lang::En => &self.en, Lang::PtBr => &self.pt }
+    }
+    /// Whether the label should be shown at the given camera altitude (km).
+    /// Bigger places (lower rank) appear first, smaller ones only when zoomed in.
+    fn visible_at(&self, alt: f64) -> bool {
+        match self.kind {
+            LabelKind::Country => true,
+            LabelKind::State => alt < 9000.0,
+            LabelKind::Metro => alt < 5000.0,
+            LabelKind::City => alt < match self.rank {
+                0..=1 => 9000.0,
+                2..=3 => 4000.0,
+                4..=5 => 2000.0,
+                6..=7 => 900.0,
+                _ => 300.0,
+            },
+        }
+    }
+}
+#[derive(Clone, Copy, PartialEq)]
+enum LabelKind { Country, State, City, Metro }
+
+#[derive(Clone, Copy)]
+enum Layer { Countries, States, Cities, Metro }
+
+/// One finished piece of overlay data, sent from a loader thread to the UI thread.
+struct Patch { layer: Layer, lines: Vec<Line>, labels: Vec<MapLabel> }
+
+/// Human-readable load log shown in the Layers panel, so failures are never silent.
+type StatusLog = Arc<Mutex<Vec<String>>>;
+
+fn log_status(log: &StatusLog, msg: String) {
+    if let Ok(mut v) = log.lock() { v.push(msg); }
+}
+
+const NE: &str = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson";
+const IBGE: &str = "https://servicodados.ibge.gov.br/api";
+const BR_UFS: [u32; 27] = [11, 12, 13, 14, 15, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 29, 31, 32, 33, 35, 41, 42, 43, 50, 51, 52, 53];
+
+// GeoJSON layers are fetched in background threads, one per layer, and each layer is shown as soon
+// as it is ready. Every layer has fallback sources, results are cached on disk, and every failure is
+// reported in the Layers panel (the old code silently dropped any failure, including downloads
+// larger than ureq's default 10 MB `into_string` limit, which is what broke the world layers).
+fn load_boundaries_async(log: StatusLog) -> mpsc::Receiver<Patch> {
+    let (tx, rx) = mpsc::channel();
+
+    let (t, l) = (tx.clone(), log.clone());
+    std::thread::spawn(move || {
+        let urls = [
+            format!("{NE}/ne_50m_admin_0_countries.geojson"),
+            "https://raw.githubusercontent.com/datasets/geo-countries/main/data/countries.geojson".to_string(),
+            format!("{NE}/ne_110m_admin_0_countries.geojson"),
+        ];
+        if let Some(p) = load_polygon_layer(&l, "Países/Countries", &urls, Layer::Countries, LabelKind::Country,
+            &["NAME", "ADMIN", "name"], &["NAME_PT", "name_pt", "NAME", "ADMIN"], 0) { let _ = t.send(p); }
+    });
+
+    let (t, l) = (tx.clone(), log.clone());
+    std::thread::spawn(move || {
+        let urls = [
+            format!("{NE}/ne_10m_admin_1_states_provinces.geojson"),
+            format!("{NE}/ne_50m_admin_1_states_provinces.geojson"),
+        ];
+        if let Some(p) = load_polygon_layer(&l, "Estados/States", &urls, Layer::States, LabelKind::State,
+            &["name_en", "name", "NAME_1", "gn_name"], &["name_pt", "name", "name_en", "NAME_1"], 0) { let _ = t.send(p); }
+    });
+
+    let (t, l) = (tx.clone(), log.clone());
+    std::thread::spawn(move || {
+        let urls = [format!("{NE}/ne_10m_populated_places.geojson"), format!("{NE}/ne_50m_populated_places.geojson")];
+        if let Some(p) = load_places(&l, &urls) { let _ = t.send(p); }
+    });
+
+    let t = tx.clone();
+    std::thread::spawn(move || load_brazil(&log, &t));
+
+    rx
+}
+
+fn first_json(log: &StatusLog, what: &str, urls: &[String]) -> Option<serde_json::Value> {
+    let mut last = String::new();
+    for url in urls {
+        match fetch_json(url) {
+            Ok(v) => return Some(v),
+            Err(e) => last = format!("{url}: {e}"),
+        }
+    }
+    log_status(log, format!("✖ {what}: {last}"));
+    None
+}
+
+fn load_polygon_layer(log: &StatusLog, what: &str, urls: &[String], layer: Layer, kind: LabelKind,
+                      en_keys: &[&str], pt_keys: &[&str], rank: u8) -> Option<Patch> {
+    let json = first_json(log, what, urls)?;
+    let features = json.get("features").and_then(|v| v.as_array());
+    let Some(features) = features else {
+        log_status(log, format!("✖ {what}: arquivo sem 'features'"));
+        return None;
+    };
+    let (mut lines, mut labels) = (Vec::new(), Vec::new());
+    for f in features {
+        let Some(geometry) = f.get("geometry") else { continue; };
+        if let Some(c) = geometry.get("coordinates") { collect_geojson_lines(c, &mut lines); }
+        if let (Some(en), Some((lat, lon))) = (feature_name(f, en_keys), label_center(geometry)) {
+            let pt = feature_name(f, pt_keys).unwrap_or_else(|| en.clone());
+            labels.push(MapLabel { lat, lon, en, pt, kind, rank });
+        }
+    }
+    log_status(log, format!("✔ {what}: {} linhas, {} nomes", lines.len(), labels.len()));
+    Some(Patch { layer, lines, labels })
+}
+
+fn load_places(log: &StatusLog, urls: &[String]) -> Option<Patch> {
+    let json = first_json(log, "Cidades/Cities", urls)?;
+    let mut labels = Vec::new();
+    for f in json.get("features").and_then(|v| v.as_array()).into_iter().flatten() {
+        let c = f.pointer("/geometry/coordinates").and_then(|v| v.as_array());
+        let (Some(c), Some(en)) = (c, feature_name(f, &["NAME", "name", "NAMEASCII"])) else { continue; };
+        let (Some(lon), Some(lat)) = (c.first().and_then(|v| v.as_f64()), c.get(1).and_then(|v| v.as_f64())) else { continue; };
+        let pt = feature_name(f, &["NAME_PT", "name_pt"]).unwrap_or_else(|| en.clone());
+        let props = f.get("properties");
+        let rank = props.and_then(|p| p.get("SCALERANK").or_else(|| p.get("scalerank"))).and_then(|v| v.as_f64()).unwrap_or(5.0).clamp(0.0, 8.0) as u8;
+        labels.push(MapLabel { lat, lon, en, pt, kind: LabelKind::City, rank });
+    }
+    log_status(log, format!("✔ Cidades/Cities: {} nomes", labels.len()));
+    Some(Patch { layer: Layer::Cities, lines: vec![], labels })
+}
+
+struct Muni { code: u32, name: String, lines: Vec<Line>, center: Option<(f64, f64)> }
+
+fn json_code(v: Option<&serde_json::Value>) -> Option<u32> {
+    let v = v?;
+    v.as_u64().map(|n| n as u32).or_else(|| v.as_str().and_then(|s| s.trim().parse().ok()))
+}
+
+fn load_brazil_state(uf: u32) -> Result<Vec<Muni>, String> {
+    let mut names: HashMap<u32, String> = HashMap::new();
+    if let Ok(v) = fetch_json(&format!("{IBGE}/v1/localidades/estados/{uf}/municipios")) {
+        for m in v.as_array().into_iter().flatten() {
+            if let (Some(id), Some(n)) = (json_code(m.get("id")), m.get("nome").and_then(|n| n.as_str())) {
+                names.insert(id, n.to_owned());
+            }
+        }
+    }
+    let urls = [
+        format!("{IBGE}/v3/malhas/estados/{uf}?intrarregiao=municipio&qualidade=intermediaria&formato=application/vnd.geo+json"),
+        format!("{IBGE}/v3/malhas/estados/{uf}?intrarregiao=municipio&qualidade=minima&formato=application/vnd.geo+json"),
+        format!("https://raw.githubusercontent.com/tbrugz/geodata-br/master/geojson/geojs-{uf}-mun.json"),
+    ];
+    let mut last = String::new();
+    for url in &urls {
+        let json = match fetch_json(url) { Ok(j) => j, Err(e) => { last = e; continue; } };
+        let mut out = Vec::new();
+        for f in json.get("features").and_then(|v| v.as_array()).into_iter().flatten() {
+            let props = f.get("properties");
+            let code = json_code(props.and_then(|p| p.get("codarea").or_else(|| p.get("id")).or_else(|| p.get("CD_MUN"))));
+            let Some(code) = code else { continue; };
+            let Some(geometry) = f.get("geometry") else { continue; };
+            let mut lines = Vec::new();
+            if let Some(c) = geometry.get("coordinates") { collect_geojson_lines(c, &mut lines); }
+            let name = names.get(&code).cloned()
+                .or_else(|| feature_name(f, &["name", "NM_MUN", "nome"]))
+                .unwrap_or_default();
+            out.push(Muni { code, name, lines, center: label_center(geometry) });
+        }
+        if !out.is_empty() { return Ok(out); }
+        last = "sem municípios no arquivo".into();
+    }
+    Err(format!("UF {uf}: {last}"))
+}
+
+// Brazil: municipality outlines/names from IBGE (official API, GitHub mirror as fallback), and
+// metropolitan regions built from IBGE's list of member municipalities (outer outline only).
+fn load_brazil(log: &StatusLog, tx: &mpsc::Sender<Patch>) {
+    let results: Vec<Result<Vec<Muni>, String>> = BR_UFS.par_iter().map(|&uf| load_brazil_state(uf)).collect();
+    let mut munis: Vec<Muni> = Vec::new();
+    let mut errs = Vec::new();
+    for r in results { match r { Ok(m) => munis.extend(m), Err(e) => errs.push(e) } }
+    if !errs.is_empty() { log_status(log, format!("✖ Municípios: {}", errs.join("; "))); }
+    if munis.is_empty() { return; }
+
+    let mut lines = Vec::new();
+    let mut labels = Vec::new();
+    for m in &munis {
+        lines.extend(m.lines.iter().cloned());
+        if let (false, Some((lat, lon))) = (m.name.is_empty(), m.center) {
+            labels.push(MapLabel { lat, lon, en: m.name.clone(), pt: m.name.clone(), kind: LabelKind::City, rank: 9 });
+        }
+    }
+    log_status(log, format!("✔ Municípios: {} municípios", munis.len()));
+    let _ = tx.send(Patch { layer: Layer::Cities, lines, labels });
+
+    let url = format!("{IBGE}/v1/localidades/regioes-metropolitanas");
+    let json = match fetch_json(&url) {
+        Ok(j) => j,
+        Err(e) => { log_status(log, format!("✖ Regiões metropolitanas: {url}: {e}")); return; }
+    };
+    let by_code: HashMap<u32, &Muni> = munis.iter().map(|m| (m.code, m)).collect();
+    let (mut mlines, mut mlabels) = (Vec::new(), Vec::new());
+    for rm in json.as_array().into_iter().flatten() {
+        let Some(name) = rm.get("nome").and_then(|n| n.as_str()) else { continue; };
+        let members: Vec<&Muni> = rm.get("municipios").and_then(|v| v.as_array()).into_iter().flatten()
+            .filter_map(|m| json_code(m.get("id")).and_then(|c| by_code.get(&c).copied())).collect();
+        if members.is_empty() { continue; }
+        mlines.extend(outer_outline(members.iter().flat_map(|m| m.lines.iter())));
+        let centers: Vec<(f64, f64)> = members.iter().filter_map(|m| m.center).collect();
+        if !centers.is_empty() {
+            let n = centers.len() as f64;
+            let (lat, lon) = (centers.iter().map(|c| c.0).sum::<f64>() / n, centers.iter().map(|c| c.1).sum::<f64>() / n);
+            mlabels.push(MapLabel { lat, lon, en: name.to_owned(), pt: name.to_owned(), kind: LabelKind::Metro, rank: 0 });
+        }
+    }
+    if mlines.is_empty() {
+        log_status(log, "✖ Regiões metropolitanas: resposta do IBGE sem municípios".into());
+    } else {
+        log_status(log, format!("✔ Regiões metropolitanas: {}", mlabels.len()));
+        let _ = tx.send(Patch { layer: Layer::Metro, lines: mlines, labels: mlabels });
+    }
+}
+
+/// Keeps only the segments that belong to exactly one polygon, i.e. the outer boundary of a group
+/// of neighbouring municipalities (shared inner borders appear twice and are dropped).
+fn outer_outline<'a>(lines: impl Iterator<Item = &'a Line>) -> Vec<Line> {
+    let q = |p: (f64, f64)| ((p.0 * 1e5).round() as i64, (p.1 * 1e5).round() as i64);
+    let mut count: HashMap<((i64, i64), (i64, i64)), (u32, (f64, f64), (f64, f64))> = HashMap::new();
+    for line in lines {
+        for w in line.windows(2) {
+            let (a, b) = (q(w[0]), q(w[1]));
+            if a == b { continue; }
+            let key = if a <= b { (a, b) } else { (b, a) };
+            count.entry(key).and_modify(|e| e.0 += 1).or_insert((1, w[0], w[1]));
+        }
+    }
+    count.into_values().filter(|e| e.0 == 1).map(|e| vec![e.1, e.2]).collect()
+}
+
+fn geo_cache_path(url: &str) -> PathBuf {
+    let clean: String = url.chars().map(|c| if c.is_ascii_alphanumeric() { c } else { '_' }).collect();
+    let start = clean.len().saturating_sub(120);
+    cache_dir().join("geo").join(&clean[start..])
+}
+
+/// Downloads (or reads from the disk cache) a JSON document. There is no size limit (the world
+/// admin-1 file is tens of MB), but there are connect/read timeouts and one retry.
+fn fetch_json(url: &str) -> Result<serde_json::Value, String> {
+    let path = geo_cache_path(url);
+    if let Ok(bytes) = std::fs::read(&path) {
+        if let Ok(v) = serde_json::from_slice(&bytes) { return Ok(v); }
+    }
+    let agent = ureq::AgentBuilder::new()
+        .timeout_connect(Duration::from_secs(15))
+        .timeout_read(Duration::from_secs(90))
+        .user_agent("EarthCraft/0.1 (map boundary overlay)")
+        .build();
+    let mut last = String::new();
+    for _ in 0..2 {
+        let resp = match agent.get(url).call() { Ok(r) => r, Err(e) => { last = e.to_string(); continue; } };
+        let mut buf = Vec::new();
+        if let Err(e) = resp.into_reader().take(1 << 30).read_to_end(&mut buf) { last = e.to_string(); continue; }
+        match serde_json::from_slice::<serde_json::Value>(&buf) {
+            Ok(v) => {
+                if let Some(dir) = path.parent() { let _ = std::fs::create_dir_all(dir); }
+                let _ = std::fs::write(&path, &buf);
+                return Ok(v);
+            }
+            Err(e) => { last = format!("JSON inválido: {e}"); }
+        }
+    }
+    Err(last)
+}
+
+fn feature_name(feature: &serde_json::Value, keys: &[&str]) -> Option<String> {
+    let props = feature.get("properties")?;
+    keys.iter().find_map(|key| props.get(*key).and_then(|v| v.as_str()).filter(|s| !s.trim().is_empty()).map(|s| s.to_owned()))
+}
+
+/// Label anchor: bounding-box centre of the geometry's largest outer ring (so countries with
+/// far-away islands are labelled on the mainland). Returns (lat, lon).
+fn label_center(geometry: &serde_json::Value) -> Option<(f64, f64)> {
+    let coords = geometry.get("coordinates")?;
+    let rings: Vec<&serde_json::Value> = match geometry.get("type").and_then(|t| t.as_str())? {
+        "Polygon" => coords.as_array()?.first().into_iter().collect(),
+        "MultiPolygon" => coords.as_array()?.iter().filter_map(|p| p.as_array()?.first()).collect(),
+        _ => return None,
+    };
+    let ring = rings.into_iter().max_by_key(|r| r.as_array().map_or(0, |a| a.len()))?;
+    let (mut min_lat, mut max_lat, mut min_lon, mut max_lon) = (f64::MAX, f64::MIN, f64::MAX, f64::MIN);
+    for p in ring.as_array()? {
+        let (Some(lon), Some(lat)) = (p.get(0).and_then(|v| v.as_f64()), p.get(1).and_then(|v| v.as_f64())) else { continue; };
+        if lat.abs() > 90.0 || lon.abs() > 180.0 { continue; }
+        min_lat = min_lat.min(lat); max_lat = max_lat.max(lat);
+        min_lon = min_lon.min(lon); max_lon = max_lon.max(lon);
+    }
+    (min_lat <= max_lat).then_some(((min_lat + max_lat) / 2.0, (min_lon + max_lon) / 2.0))
+}
+
+/// Lower-cases and strips common Portuguese/Latin accents, for name de-duplication.
+fn fold_name(s: &str) -> String {
+    s.chars().map(|c| c.to_lowercase().next().unwrap_or(c)).map(|c| match c {
+        'á' | 'à' | 'â' | 'ã' | 'ä' => 'a', 'é' | 'è' | 'ê' | 'ë' => 'e', 'í' | 'ì' | 'î' | 'ï' => 'i',
+        'ó' | 'ò' | 'ô' | 'õ' | 'ö' => 'o', 'ú' | 'ù' | 'û' | 'ü' => 'u', 'ç' => 'c',
+        c => c,
+    }).filter(|c| c.is_alphanumeric()).collect()
+}
+
+/// Brazilian cities exist both in the world populated-places set and in the IBGE municipality set;
+/// keep only the most prominent entry (lowest rank) per name and ~0.5° cell.
+fn dedupe_city_labels(labels: &mut Vec<MapLabel>) {
+    let mut best: HashMap<(String, i32, i32), usize> = HashMap::new();
+    let mut drop = vec![false; labels.len()];
+    for (i, l) in labels.iter().enumerate() {
+        if l.kind != LabelKind::City { continue; }
+        for (dla, dlo) in [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)] {
+            let key = (fold_name(&l.pt), (l.lat * 2.0).floor() as i32 + dla, (l.lon * 2.0).floor() as i32 + dlo);
+            if let Some(&j) = best.get(&key) {
+                if labels[j].rank <= l.rank { drop[i] = true; } else { drop[j] = true; }
+                break;
+            }
+        }
+        if !drop[i] { best.insert((fold_name(&l.pt), (l.lat * 2.0).floor() as i32, (l.lon * 2.0).floor() as i32), i); }
+    }
+    let mut it = drop.into_iter();
+    labels.retain(|_| !it.next().unwrap_or(false));
+}
+
+// Recursively extracts GeoJSON coordinate sequences. GeoJSON order is [longitude, latitude].
+fn collect_geojson_lines(value: &serde_json::Value, out: &mut Vec<Vec<(f64, f64)>>) {
+    let Some(items) = value.as_array() else { return; };
+    let is_line = items.first().and_then(|v| v.as_array())
+        .map_or(false, |pair| pair.len() >= 2 && pair[0].is_number() && pair[1].is_number());
+    if is_line {
+        let line: Vec<(f64, f64)> = items.iter().filter_map(|pair| {
+            let p = pair.as_array()?;
+            let lon = p.get(0)?.as_f64()?; let lat = p.get(1)?.as_f64()?;
+            (lat.is_finite() && lon.is_finite() && lat.abs() <= 90.0 && lon.abs() <= 180.0).then_some((lat, lon))
+        }).collect();
+        if line.len() >= 2 { out.push(line); }
+    } else { for child in items { collect_geojson_lines(child, out); } }
+}
+
 struct App {
     lang: Lang,
     cam: Cam,
@@ -789,6 +1143,14 @@ struct App {
     cache: Arc<TileCache>,
     provider: Provider,
     show_grid: bool,
+    show_country_boundaries: bool,
+    show_state_boundaries: bool,
+    show_city_boundaries: bool,
+    show_metro_boundaries: bool,
+    show_place_labels: bool,
+    boundaries: BoundaryData,
+    boundaries_rx: Option<mpsc::Receiver<Patch>>,
+    boundary_log: StatusLog,
     show_atmo: bool,
     show_sun: bool,
     auto_rotate: bool,
@@ -822,6 +1184,7 @@ impl App {
         vis.window_rounding = 6.0.into();
         cc.egui_ctx.set_visuals(vis);
         let lang = load_lang();
+        let boundary_log: StatusLog = Arc::new(Mutex::new(Vec::new()));
         App {
             lang,
             cam: Cam { lat: -15.0, lon: -50.0, heading: 0.0, alt: 14_000.0 },
@@ -829,6 +1192,14 @@ impl App {
             cache: TileCache::new(cc.egui_ctx.clone()),
             provider: Provider::Satellite,
             show_grid: false,
+            show_country_boundaries: true,
+            show_state_boundaries: true,
+            show_city_boundaries: false,
+            show_metro_boundaries: false,
+            show_place_labels: true,
+            boundaries: BoundaryData::default(),
+            boundaries_rx: Some(load_boundaries_async(boundary_log.clone())),
+            boundary_log,
             show_atmo: true,
             show_sun: false,
             auto_rotate: false,
@@ -1003,6 +1374,17 @@ impl App {
                     }
                     ui.separator();
                     ui.checkbox(&mut self.show_grid, lg.pick("Latitude/longitude grid", "Grade de latitude/longitude"));
+                    ui.checkbox(&mut self.show_country_boundaries, lg.pick("Country borders (worldwide)", "Limites dos países (mundo todo)"));
+                    ui.checkbox(&mut self.show_state_boundaries, lg.pick("States / provinces (worldwide)", "Estados / províncias (mundo todo)"));
+                    ui.checkbox(&mut self.show_place_labels, lg.pick("Country, state and city names", "Nomes de países, estados e cidades"));
+                    ui.checkbox(&mut self.show_city_boundaries, lg.pick("City / municipality borders (Brazil dataset)", "Limites de cidades / municípios (base do Brasil)"));
+                    ui.checkbox(&mut self.show_metro_boundaries, lg.pick("Metropolitan regions (Brazil only)", "Regiões metropolitanas (disponível apenas para o Brasil)"));
+                    if self.boundaries_rx.is_some() {
+                        ui.weak(lg.pick("⏳ Loading borders and names…", "⏳ Carregando limites e nomes…"));
+                    }
+                    if let Ok(log) = self.boundary_log.lock() {
+                        for line in log.iter() { ui.weak(egui::RichText::new(line).small()); }
+                    }
                     ui.checkbox(&mut self.show_atmo, lg.pick("Atmosphere and stars", "Atmosfera e estrelas"));
                     ui.checkbox(&mut self.show_sun, lg.pick("Real-time sunlight (day/night)", "Luz do sol em tempo real (dia/noite)"));
                     ui.checkbox(&mut self.auto_rotate, lg.pick("Auto-rotate", "Girar automaticamente"));
@@ -1250,18 +1632,27 @@ impl App {
 
         let mut hs = std::collections::hash_map::DefaultHasher::new();
         (
-            self.cam.lat.to_bits(),
-            self.cam.lon.to_bits(),
-            self.cam.heading.to_bits(),
-            self.cam.alt.to_bits(),
-            w,
-            h,
-            self.provider.id(),
-            self.show_grid,
-            self.show_atmo,
-            sun_key,
+            (
+                self.cam.lat.to_bits(),
+                self.cam.lon.to_bits(),
+                self.cam.heading.to_bits(),
+                self.cam.alt.to_bits(),
+                w,
+                h,
+                self.provider.id(),
+                self.show_grid,
+            ),
+            (
+                self.show_country_boundaries,
+                self.show_state_boundaries,
+                self.show_city_boundaries,
+                self.show_metro_boundaries,
+                self.show_place_labels,
+                self.show_atmo,
+                sun_key,
+            ),
         )
-            .hash(&mut hs);
+        .hash(&mut hs);
         let state = hs.finish();
         let gen = self.cache.gen.load(Ordering::Relaxed);
 
@@ -1423,7 +1814,86 @@ impl App {
         self.image = Some((w, h, buf));
     }
 
+    fn merge_patch(&mut self, patch: Patch) {
+        let b = &mut self.boundaries;
+        match patch.layer {
+            Layer::Countries => b.countries.extend(patch.lines),
+            Layer::States => b.states.extend(patch.lines),
+            Layer::Cities => b.cities.extend(patch.lines),
+            Layer::Metro => b.metro.extend(patch.lines),
+        }
+        b.labels.extend(patch.labels);
+        dedupe_city_labels(&mut b.labels);
+        self.last_state = 0; // redraw overlays immediately
+    }
+
     fn draw_overlays(&self, painter: &egui::Painter, basis: &Basis, rect: Rect) {
+        // Administrative boundaries are drawn as a separate overlay, independent of imagery.
+        // Densify long geographic edges at close zoom. Many admin-1 polygons have very
+        // sparse vertices; projecting only the endpoints makes their borders disappear
+        // whenever an endpoint falls behind the globe's horizon. Sampling the edge keeps
+        // the visible middle portions drawable, including small countries at ~500 km.
+        let draw_lines = |lines: &[Vec<(f64, f64)>], color: Color32, width: f32, max_step_deg: f64| {
+            let stroke = Stroke::new(width, color);
+            for line in lines {
+                for pair in line.windows(2) {
+                    let (lat1, lon1) = pair[0];
+                    let (lat2, lon2) = pair[1];
+                    let dlat = lat2 - lat1;
+                    let mut dlon = lon2 - lon1;
+                    if dlon > 180.0 { dlon -= 360.0; }
+                    if dlon < -180.0 { dlon += 360.0; }
+                    let start = basis.project(ll_to_v3(lat1, lon1), rect);
+                    let end = basis.project(ll_to_v3(lat2, lon2), rect);
+                    if let (Some(a), Some(b)) = (start, end) {
+                        // Common case: both endpoints are visible, so no extra sampling needed.
+                        painter.line_segment([a, b], stroke);
+                        continue;
+                    }
+                    let span = dlat.abs().max(dlon.abs());
+                    if span < max_step_deg { continue; }
+                    let steps = ((span / max_step_deg).ceil() as usize).clamp(1, 96);
+                    let mut prev = start;
+                    for i in 1..=steps {
+                        let t = i as f64 / steps as f64;
+                        let lon = wrap_lon(lon1 + dlon * t);
+                        let lat = lat1 + dlat * t;
+                        let cur = basis.project(ll_to_v3(lat, lon), rect);
+                        if let (Some(a), Some(b)) = (prev, cur) {
+                            painter.line_segment([a, b], stroke);
+                        }
+                        prev = cur;
+                    }
+                }
+            }
+        };
+        let close_zoom = self.cam.alt <= 500.0;
+        if self.show_country_boundaries { draw_lines(&self.boundaries.countries, Color32::from_rgba_unmultiplied(255, 235, 150, 235), 1.15, if close_zoom { 0.25 } else { 2.0 }); }
+        if self.show_state_boundaries { draw_lines(&self.boundaries.states, Color32::from_rgba_unmultiplied(120, 220, 255, 220), 1.0, if close_zoom { 0.12 } else if self.cam.alt <= 5000.0 { 0.5 } else { 2.0 }); }
+        if self.show_city_boundaries { draw_lines(&self.boundaries.cities, Color32::from_rgba_unmultiplied(255, 160, 80, 210), 0.7, if close_zoom { 0.12 } else { 1.0 }); }
+        if self.show_metro_boundaries { draw_lines(&self.boundaries.metro, Color32::from_rgba_unmultiplied(255, 100, 210, 235), 1.5, if close_zoom { 0.12 } else { 1.0 }); }
+        if self.show_place_labels {
+            for label in &self.boundaries.labels {
+                let enabled = label.visible_at(self.cam.alt) && match label.kind {
+                    LabelKind::Country | LabelKind::City => true,
+                    LabelKind::State => self.show_state_boundaries,
+                    LabelKind::Metro => self.show_metro_boundaries,
+                };
+                if !enabled { continue; }
+                if let Some(pos) = basis.project(ll_to_v3(label.lat, label.lon), rect) {
+                    if rect.contains(pos) {
+                        let (color, size) = match label.kind {
+                            LabelKind::Country => (Color32::WHITE, 12.0),
+                            LabelKind::State => (Color32::from_rgb(180, 230, 255), 10.0),
+                            LabelKind::City => (Color32::from_rgb(255, 245, 210), 9.0),
+                            LabelKind::Metro => (Color32::from_rgb(255, 170, 230), 10.0),
+                        };
+                        painter.text(pos, Align2::CENTER_CENTER, label.text(self.lang), FontId::proportional(size), Color32::from_black_alpha(180));
+                        painter.text(pos + Vec2::new(0.0, -0.5), Align2::CENTER_CENTER, label.text(self.lang), FontId::proportional(size), color);
+                    }
+                }
+            }
+        }
         // ruler
         let stroke = Stroke::new(2.5, Color32::from_rgb(255, 80, 80));
         for pair in self.ruler_pts.windows(2) {
@@ -1468,6 +1938,20 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let dt = ctx.input(|i| i.unstable_dt).min(0.1) as f64;
         self.poll_search();
+        if let Some(rx) = self.boundaries_rx.take() {
+            let mut finished = false;
+            loop {
+                match rx.try_recv() {
+                    Ok(patch) => self.merge_patch(patch),
+                    Err(mpsc::TryRecvError::Empty) => break,
+                    Err(mpsc::TryRecvError::Disconnected) => { finished = true; break; }
+                }
+            }
+            if !finished {
+                self.boundaries_rx = Some(rx);
+                ctx.request_repaint_after(Duration::from_millis(300)); // keep polling while layers load
+            }
+        }
         self.step_fly(dt);
         if self.fly.is_some() {
             ctx.request_repaint();
