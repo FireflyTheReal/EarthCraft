@@ -7,9 +7,9 @@ Leia em português: README.pt-BR.md
 ### Build and run
 Requires Rust 1.82+ (https://rustup.rs):
 
-cargo run --release
+    cargo run --release
 
-Linux (if something is missing): sudo apt install libxkbcommon-dev libwayland-dev libx11-dev
+Linux (if something is missing):  `sudo apt install libxkbcommon-dev libwayland-dev libx11-dev`
 
 An internet connection is required to download map tiles.
 
