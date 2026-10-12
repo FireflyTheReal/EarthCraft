@@ -1,2 +1,30 @@
-# EarthCraft
-Earth navigation program suggestion for ArtCraft
+# EarthCraft 🌍
+
+Globo 3D estilo Google Earth em Rust puro (egui + renderização por ray-casting em CPU).
+Roda em Windows, macOS e Linux sem dependências de sistema além do driver gráfico.
+
+## Compilar e executar
+Requer Rust 1.82+ (https://rustup.rs):
+
+    cargo run --release
+
+Linux (se faltar algo): `sudo apt install libxkbcommon-dev libwayland-dev libx11-dev`
+
+## Funções
+- Globo 3D com órbita, zoom, rotação da vista (heading) e bússola
+- Imagens de satélite (Esri), ruas (OSM) e topografia (OpenTopoMap) com tiles em múltiplos níveis de zoom e cache em disco
+- Busca de lugares/endereços (Nominatim) e entrada direta de coordenadas "lat, lon"
+- Voo animado até o destino (duplo clique, busca ou lista)
+- Placemarks com importação/exportação KML
+- Régua de distância geodésica (grande círculo)
+- Grade lat/lon, atmosfera, estrelas, luz solar em tempo real (dia/noite)
+- Barra de escala, coordenadas do cursor, captura de tela PNG, menu de contexto
+
+## Controles
+Arrastar: girar · Botão direito/Shift+arrastar: girar vista · Roda/+/-: zoom ·
+Duplo clique: voar · Setas: mover · N: norte para cima
+
+## Não implementado (exigiria dados/infra proprietários)
+Terreno 3D com relevo real, prédios 3D, Street View, histórico de imagens, Google Earth Studio,
+fotos geolocalizadas, tours narrados, camadas de dados (clima, oceanos, Marte/Lua), KMZ/ícones.
+Os tiles são serviços de terceiros: respeite os termos de uso (OSM limita uso intenso).
