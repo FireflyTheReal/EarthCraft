@@ -37,7 +37,7 @@ Requer Rust 1.82+ (https://rustup.rs):
 
     cargo run --release
 
-Linux (se faltar algo): `sudo apt install libxkbcommon-dev libwayland-dev libx11-dev`
+Linux (se faltar algo): `sudo apt install libxkbcommon-dev libwayland-dev libx11-dev` / `sudo apt install build-essential pkg-config libatk1.0-dev libgtk-3-dev`
 
 ### Funções
 - Globo 3D com órbita, zoom, rotação da vista (heading) e bússola
