@@ -9,7 +9,7 @@ EarthCraft 0.1.0 usa um workspace Cargo com uma aplicação e três bibliotecas.
 | `apps/earthcraft` | Inicialização, entrada, estado da interface, fontes, formas do egui e upload de texturas |
 | `earthcraft-core` | Matemática/câmera em f64, seleção, animação de voo, normalização Unicode, idiomas, Fluent e marcadores |
 | `earthcraft-data` | HTTP assíncrono, tiles, limites administrativos, busca, KML, configurações e persistência |
-| `earthcraft-render` | Rasterização CPU/GPU, coordenação de quadros, projeção de overlays, índices espaciais e prioridade de tiles |
+| `earthcraft-render` | Rasterização CPU, coordenação de quadros, projeção de overlays, índices espaciais e prioridade de tiles |
 
 A aplicação depende das bibliotecas; render depende de core/data e data depende de
 core. As bibliotecas nunca dependem da aplicação. Versões e perfis ficam no
@@ -22,16 +22,6 @@ Uma thread de coordenação mantém um trabalho ativo, um pedido pendente substi
 e um quadro concluído. Mudanças de provedor, versão histórica, tamanho ou estilo
 rejeitam resultados incompatíveis. Seleção, overlays e escala usam a câmera do
 quadro exibido, mantendo alinhamento durante movimento.
-
-`backend::FrameRenderer` escolhe wgpu ou CPU. A CPU é o padrão; a GPU requer
-`EARTHCRAFT_RENDERER=auto` ou `EARTHCRAFT_RENDERER=gpu` enquanto problemas de
-execução no Ubuntu são investigados. Inicialização da GPU, uploads, execução
-e leitura dos pixels ficam fora da thread do egui. Os shaders ficam em
-`crates/earthcraft-render/src/gpu/shaders`. Vistas próximas e grade usam CPU em
-precisão dupla; céu, horizonte e bordas de tiles recebem correção precisa na CPU.
-Vistas pequenas usam CPU no modo automático. Falhas de adaptador/dispositivo e
-perda do dispositivo selecionam CPU. Consulte [GPU_RENDERER.md](GPU_RENDERER.md)
-para limites, modos de diagnóstico e medições.
 
 A CPU usa Rayon, blocos de oito linhas e quatro raios f64 por lote com `wide`.
 Glam fornece matrizes/quaternions e cores SIMD; bytemuck fornece conversões seguras
@@ -63,8 +53,6 @@ coalescida e descarregadas ao encerrar.
 
 - Moka mantém tiles decodificados com LRU e meta aproximada de 256 MiB; referências
   temporárias e ultrapassagens breves são contabilizadas separadamente.
-- O atlas da GPU usa até 128 MiB, limitado também pelo adaptador, com residência
-  da vista atual e referências fracas aos tiles da CPU.
 - MBTiles 1.3 usa tokio-rusqlite e meta de 128 MiB de arquivos gerenciados, incluindo
   overhead SQLite. Provedores, versões Wayback e formatos ficam separados; XYZ é
   convertido para TMS. Arquivos antigos são importados sob demanda.
@@ -86,3 +74,14 @@ Veja [CONTRIBUTING.md](CONTRIBUTING.md), [LOCALIZATION.md](LOCALIZATION.md) e
 [GEOSPATIAL.md](GEOSPATIAL.md) para práticas de manutenção e validação. Profiling é
 opcional e usa um gravador limitado em segundo plano; tempos de componentes não
 representam automaticamente FPS da aplicação.
+
+
+## Optional GPU Earth rasterization / renderização opcional em GPU
+
+The Earth overview raster can be computed by the `earthcraft-render` `backend`
+module with `wgpu` compute shaders (`gpu/`), then read back for the existing
+egui view; the CPU path remains the default and fallback. Set
+`EARTHCRAFT_RENDERER=auto` or `EARTHCRAFT_RENDERER=gpu` to enable a GPU attempt.
+The Explorer, live meteorological/aircraft layers, moon and custom planet
+remain integrated in `apps/earthcraft`. See [GPU_RENDERER.md](GPU_RENDERER.md)
+for hardware limits, performance and CPU-only build instructions.

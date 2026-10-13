@@ -21,6 +21,10 @@ earthcraft-data.workspace = true
 earthcraft-render.workspace = true
 eframe.workspace = true
 image.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+reqwest.workspace = true
+tokio.workspace = true
 rstar.workspace = true
 
 # Native file/folder dialogs. On Linux we use GTK3 (works without xdg-desktop-portal).

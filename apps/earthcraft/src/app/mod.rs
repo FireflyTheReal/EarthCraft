@@ -14,7 +14,10 @@ use std::{
 };
 mod cache;
 mod files;
+mod explorer;
 mod globe;
+mod live_layers;
+mod live_maps;
 mod navigation;
 mod overlays;
 mod rendering;
@@ -36,6 +39,7 @@ type SuggestionResponse = (String, Result<Vec<Suggestion>, earthcraft_data::Erro
 
 pub(crate) struct App {
     runtime: earthcraft_data::runtime::ServiceRuntime,
+    explorer: explorer::Explorer,
     boundary_loader: earthcraft_data::boundaries::BoundaryLoader,
     lang: Lang,
     cam: Cam,
@@ -57,6 +61,10 @@ pub(crate) struct App {
     show_atmo: bool,
     show_sun: bool,
     auto_rotate: bool,
+    show_flights: bool,
+    show_weather: bool,
+    show_clouds: bool,
+    live_maps: live_maps::LiveMaps,
 
     renderer: rendering::Renderer,
     frame_rate: ui::FrameRate,
@@ -142,6 +150,7 @@ impl App {
             move || ctx.request_repaint()
         });
         App {
+            explorer: explorer::Explorer::default(),
             lang,
             cam: INITIAL_CAMERA,
             fly: None,
@@ -169,6 +178,10 @@ impl App {
             show_atmo: true,
             show_sun: false,
             auto_rotate: false,
+            show_flights: false,
+            show_weather: false,
+            show_clouds: false,
+            live_maps: live_maps::LiveMaps::default(),
             texture: None,
             image: None,
             last_state: 0,
@@ -263,6 +276,8 @@ impl eframe::App for App {
         self.bottom_bar(ctx);
         self.side_panel(ctx);
         self.settings_window(ctx);
+        self.explorer_window(ctx);
+        self.live_maps.update(ctx, &self.runtime, self.show_clouds, self.show_weather);
         self.boundary_loader.request_visible_layers(
             self.show_city_boundaries,
             self.show_metro_boundaries,

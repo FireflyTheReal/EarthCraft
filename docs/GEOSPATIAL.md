@@ -136,4 +136,4 @@ current feature-at-a-time GeoJSON visitor is already streaming file input, so
 adding another reader today is not an established optimization. A vector switch
 needs a tiled data planner independent of raster sampling; it does not replace
 satellite PNG/JPEG imagery. No MVT source or geozero runtime dependency was added
-to the application. See [GPU rendering](GPU_RENDERER.md) for the raster backend.
+to the application.

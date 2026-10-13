@@ -53,11 +53,9 @@ constant. Short typical UI updates do not establish uniformly smooth input.
 
 ## Interpretation
 
-Full-resolution raster work remains a substantial cost, supporting the optional
-GPU globe initiative. World-view overlay preparation is also significant, and
-large dataset changes rebuild indexes; neither is solved automatically by a GPU
-raster shader. Keep those as distinct optimization candidates. GPU evaluation
-must repeat this baseline and retain CPU fallback, rather than assuming a speedup.
+Full-resolution raster work remains a substantial cost. World-view overlay
+preparation is also significant, and large dataset changes rebuild indexes. Keep
+those as distinct optimization candidates.
 
 The report measures app update wall time, not egui's later tessellation, actual
 driver texture upload, GPU execution, screen presentation or OS input-to-display

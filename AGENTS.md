@@ -129,7 +129,7 @@ User instructions and the requested scope take precedence over these defaults.
   admission and retry metadata remain separately synchronized. Preserve retry policy
   and disk fallback. Stream large GeoJSON feature collections; share immutable
   coordinate lines and request municipal data only when its layers are visible.
-  Account for temporary references and GPU textures separately when measuring.
+  Account for temporary references separately when measuring.
 - Persist imagery through MBTiles and the single tokio-rusqlite worker. Keep
   provider/release/encoded-format identities separate, convert XYZ rows to TMS,
   retain legacy-file fallback/migration and respect the disk epoch on writeback.
@@ -160,20 +160,14 @@ User instructions and the requested scope take precedence over these defaults.
   Share an ID only when the meaning and usage match, not just the displayed text.
   See `docs/LOCALIZATION.md` for fallback, fixtures and contributor examples.
 
-- GPU acceleration remains optional: retain CPU rendering.
-  Keep GPU selection opt-in until reported Ubuntu freezes have native regression
-  coverage, and keep GPU panics from terminating the frame coordinator. Do not
-  mistake panic recovery for protection against a blocked driver call or native crash.
-  Validate adapter capabilities/limits and precision, and fall back explicitly
-  when adapter/device initialization fails. Add a CPU-forced diagnostic mode and
-  test failure paths. Do not claim changing egui's backend accelerates the globe.
-  Keep adapter/device initialization, uploads, dispatch, waits and readback on the
-  frame coordinator. Bound GPU residency separately; hold weak decoded references
-  between frames. Preserve the CPU precision path for close/grid views and shared
-  sky/horizon/tile-seam repair. Reject unsupported dimensions/LOD or unusual tile
-  layouts rather than silently dropping imagery. GPU changes need explicit native
-  parity, dependency-coverage, device-loss and complete-frame measurements; an
-  ignored hardware test is not evidence until run. See `docs/GPU_RENDERER.md`.
+- GPU acceleration is optional: the CPU renderer remains available. Selection is opt-in
+  (`EARTHCRAFT_RENDERER=auto|gpu`; CPU by default). Keep adapter initialization,
+  texture uploads, compute dispatch, waits and readback on the frame coordinator.
+  Retain a CPU fallback on initialization/readback/device errors. Close and exact-grid
+  views use the double-precision CPU path; GPU sky/horizon/tile seams use precise
+  CPU repair. Check GPU memory bounds, software adapters, device loss and render
+  parity before widening hardware support. See `docs/GPU_RENDERER.md`.
+  Changing egui's presentation backend alone does not accelerate rasterization.
 - Performance claims need workload-specific evidence. Opt-in profiling uses a
   bounded background recorder; never write timing logs on UI/pixel paths, mix
   raster resolutions, or equate app-side texture submission with GPU execution.

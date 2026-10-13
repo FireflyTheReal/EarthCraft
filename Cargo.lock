@@ -1162,8 +1162,12 @@ dependencies = [
  "earthcraft-render",
  "eframe",
  "image 0.25.10",
+ "reqwest",
  "rfd",
  "rstar",
+ "serde",
+ "serde_json",
+ "tokio",
  "winresource",
 ]
 

@@ -44,15 +44,24 @@ impl App {
         // ── input
         let mut interacting = false;
         if resp.dragged_by(PointerButton::Primary) && !shift {
-            let d = resp.drag_delta();
+            let d = ctx.input(|i| i.pointer.delta());
             self.fly = None;
-            self.pan(d.x as f64, d.y as f64, rect.height());
+            if self.explorer.active == super::explorer::Body::Earth {
+                self.pan(d.x as f64, d.y as f64, rect.height());
+            } else {
+                // Independent orbit controls: incremental drag maps directly to spherical angles.
+                // Do not use the Earth's ground-plane pan, which becomes unstable near the limb.
+                let sensitivity = 180.0 / rect.height().max(1.0) as f64;
+                self.cam.lon = wrap_lon(self.cam.lon - d.x as f64 * sensitivity);
+                self.cam.lat = (self.cam.lat + d.y as f64 * sensitivity).clamp(-89.9, 89.9);
+            }
             interacting = true;
         } else if resp.dragged_by(PointerButton::Secondary)
             || (resp.dragged_by(PointerButton::Primary) && shift)
         {
+            let drag = ctx.input(|i| i.pointer.delta());
             self.cam.heading = wrap_lon(
-                self.cam.heading - resp.drag_delta().x as f64 * DRAG_HEADING_DEG_PER_POINT,
+                self.cam.heading - drag.x as f64 * DRAG_HEADING_DEG_PER_POINT,
             );
             interacting = true;
         }
@@ -62,12 +71,17 @@ impl App {
             let cur = resp.hover_pos();
             if sc != 0.0 {
                 self.fly = None;
-                self.zoom_at((-sc * SCROLL_ZOOM_RATE_PER_POINT).exp(), cur, rect, aspect);
+                let factor = (-sc * SCROLL_ZOOM_RATE_PER_POINT).exp();
+                if self.explorer.active == super::explorer::Body::Earth {
+                    self.zoom_at(factor, cur, rect, aspect);
+                } else { self.zoom(factor); }
                 interacting = true;
             }
             if (zd - 1.0).abs() > 1e-4 {
                 self.fly = None;
-                self.zoom_at(1.0 / zd, cur, rect, aspect);
+                if self.explorer.active == super::explorer::Body::Earth {
+                    self.zoom_at(1.0 / zd, cur, rect, aspect);
+                } else { self.zoom(1.0 / zd); }
                 interacting = true;
             }
         }
@@ -91,7 +105,13 @@ impl App {
             });
             if dx != 0.0 || dy != 0.0 {
                 self.fly = None;
-                self.pan(dx, dy, rect.height());
+                if self.explorer.active == super::explorer::Body::Earth {
+                    self.pan(dx, dy, rect.height());
+                } else {
+                    let sensitivity = 180.0 / rect.height().max(1.0) as f64;
+                    self.cam.lon = wrap_lon(self.cam.lon - dx * sensitivity);
+                    self.cam.lat = (self.cam.lat + dy * sensitivity).clamp(-89.9, 89.9);
+                }
                 interacting = true;
             }
             let (zin, zout, north) = ctx.input(|i| {
@@ -241,11 +261,22 @@ impl App {
                 Color32::WHITE,
             );
         }
+        if self.explorer.active != super::explorer::Body::Earth {
+            painter.rect_filled(rect,0.0,Color32::BLACK);
+            if let Some(sky)=self.explorer.sky.as_ref().filter(|_| self.explorer.active == super::explorer::Body::Custom) { painter.image(sky.id(),rect,Rect::from_min_max(Pos2::ZERO,Pos2::new(1.0,1.0)),Color32::WHITE); }
+            if let Some(body)=self.explorer.active_texture() {
+                draw_planet(&painter, rect, body, self.cam.lat, self.cam.lon, self.cam.alt);
+            }
+        }
         // Keep projected borders and labels aligned with the displayed raster
         // while the coordinator works on the latest camera position.
         let (display_cam, display_basis) =
             self.renderer.displayed_view().unwrap_or((self.cam, basis));
-        self.draw_overlays(&painter, &display_basis, rect, display_cam.alt);
+        if self.explorer.active == super::explorer::Body::Earth {
+            self.live_maps.draw(&painter, &display_basis, rect, self.show_clouds, self.show_weather);
+            self.draw_overlays(&painter, &display_basis, rect, display_cam.alt);
+            self.draw_live_layers(&painter, &display_basis, rect, display_cam.alt);
+        }
 
         // Google Earth style navigation controls (rotate / move / zoom)
         let dt_nav = ctx.input(|i| i.stable_dt).min(MAX_FRAME_DELTA_SECS) as f64;
@@ -308,6 +339,16 @@ impl App {
             FontId::proportional(11.0 * self.settings.map_scale),
             Color32::from_white_alpha(200),
         );
+
+        if self.explorer.active == super::explorer::Body::Earth && (self.show_clouds || self.show_weather) {
+            let source = self.live_maps.status(self.show_clouds, self.show_weather, lg);
+            let credit = if self.show_clouds && self.show_weather {
+                format!("{}\n{}", lg.text("live-cloud-credit"), lg.text("live-radar-credit"))
+            } else if self.show_clouds { lg.text("live-cloud-credit").into() }
+            else { lg.text("live-radar-credit").into() };
+            painter.text(rect.left_bottom() + Vec2::new(12.0, -58.0), Align2::LEFT_BOTTOM,
+                format!("{source}\n{credit}"), FontId::proportional(11.0), Color32::WHITE);
+        }
 
         // context menu (right-click)
         let pick = self.menu_pick;
@@ -372,4 +413,80 @@ impl App {
             ctx.request_repaint();
         }
     }
+}
+
+// A continuous triangulated disk (not a grid with square cell edges).
+// The same navigation camera that controls Earth controls zoom and rotation here.
+// Works entirely in egui's CPU-generated mesh pipeline.
+fn draw_planet(
+    painter: &egui::Painter,
+    rect: Rect,
+    tex: &egui::TextureHandle,
+    lat: f64,
+    lon: f64,
+    altitude_km: f64,
+) {
+    // Keep the previous apparent diameter at the initial camera distance.
+    // Zooming the globe now scales the Moon/Mars/custom body too.
+    let zoom = (18_895.0 / altitude_km.max(1.0)).sqrt().clamp(0.08, 32.0) as f32;
+    let radius = rect.width().min(rect.height()) * 0.44 * zoom;
+    let center = rect.center();
+    let latitude = lat.to_radians();
+    let longitude = lon.to_radians();
+    const RADIAL: usize = 72;
+    const ANGULAR: usize = 256;
+
+    // Build rings as exact circles. Unlike the old Cartesian raster, no cell
+    // can extend past the silhouette or leave jagged stair-step boundary gaps.
+    let mut mesh = egui::Mesh::with_texture(tex.id());
+    for ring in 0..RADIAL {
+        let inner = ring as f64 / RADIAL as f64;
+        let outer = (ring + 1) as f64 / RADIAL as f64;
+        for sector in 0..ANGULAR {
+            let angle0 = std::f64::consts::TAU * sector as f64 / ANGULAR as f64;
+            let angle1 = std::f64::consts::TAU * (sector + 1) as f64 / ANGULAR as f64;
+            let corners = [
+                (inner * angle0.cos(), inner * angle0.sin()),
+                (outer * angle0.cos(), outer * angle0.sin()),
+                (outer * angle1.cos(), outer * angle1.sin()),
+                (inner * angle1.cos(), inner * angle1.sin()),
+            ];
+            let mut uvs = [(0.0_f64, 0.0_f64); 4];
+            for (i, &(x, y)) in corners.iter().enumerate() {
+                let z = (1.0 - (x*x + y*y).min(1.0)).sqrt();
+                let xp = x * longitude.cos() + z * longitude.sin();
+                let zp = -x * longitude.sin() + z * longitude.cos();
+                let yp = y * latitude.cos() + zp * latitude.sin();
+                let zz = -y * latitude.sin() + zp * latitude.cos();
+                uvs[i] = (
+                    (0.5 + xp.atan2(zz) / std::f64::consts::TAU).rem_euclid(1.0),
+                    (0.5 - yp.clamp(-1.0, 1.0).asin() / std::f64::consts::PI).clamp(0.0, 1.0),
+                );
+            }
+            // Prevent texture smearing across the 0/1 longitude seam.
+            let u_min = uvs.iter().map(|uv| uv.0).fold(f64::INFINITY, f64::min);
+            let u_max = uvs.iter().map(|uv| uv.0).fold(f64::NEG_INFINITY, f64::max);
+            if u_max - u_min > 0.5 {
+                // Clamp each triangle to one side of the dateline, avoiding
+                // the texture interpolation jump across the entire image.
+                let left_count = uvs.iter().filter(|uv| uv.0 < 0.5).count();
+                if left_count >= 2 {
+                    for uv in &mut uvs { if uv.0 > 0.5 { uv.0 = 0.0; } }
+                } else {
+                    for uv in &mut uvs { if uv.0 < 0.5 { uv.0 = 1.0; } }
+                }
+            }
+            let base = mesh.vertices.len() as u32;
+            for (i, &(x, y)) in corners.iter().enumerate() {
+                mesh.vertices.push(egui::epaint::Vertex {
+                    pos: Pos2::new(center.x + x as f32 * radius, center.y + y as f32 * radius),
+                    uv: Pos2::new(uvs[i].0 as f32, uvs[i].1 as f32),
+                    color: Color32::WHITE,
+                });
+            }
+            mesh.add_triangle(base, base + 1, base + 2);
+            mesh.add_triangle(base, base + 2, base + 3);
+        }
+    }
+    painter.add(egui::Shape::mesh(mesh));
 }

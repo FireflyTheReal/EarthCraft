@@ -251,8 +251,7 @@ p95 and maxima. Open-ended phases are supported for inspecting a live recording.
 exclude eframe's subsequent tessellation/GPU work. `overlay.prepare` includes
 cached returns and index rebuilding when needed. Tile lock timing samples view
 admission, not every per-pixel cache miss. Avoid adding overlapping timing medians
-across threads. The [native baseline](PERFORMANCE_BASELINE.md) records limitations
-and the [GPU renderer](GPU_RENDERER.md) records fallback requirements.
+across threads. The [native baseline](PERFORMANCE_BASELINE.md) records limitations.
 
 Feature-enabled checks must accompany normal checks when changing instrumentation:
 
@@ -272,13 +271,13 @@ this setting does not enable G-SYNC/FreeSync in the graphics driver or display.
 Continuous animation requests repaints without the old 260 ms delay; native
 presentation and renderer readiness determine the achievable cadence.
 
-## GPU checks
 
-Default desktop builds include optional GPU globe rendering. Follow
-[GPU_RENDERER.md](GPU_RENDERER.md) for native parity and complete-frame benchmarks.
-Exercise both `EARTHCRAFT_RENDERER=gpu` and `EARTHCRAFT_RENDERER=cpu`, including
-resize, provider changes, sunlight/atmosphere, screenshots, close zoom and grid
-fallback. Run `cargo check -p earthcraft --no-default-features --locked` and strict
-Clippy for that configuration too. Headless CI runs hardware-independent tests;
-GPU tests require an explicit native adapter and remain opt-in. Do not declare
-Windows/Linux GPU behavior verified from a macOS run.
+## Optional GPU Earth rasterization / renderização opcional em GPU
+
+The Earth overview raster can be computed by the `earthcraft-render` `backend`
+module with `wgpu` compute shaders (`gpu/`), then read back for the existing
+egui view; the CPU path remains the default and fallback. Set
+`EARTHCRAFT_RENDERER=auto` or `EARTHCRAFT_RENDERER=gpu` to enable a GPU attempt.
+The Explorer, live meteorological/aircraft layers, moon and custom planet
+remain integrated in `apps/earthcraft`. See [GPU_RENDERER.md](GPU_RENDERER.md)
+for hardware limits, performance and CPU-only build instructions.

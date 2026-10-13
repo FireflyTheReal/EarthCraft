@@ -9,6 +9,7 @@ impl App {
         self.lang = l;
         self.settings_writer.language(l);
         self.status = l.text("app-ready-status").into();
+        // No private Explorer field access: keep user state intact on language changes.
     }
 
     pub(super) fn touch(&mut self) {

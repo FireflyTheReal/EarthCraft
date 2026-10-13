@@ -15,8 +15,6 @@ compatibility, review dependency changes separately, and retain regression fixtu
 | Tokio + reqwest | App-owned async runtime, pooled HTTP clients and bounded service work | Preserve provider policy, timeout values, retries, disk fallback and UI completion delivery; CPU rendering remains on Rayon |
 | Moka | Concurrent decoded-tile storage with byte weights and LRU eviction | 256 MiB is a best-effort target; keep request admission/retries separate and do not force frame-by-frame maintenance |
 | Fluent | Embedded English/Portuguese catalogs with cached labels and named message arguments | Preserve wording and number precision; test syntax, parity, resolution and fallback |
-| wgpu + pollster | Optional background GPU overview rasterization and device initialization | Preserve CPU fallback, bound GPU residency, validate shader/precision and keep execution/readback off egui |
-| Naga (tests) | Headless WGSL validation and uniform-layout checks | Match wgpu's shader version; native adapter tests remain separate |
 | geo-index | Packed immutable boundary-line visibility index | Conservative horizon/frustum and dateline/pole tests before projection |
 | tokio-rusqlite + rusqlite | SQLite-backed MBTiles persistence | Separate providers/releases/formats, TMS rows, managed-byte eviction and epoch-safe clearing |
 | fst + unicode-normalization | Loaded-name prefix indexes and international matching | Preserve ranking, original display names and snapshot generations |

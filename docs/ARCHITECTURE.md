@@ -23,7 +23,7 @@ package metadata and build profiles; `Cargo.lock` pins resolved dependencies.
 | `earthcraft` | Native startup, input, UI state, font layout, styled shapes and texture upload | `main.rs`, `app/mod.rs`, `app/ui`, `app/rendering.rs`, `app/overlays` |
 | `earthcraft-core` | Double-precision math, camera/picking/flight, Unicode name normalization, language, Fluent catalogs and placemarks | `camera`, `flight`, `math`, `language`, `localization`, `placemark` |
 | `earthcraft-data` | Async HTTP, tiles, boundaries, local search, KML, settings and persistence | `runtime`, `http`, `tiles`, `boundaries`, `search`, `kml`, `files`, `settings` |
-| `earthcraft-render` | CPU/GPU rasterization, frame scheduling, geographic overlay preparation and tile priorities | `backend`, `gpu`, `worker`, `overlays` |
+| `earthcraft-render` | CPU rasterization, frame scheduling, geographic overlay preparation and tile priorities | `worker`, `overlays` |
 
 ## Rendering and UI
 
@@ -33,27 +33,17 @@ Provider, release, size and style changes reject incompatible results; compatibl
 completed camera snapshots remain presentable during motion. Picking, borders,
 labels and scale use the displayed camera, keeping input and overlays aligned.
 
-`backend::FrameRenderer` selects optional wgpu overview rendering or CPU rendering.
-CPU rendering is the default; GPU selection requires `EARTHCRAFT_RENDERER=auto`
-or `EARTHCRAFT_RENDERER=gpu` while Ubuntu runtime failures are investigated.
-GPU initialization, uploads, dispatch and readback run on the coordinator. Shader
-files live under `crates/earthcraft-render/src/gpu/shaders`. Close views and exact
-grid rendering use the double-precision CPU path; GPU sky, horizon and tile seams
-use shared precise CPU repair. Automatic mode retains CPU rendering for small
-rasters. Adapter/device errors and device loss fall back to CPU. See
-[GPU rendering](GPU_RENDERER.md) for limits, environment options and measurements.
-
 CPU rasterization uses the shared Rayon pool, eight-row tile batches and `wide`
 four-lane f64 rays. Geographic conversion and LOD stay in f64; glam handles camera
 matrices/quaternions and SIMD colors. Batch-local tile handles avoid repeated cache
-reads and are released after the batch. Safe bytemuck casts describe byte pixels
-and GPU uniform layouts; workspace code forbids unsafe Rust.
+reads and are released after the batch. Safe bytemuck casts describe byte pixels;
+workspace code forbids unsafe Rust.
 
 The coordinator prepares CPU image data and matching overlay geometry before
 publication. Egui uploads textures and builds styled shapes on its own thread.
 RGBA buffers are reused when uniquely owned; screenshots retain immutable `Arc`
 snapshots, so an export never reads a recycled frame. PNG encoding runs on the
-bounded file worker. GPU readback preserves this presentation/export contract.
+bounded file worker.
 
 ## Overlays and spatial indexes
 
@@ -96,7 +86,6 @@ filesystem worker and flush at shutdown; startup reads the small preference file
 | Storage | Policy |
 | --- | --- |
 | Decoded tiles | Moka `sync`, weighted LRU, 256 MiB best-effort target; temporary overshoot and frame references are separate |
-| GPU atlas | Up to 128 MiB, reduced by adapter limits; current-view residency, weak CPU references and bounded upload passes |
 | Encoded imagery | MBTiles 1.3 through one tokio-rusqlite worker; 128 MiB managed-file target, including SQLite overhead |
 
 MBTiles separates providers, stable Wayback releases and encoded formats, converts
@@ -124,4 +113,15 @@ Opt-in profiling records pipeline and queue timings through a bounded background
 recorder. Normal builds compile it out. Component results and native measurements
 are documented separately; neither raster timing nor app-side texture submission
 is an application FPS guarantee. See [contributing](CONTRIBUTING.md),
-[CPU baseline](PERFORMANCE_BASELINE.md), and [GPU rendering](GPU_RENDERER.md).
+[CPU baseline](PERFORMANCE_BASELINE.md).
+
+
+## Optional GPU Earth rasterization / renderização opcional em GPU
+
+The Earth overview raster can be computed by the `earthcraft-render` `backend`
+module with `wgpu` compute shaders (`gpu/`), then read back for the existing
+egui view; the CPU path remains the default and fallback. Set
+`EARTHCRAFT_RENDERER=auto` or `EARTHCRAFT_RENDERER=gpu` to enable a GPU attempt.
+The Explorer, live meteorological/aircraft layers, moon and custom planet
+remain integrated in `apps/earthcraft`. See [GPU_RENDERER.md](GPU_RENDERER.md)
+for hardware limits, performance and CPU-only build instructions.

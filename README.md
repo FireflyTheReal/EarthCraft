@@ -4,7 +4,7 @@
 
 [![Listed on Remade](https://remade.wiki/badges/listed-on-remade.svg)](https://remade.wiki/projects/earthcraft/)
 
-A 3D globe in the style of Google Earth, written in pure Rust (egui + GPU/CPU ray-casting globe rendering). Runs on Windows, macOS and Linux with no system dependencies beyond a graphics driver.
+A 3D globe in the style of Google Earth, written in pure Rust (egui + optional GPU/CPU ray-casting globe rendering). Runs on Windows, macOS and Linux with no system dependencies beyond a graphics driver.
 
 ### Build and run
 Requires Rust 1.89+ (https://rustup.rs):
@@ -27,8 +27,7 @@ An internet connection is required to download map tiles.
 - Geodesic distance ruler (great-circle)
 - Lat/lon grid, atmosphere, stars, real-time sunlight (day/night)
 - Scale bar, cursor coordinates, PNG screenshot, context menu
-- Background CPU rendering; GPU overview rendering is opt-in while cross-platform runtime issues are investigated
-- Use `EARTHCRAFT_RENDERER=auto` to try GPU rendering with CPU fallback; see [GPU rendering](docs/GPU_RENDERER.md) for supported views and resource limits
+- Background CPU rendering; optional GPU globe renderer can be enabled via `EARTHCRAFT_RENDERER=auto` or `EARTHCRAFT_RENDERER=gpu` (with CPU fallback). See [GPU rendering](docs/GPU_RENDERER.md).
 
 ### Controls
 Drag: rotate globe · Right-drag / Shift+drag: rotate view · Wheel / +/-: zoom · Double-click: fly to point · Arrow keys: move · N: north up
@@ -42,3 +41,26 @@ Real 3D terrain, 3D buildings, Street View, Google Earth Studio, geotagged photo
 The desktop app lives in `apps/earthcraft`, with reusable libraries in `crates/`.
 See the [architecture](docs/ARCHITECTURE.md), [contributing guide](docs/CONTRIBUTING.md),
 and [agent rules](AGENTS.md) for module ownership, checks, and how to extend the project.
+
+
+### Explorer add-on (October 2026) / Módulo Explorar
+
+Open **Explorar +** in the top bar for: coordinates and external OSM details of
+search results; Wikimedia Commons photo search; editable narrated tours using
+the operating system TTS (Linux requires `espeak`); external real-world
+weather/cloud/ocean/aircraft/satellite data websites; links to NASA Moon and
+Mars resources; local PNG/JPEG planet image preview; save and reload custom
+`.earthplanet` manifests (keep the accompanying `*-texture.png/jpg` file in
+the same directory); and preview custom sky/galaxy images.
+
+**Limitations:** This project does not provide full Google Maps place cards,
+licensed photos embedded in the application, actual 3D buildings or detailed
+terrain. Live flight and weather layers depend on external providers. The
+Moon and custom planet use egui meshes rather than GPU compute rendering.
+The Earth globe also supports an optional GPU overview renderer; Explorer planets are still drawn by egui. The explorer's
+websites require an internet connection. This code was not compiled or
+executed in the delivery environment (Rust toolchain unavailable).
+
+### Explorer language / Idioma do Explorar
+The Explorer panel and toolbar labels follow the existing top-right language selector (English / Português (Brasil)). User-authored narration is preserved when changing language.
+O painel Explorar e a barra superior acompanham o seletor de idioma no canto superior direito. Textos de narração editados pelo usuário não são traduzidos automaticamente.

@@ -108,6 +108,16 @@ impl App {
                                 &mut self.auto_rotate,
                                 lg.text("layers-auto-rotation-toggle"),
                             );
+                            ui.checkbox(&mut self.show_flights, lg.text("layers-flights-toggle"));
+                            ui.checkbox(&mut self.show_weather, lg.text("layers-weather-toggle"));
+                            ui.checkbox(&mut self.show_clouds, lg.text("layers-clouds-toggle"));
+                            ui.small(lg.text("layers-live-overlays-help"));
+                            if self.show_clouds {
+                                ui.hyperlink_to(lg.text("sidebar-cloud-source"), "https://github.com/matteason/live-cloud-maps");
+                            }
+                            if self.show_weather {
+                                ui.hyperlink_to(lg.text("sidebar-radar-source"), "https://www.rainviewer.com/");
+                            }
                         });
 
                     egui::CollapsingHeader::new(lg.text("navigation-section-title"))
