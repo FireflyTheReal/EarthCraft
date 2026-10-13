@@ -148,6 +148,39 @@ pub(super) async fn load_brazil(log: &StatusLog, tx: &mpsc::Sender<Patch>, inclu
             return;
         }
     };
+    let patch = match crate::cpu::run(crate::cpu::Service::Features, move || {
+        Ok(metropolitan_patch(&munis, &json))
+    })
+    .await
+    {
+        Ok(patch) => patch,
+        Err(error) => {
+            log_status(log, format!("✖ Metropolitan regions: {error}"));
+            return;
+        }
+    };
+    let Patch {
+        lines: mlines,
+        labels: mlabels,
+        ..
+    } = patch;
+    if mlines.is_empty() {
+        log_status(
+            log,
+            "✖ Metropolitan regions: IBGE response contains no municipalities".into(),
+        );
+    } else {
+        log_status(log, format!("✔ Metropolitan regions: {}", mlabels.len()));
+        let _ = tx.send(Patch {
+            layer: Layer::Metro,
+            lines: mlines,
+            lines_big: vec![],
+            labels: mlabels,
+        });
+    }
+}
+
+fn metropolitan_patch(munis: &[Muni], json: &serde_json::Value) -> Patch {
     let by_code: HashMap<u32, &Muni> = munis.iter().map(|m| (m.code, m)).collect();
     let (mut mlines, mut mlabels) = (Vec::new(), Vec::new());
     for rm in json.as_array().into_iter().flatten() {
@@ -183,18 +216,36 @@ pub(super) async fn load_brazil(log: &StatusLog, tx: &mpsc::Sender<Patch>, inclu
             });
         }
     }
-    if mlines.is_empty() {
-        log_status(
-            log,
-            "✖ Metropolitan regions: IBGE response contains no municipalities".into(),
-        );
-    } else {
-        log_status(log, format!("✔ Metropolitan regions: {}", mlabels.len()));
-        let _ = tx.send(Patch {
-            layer: Layer::Metro,
-            lines: mlines,
-            lines_big: vec![],
-            labels: mlabels,
-        });
+    Patch {
+        layer: Layer::Metro,
+        lines: mlines,
+        lines_big: Vec::new(),
+        labels: mlabels,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn metropolitan_membership_keeps_names_centers_and_existing_outline_rules() {
+        let municipalities = vec![Muni {
+            code: 1,
+            name: "City".into(),
+            lines: vec![Arc::new(vec![
+                (0.0, 0.0),
+                (0.0, 1.0),
+                (1.0, 1.0),
+                (0.0, 0.0),
+            ])],
+            center: Some((2.0, 3.0)),
+        }];
+        let json = serde_json::json!([{"nome":"Metro","municipios":[{"id":1}]}]);
+        let patch = metropolitan_patch(&municipalities, &json);
+        assert!(!patch.lines.is_empty());
+        assert_eq!(patch.labels.len(), 1);
+        assert_eq!(patch.labels[0].en, "Metro");
+        assert_eq!(patch.labels[0].lat, 2.0);
+        assert_eq!(patch.labels[0].lon, 3.0);
     }
 }

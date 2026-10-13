@@ -17,6 +17,7 @@ pub struct RenderedFrame {
     pub request: RenderRequest,
     pub pixels: Vec<u8>,
     pub waiting: Vec<earthcraft_data::tiles::TileKey>,
+    pub required: Vec<earthcraft_data::tiles::TileKey>,
 }
 
 #[derive(Default)]
@@ -63,7 +64,7 @@ impl RenderWorker {
                         mailbox.spare.take().unwrap_or_default(),
                     )
                 };
-                // No mailbox lock is held during Rayon rasterization or tile admission.
+                // Rasterization holds no mailbox lock. Admission is synchronized below.
                 let frame = render(&request, buffer);
                 let mut mailbox = worker.mailbox.lock().unwrap();
                 mailbox.active = false;
@@ -81,10 +82,12 @@ impl RenderWorker {
                     if let Some(previous) = mailbox.completed.take() {
                         mailbox.spare = Some(previous.pixels);
                     }
+                    let required = frame.required_tiles();
                     mailbox.completed = Some(RenderedFrame {
                         request,
                         pixels: frame.pixels,
                         waiting: frame.waiting,
+                        required,
                     });
                 } else {
                     mailbox.spare = Some(frame.pixels);

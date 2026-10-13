@@ -417,3 +417,14 @@ strict Clippy and the macOS ARM64 build. Native typing of `sao` displayed the
 expected accented local names, including São Tomé and São Paulo. No new provider
 or language was added; public service behavior and cross-platform input remain
 separate checks.
+
+## Remaining CPU-service review fixes
+
+Tile wake tickets are now bounded alongside the 48-job admission queue, including
+rapidly retired camera views. Priority inputs deduplicate existing jobs. Stationary
+views refill missing work after slot completion and schedule existing failed-tile
+retry deadlines without rerasterizing for failures. Boundary patches invalidate
+only overlay shapes rather than forcing another globe raster. Metropolitan
+outline construction now runs on the bounded feature CPU service after its async
+fetch, rather than blocking an async runtime worker. Focused tests cover bounded
+retirement, duplicate priorities, failed retry deadlines and metropolitan output.

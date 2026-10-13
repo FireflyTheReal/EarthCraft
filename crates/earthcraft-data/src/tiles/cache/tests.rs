@@ -18,13 +18,8 @@ fn tile_key_roundtrip() {
     );
 }
 
-fn test_cache(
-    budget: usize,
-) -> (
-    Arc<TileCache>,
-    tokio::sync::mpsc::UnboundedReceiver<TileKey>,
-) {
-    let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+fn test_cache(budget: usize) -> (Arc<TileCache>, tokio::sync::mpsc::Receiver<TileKey>) {
+    let (tx, rx) = tokio::sync::mpsc::channel(MAX_INFLIGHT);
     (Arc::new(TileCache::with_budget(tx, budget)), rx)
 }
 fn tiny_tile(value: u8) -> Tile {
@@ -226,7 +221,7 @@ fn cancelling_overview_warmup_prevents_a_speculative_disk_refill() {
 
 #[tokio::test]
 async fn clearing_preserves_memory_and_the_original_epoch_of_queued_requests() {
-    let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
+    let (tx, _rx) = tokio::sync::mpsc::channel(MAX_INFLIGHT);
     let mut cache = TileCache::with_budget(tx, 4096);
     cache.disk = DiskCache::new(std::env::temp_dir().join(format!(
         "earthcraft-queued-clear-test-{}",
@@ -268,4 +263,44 @@ fn new_view_retires_queued_work_preserving_active_downloads_and_overview() {
         cache.request(stale),
         "retired work can be requested again without a failure delay"
     );
+}
+
+#[test]
+fn retired_wake_tickets_stay_bounded_and_duplicate_priorities_do_not_duplicate_jobs() {
+    let (cache, mut tickets) = test_cache(4096);
+    for view in 0..100 {
+        let keys: Vec<_> = (0..MAX_INFLIGHT)
+            .map(|offset| make_key(Provider::Streets, 19, view * 100 + offset as u32, 0, 0))
+            .collect();
+        cache.prioritize_view(&keys);
+        assert_eq!(cache.inflight(), MAX_INFLIGHT);
+    }
+    let visible = make_key(Provider::Streets, 19, 99999, 0, 0);
+    cache.prioritize_view(&[visible, visible]);
+    cache.prioritize_view(&[visible, visible]);
+    assert_eq!(cache.inflight(), 1);
+    let mut count = 0;
+    while tickets.try_recv().is_ok() {
+        count += 1;
+    }
+    assert!(count <= MAX_INFLIGHT);
+    assert_eq!(cache.next_job().unwrap().0, visible);
+    assert!(cache.next_job().is_none());
+}
+#[test]
+fn failed_visible_tiles_keep_retry_deadlines_without_raster_invalidation() {
+    let (cache, _rx) = test_cache(4096);
+    cache.complete(1, Err("offline".into()));
+    assert!(cache.retry_delay(&[1]).unwrap() > Duration::ZERO);
+    cache.requests.lock().unwrap().insert(
+        1,
+        RequestState::Failed(Instant::now() - FAILED_TILE_RETRY_DELAY),
+    );
+    assert_eq!(cache.retry_delay(&[1]), Some(Duration::ZERO));
+    cache.prioritize_view(&[1]);
+    assert_eq!(cache.inflight(), 1);
+    assert_eq!(cache.retry_delay(&[1]), None);
+    cache.complete(1, Ok(tiny_tile(10)));
+    assert_eq!(cache.retry_delay(&[1]), None);
+    assert_eq!(cache.retry_delay(&[2]), Some(Duration::ZERO));
 }

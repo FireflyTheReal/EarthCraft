@@ -42,13 +42,13 @@ pub struct TileCache {
     queue: Mutex<VecDeque<TileKey>>,
     budget: usize,
     disk: DiskCache,
-    tx: tokio::sync::mpsc::UnboundedSender<TileKey>,
+    tx: tokio::sync::mpsc::Sender<TileKey>,
     gen: AtomicU64,
     inflight: AtomicUsize,
 }
 
 impl TileCache {
-    fn with_budget(tx: tokio::sync::mpsc::UnboundedSender<TileKey>, budget: usize) -> Self {
+    fn with_budget(tx: tokio::sync::mpsc::Sender<TileKey>, budget: usize) -> Self {
         Self {
             ready: Cache::builder()
                 .name("earthcraft-decoded-tiles")
@@ -73,7 +73,7 @@ impl TileCache {
         runtime: &tokio::runtime::Handle,
     ) -> Arc<Self> {
         let repaint: Arc<dyn Fn() + Send + Sync> = Arc::new(repaint);
-        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        let (tx, rx) = tokio::sync::mpsc::channel(MAX_INFLIGHT);
         let rx = Arc::new(tokio::sync::Mutex::new(rx));
         let cache = Arc::new(Self::with_budget(tx, DEFAULT_TILE_CACHE_BUDGET_BYTES));
         for _ in 0..TILE_WORKER_COUNT {
@@ -112,7 +112,12 @@ impl TileCache {
         requests.insert(key, RequestState::Loading(self.disk.epoch()));
         self.queue.lock().unwrap().push_back(key);
         self.inflight.fetch_add(1, Ordering::Relaxed);
-        if self.tx.send(key).is_err() {
+        // If wake tickets are full, existing tickets already cover the bounded
+        // job queue. Retiring a view must not accumulate unbounded stale tickets.
+        if matches!(
+            self.tx.try_send(key),
+            Err(tokio::sync::mpsc::error::TrySendError::Closed(_))
+        ) {
             self.queue.lock().unwrap().retain(|&queued| queued != key);
             requests.insert(key, RequestState::Failed(Instant::now()));
             self.inflight.fetch_sub(1, Ordering::Relaxed);
@@ -137,10 +142,11 @@ impl TileCache {
                 keep
             });
             let queued: HashSet<_> = queue.iter().copied().collect();
+            let mut selected = HashSet::new();
             let mut ordered: VecDeque<_> = keys
                 .iter()
                 .copied()
-                .filter(|key| queued.contains(key))
+                .filter(|key| queued.contains(key) && selected.insert(*key))
                 .collect();
             ordered.extend(queue.iter().copied().filter(|key| !wanted.contains(key)));
             *queue = ordered;
@@ -151,6 +157,24 @@ impl TileCache {
             }
         }
     }
+    /// Schedule failed visible dependencies without rerasterizing the globe.
+    /// Full admission relies on completion wakeups rather than a busy retry loop.
+    pub fn retry_delay(&self, keys: &[TileKey]) -> Option<Duration> {
+        let requests = self.requests.lock().unwrap();
+        keys.iter()
+            .filter_map(|key| match requests.get(key) {
+                Some(RequestState::Failed(time)) => {
+                    Some(FAILED_TILE_RETRY_DELAY.saturating_sub(time.elapsed()))
+                }
+                Some(RequestState::Loading(_)) => None,
+                None if self.inflight() < MAX_INFLIGHT && !self.ready.contains_key(key) => {
+                    Some(Duration::ZERO)
+                }
+                None => None,
+            })
+            .min()
+    }
+
     fn next_job(&self) -> Option<(TileKey, u64)> {
         let requests = self.requests.lock().unwrap();
         let key = self.queue.lock().unwrap().pop_front()?;
@@ -247,7 +271,7 @@ async fn fetch_tile(k: TileKey, disk: &DiskCache) -> Result<FetchedTile, crate::
 }
 async fn worker(
     cache: std::sync::Weak<TileCache>,
-    rx: Arc<tokio::sync::Mutex<tokio::sync::mpsc::UnboundedReceiver<TileKey>>>,
+    rx: Arc<tokio::sync::Mutex<tokio::sync::mpsc::Receiver<TileKey>>>,
     repaint: Arc<dyn Fn() + Send + Sync>,
 ) {
     loop {

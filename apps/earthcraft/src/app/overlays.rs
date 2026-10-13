@@ -32,7 +32,6 @@ impl App {
             self.status = format!("Local prefix index failed: {error}");
         }
         self.overlay_cache.invalidate();
-        self.last_state = 0; // redraw overlays immediately
     }
 
     pub(super) fn draw_overlays(

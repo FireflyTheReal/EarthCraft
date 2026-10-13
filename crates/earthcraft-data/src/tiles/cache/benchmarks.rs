@@ -11,7 +11,7 @@ const BENCH_TILE_SIZE_PX: usize = 64;
 #[test]
 #[ignore = "manual cache throughput benchmark; run with --ignored --nocapture"]
 fn cached_hit_throughput() {
-    let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
+    let (tx, _rx) = tokio::sync::mpsc::channel(MAX_INFLIGHT);
     let cache = Arc::new(TileCache::with_budget(tx, DEFAULT_TILE_CACHE_BUDGET_BYTES));
     let keys: Vec<_> = (0..BENCH_TILE_COUNT)
         .map(|i| {

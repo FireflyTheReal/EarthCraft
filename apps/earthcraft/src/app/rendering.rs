@@ -13,6 +13,8 @@ pub(super) struct Renderer {
     worker: RenderWorker,
     displayed: Option<(Cam, Basis)>,
     waiting: Vec<earthcraft_data::tiles::TileKey>,
+    required: Vec<earthcraft_data::tiles::TileKey>,
+    retry_at: Option<std::time::Instant>,
 }
 
 impl Renderer {
@@ -38,12 +40,29 @@ impl Renderer {
             .expect("start frame renderer"),
             displayed: None,
             waiting: Vec::new(),
+            required: Vec::new(),
+            retry_at: None,
         }
     }
     pub(super) fn tiles_changed(&self, cache: &earthcraft_data::tiles::TileCache) -> bool {
         self.waiting
             .iter()
             .any(|&key| matches!(cache.lookup(key), earthcraft_data::tiles::Lookup::Ready(_)))
+    }
+    pub(super) fn refill_requests(
+        &mut self,
+        cache: &earthcraft_data::tiles::TileCache,
+        changed: bool,
+        ctx: &egui::Context,
+    ) {
+        let now = std::time::Instant::now();
+        if changed || self.retry_at.is_some_and(|deadline| now >= deadline) {
+            cache.prioritize_view(&self.required);
+            self.retry_at = cache.retry_delay(&self.required).map(|delay| now + delay);
+        }
+        if let Some(deadline) = self.retry_at {
+            ctx.request_repaint_after(deadline.saturating_duration_since(now));
+        }
     }
     pub(super) fn is_idle(&self) -> bool {
         self.worker.is_idle()
@@ -110,6 +129,8 @@ impl App {
             self.renderer.worker.recycle(previous);
         }
         self.renderer.waiting = frame.waiting;
+        self.renderer.required = frame.required;
+        self.renderer.retry_at = None;
         // Recheck dependencies even if a tile finished before frame publication.
         self.last_gen = u64::MAX;
         self.renderer.displayed = Some((frame.request.cam, frame.request.basis));

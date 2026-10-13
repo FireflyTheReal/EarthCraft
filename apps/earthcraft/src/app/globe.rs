@@ -212,6 +212,10 @@ impl App {
             self.last_gen = gen;
             self.last_render = Instant::now();
         }
+        if state == self.last_state && self.renderer.is_idle() {
+            self.renderer
+                .refill_requests(&self.cache, gen != self.last_gen, ctx);
+        }
         self.last_gen = gen;
         if !idle {
             ctx.request_repaint_after(ACTIVE_REPAINT_INTERVAL);
