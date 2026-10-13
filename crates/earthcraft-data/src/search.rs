@@ -36,7 +36,7 @@ pub fn parse_latlon(s: &str) -> Option<(f64, f64)> {
     }
 }
 
-pub fn geocode(q: &str, lang: &str) -> Result<Vec<GeoResult>, String> {
+pub fn geocode(q: &str, lang: &str) -> Result<Vec<GeoResult>, crate::Error> {
     let resp = ureq::get("https://nominatim.openstreetmap.org/search")
         .set(
             "User-Agent",
@@ -47,8 +47,8 @@ pub fn geocode(q: &str, lang: &str) -> Result<Vec<GeoResult>, String> {
         .query("accept-language", lang)
         .query("q", q)
         .call()
-        .map_err(|e| e.to_string())?;
-    let v: serde_json::Value = resp.into_json().map_err(|e| e.to_string())?;
+        .map_err(crate::Error::from)?;
+    let v: serde_json::Value = resp.into_json().map_err(crate::Error::from)?;
     let mut out = Vec::new();
     for it in v.as_array().ok_or("resposta inválida")? {
         let f = |k: &str| it[k].as_str().and_then(|s| s.parse::<f64>().ok());
@@ -86,7 +86,7 @@ pub struct Suggestion {
 
 /// Search-as-you-type suggestions. Nominatim forbids autocomplete, so Photon (Komoot, built on
 /// OpenStreetMap data and meant for this use) is used instead.
-pub fn photon_suggest(q: &str, lang: &str) -> Result<Vec<Suggestion>, String> {
+pub fn photon_suggest(q: &str, lang: &str) -> Result<Vec<Suggestion>, crate::Error> {
     let agent = ureq::AgentBuilder::new()
         .timeout(SUGGESTION_REQUEST_TIMEOUT)
         .user_agent("EarthCraft/0.2 (search suggestions)")
@@ -100,9 +100,9 @@ pub fn photon_suggest(q: &str, lang: &str) -> Result<Vec<Suggestion>, String> {
     }
     let v: serde_json::Value = req
         .call()
-        .map_err(|e| e.to_string())?
+        .map_err(crate::Error::from)?
         .into_json()
-        .map_err(|e| e.to_string())?;
+        .map_err(crate::Error::from)?;
     let mut out: Vec<Suggestion> = Vec::new();
     for f in v["features"].as_array().into_iter().flatten() {
         let (Some(lon), Some(lat)) = (

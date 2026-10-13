@@ -31,7 +31,7 @@ const MAX_FRAME_DELTA_SECS: f32 = 0.1;
 const PAN_SPEED_POINTS_PER_SECOND: f64 = 350.0;
 const BOUNDARY_POLL_INTERVAL: Duration = Duration::from_millis(300);
 
-type SuggestionResponse = (String, Result<Vec<Suggestion>, String>);
+type SuggestionResponse = (String, Result<Vec<Suggestion>, earthcraft_data::Error>);
 
 struct Fly {
     a: Cam,
@@ -69,7 +69,7 @@ pub(crate) struct App {
 
     query: String,
     results: Vec<GeoResult>,
-    search_rx: Option<mpsc::Receiver<Result<Vec<GeoResult>, String>>>,
+    search_rx: Option<mpsc::Receiver<Result<Vec<GeoResult>, earthcraft_data::Error>>>,
     status: String,
 
     placemarks: Vec<Placemark>,
@@ -90,7 +90,7 @@ pub(crate) struct App {
 
     wayback_list: Vec<WaybackRelease>,
     wayback_idx: usize,
-    wayback_rx: Option<mpsc::Receiver<Result<Vec<WaybackRelease>, String>>>,
+    wayback_rx: Option<mpsc::Receiver<Result<Vec<WaybackRelease>, earthcraft_data::Error>>>,
     wayback_started: bool,
     wayback_err: Option<String>,
 

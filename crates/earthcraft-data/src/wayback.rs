@@ -67,26 +67,26 @@ fn parse_wayback_config(v: &serde_json::Value) -> Vec<WaybackRelease> {
     out
 }
 /// Fetches the release list (network first so that new releases show up; disk cache as fallback).
-pub fn load_wayback_releases() -> Result<Vec<WaybackRelease>, String> {
+pub fn load_wayback_releases() -> Result<Vec<WaybackRelease>, crate::Error> {
     let path = geo_cache_path(WAYBACK_CONFIG);
     let agent = ureq::AgentBuilder::new()
         .timeout_connect(WAYBACK_CONNECT_TIMEOUT)
         .timeout_read(WAYBACK_READ_TIMEOUT)
         .user_agent("EarthCraft/0.2 (wayback release list)")
         .build();
-    let net: Result<serde_json::Value, String> = agent
+    let net: Result<serde_json::Value, crate::Error> = agent
         .get(WAYBACK_CONFIG)
         .call()
-        .map_err(|e| e.to_string())
+        .map_err(crate::Error::from)
         .and_then(|r| {
             let mut buf = Vec::new();
             r.into_reader()
                 .take(MAX_WAYBACK_CONFIG_BYTES)
                 .read_to_end(&mut buf)
-                .map_err(|e| e.to_string())?;
+                .map_err(crate::Error::from)?;
             serde_json::from_slice::<serde_json::Value>(&buf)
                 .map(|v| (v, buf))
-                .map_err(|e| e.to_string())
+                .map_err(crate::Error::from)
         })
         .map(|(v, buf)| {
             if let Some(d) = path.parent() {

@@ -17,7 +17,7 @@ pub(crate) fn geo_cache_path(url: &str) -> PathBuf {
 
 /// Downloads (or reads from disk) JSON, with a 1 GiB read cap for large boundary files.
 /// Connect/read timeouts and one retry preserve the existing request policy.
-pub(crate) fn fetch_json(url: &str) -> Result<serde_json::Value, String> {
+pub(crate) fn fetch_json(url: &str) -> Result<serde_json::Value, crate::Error> {
     let path = geo_cache_path(url);
     if let Ok(bytes) = std::fs::read(&path) {
         if let Ok(v) = serde_json::from_slice(&bytes) {
@@ -60,5 +60,5 @@ pub(crate) fn fetch_json(url: &str) -> Result<serde_json::Value, String> {
             }
         }
     }
-    Err(last)
+    Err(last.into())
 }

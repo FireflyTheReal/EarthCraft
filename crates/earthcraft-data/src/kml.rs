@@ -36,8 +36,8 @@ pub fn save_kml(path: &str, pms: &[Placemark]) -> std::io::Result<()> {
     s += "</Document>\n</kml>\n";
     std::fs::write(path, s)
 }
-pub fn load_kml(path: &str, lg: Lang) -> Result<Vec<Placemark>, String> {
-    let txt = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
+pub fn load_kml(path: &str, lg: Lang) -> Result<Vec<Placemark>, crate::Error> {
+    let txt = std::fs::read_to_string(path).map_err(crate::Error::from)?;
     let mut out = Vec::new();
     let mut rest = txt.as_str();
     while let Some(i) = rest.find("<Placemark") {

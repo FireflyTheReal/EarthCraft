@@ -219,7 +219,7 @@ fn json_code(v: Option<&serde_json::Value>) -> Option<u32> {
         .or_else(|| v.as_str().and_then(|s| s.trim().parse().ok()))
 }
 
-fn load_brazil_state(uf: u32) -> Result<Vec<Muni>, String> {
+fn load_brazil_state(uf: u32) -> Result<Vec<Muni>, crate::Error> {
     let mut names: HashMap<u32, String> = HashMap::new();
     if let Ok(v) = fetch_json(&format!("{IBGE}/v1/localidades/estados/{uf}/municipios")) {
         for m in v.as_array().into_iter().flatten() {
@@ -241,7 +241,7 @@ fn load_brazil_state(uf: u32) -> Result<Vec<Muni>, String> {
         let json = match fetch_json(url) {
             Ok(j) => j,
             Err(e) => {
-                last = e;
+                last = e.to_string();
                 continue;
             }
         };
@@ -285,20 +285,20 @@ fn load_brazil_state(uf: u32) -> Result<Vec<Muni>, String> {
         }
         last = "sem municípios no arquivo".into();
     }
-    Err(format!("UF {uf}: {last}"))
+    Err(format!("UF {uf}: {last}").into())
 }
 
 // Brazil: municipality outlines/names from IBGE (official API, GitHub mirror as fallback), and
 // metropolitan regions built from IBGE's list of member municipalities (outer outline only).
 fn load_brazil(log: &StatusLog, tx: &mpsc::Sender<Patch>) {
-    let results: Vec<Result<Vec<Muni>, String>> =
+    let results: Vec<Result<Vec<Muni>, crate::Error>> =
         BR_UFS.par_iter().map(|&uf| load_brazil_state(uf)).collect();
     let mut munis: Vec<Muni> = Vec::new();
     let mut errs = Vec::new();
     for r in results {
         match r {
             Ok(m) => munis.extend(m),
-            Err(e) => errs.push(e),
+            Err(e) => errs.push(e.to_string()),
         }
     }
     if !errs.is_empty() {

@@ -169,9 +169,9 @@ pub struct Tile {
 }
 impl Tile {
     /// Decodes the same PNG/JPEG tile bytes used by the disk and network loaders.
-    pub fn decode(bytes: &[u8]) -> Result<Self, String> {
+    pub fn decode(bytes: &[u8]) -> Result<Self, crate::Error> {
         let img = image::load_from_memory(bytes)
-            .map_err(|e| e.to_string())?
+            .map_err(crate::Error::from)?
             .to_rgba8();
         Ok(Self {
             w: img.width() as usize,
@@ -192,11 +192,7 @@ impl Tile {
         let p = |xx: usize, yy: usize| {
             let pixels: &[[u8; 4]] = bytemuck::cast_slice(&self.px);
             let pixel = pixels[yy * self.w + xx];
-            [
-                pixel[0] as f32,
-                pixel[1] as f32,
-                pixel[2] as f32,
-            ]
+            [pixel[0] as f32, pixel[1] as f32, pixel[2] as f32]
         };
         let (a, b, c, d) = (p(x0, y0), p(x1, y0), p(x0, y1), p(x1, y1));
         let mut out = [0.0; 3];
@@ -282,7 +278,7 @@ impl TileCache {
     }
 }
 
-fn fetch_tile(agent: &ureq::Agent, k: TileKey) -> Result<Tile, String> {
+fn fetch_tile(agent: &ureq::Agent, k: TileKey) -> Result<Tile, crate::Error> {
     let (p, z, x, y, rel) = unkey(k);
     let mut base = cache_dir().join(p.dir());
     if p == Provider::Wayback {
@@ -300,12 +296,12 @@ fn fetch_tile(agent: &ureq::Agent, k: TileKey) -> Result<Tile, String> {
             if url.is_empty() {
                 return Err("empty url".into());
             }
-            let resp = agent.get(&url).call().map_err(|e| e.to_string())?;
+            let resp = agent.get(&url).call().map_err(crate::Error::from)?;
             let mut buf = Vec::new();
             resp.into_reader()
                 .take(MAX_TILE_RESPONSE_BYTES)
                 .read_to_end(&mut buf)
-                .map_err(|e| e.to_string())?;
+                .map_err(crate::Error::from)?;
             (buf, false)
         }
     };
