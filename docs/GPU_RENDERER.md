@@ -9,7 +9,11 @@ coordinator, never on the UI thread.
 
 ## Selection and fallback
 
-`EARTHCRAFT_RENDERER=auto` is the default. It uses GPU rendering for supported
+CPU rendering is the default while reported Ubuntu GPU freezes remain under
+investigation. GPU rendering requires explicit opt-in; automatic GPU activation
+must not return until native cross-platform checks cover the reported failure.
+
+`EARTHCRAFT_RENDERER=auto` opts into GPU rendering for supported
 views with at least 262,144 pixels; small frames retain CPU rendering because
 complete GPU/CPU timings were similar at 512×384 on the baseline adapter.
 `EARTHCRAFT_RENDERER=gpu` also tries GPU rendering for small supported frames.
@@ -28,7 +32,10 @@ Adapter selection and device creation are fallible. Required limits and shader
 validation are checked before use. Initialization failure selects CPU rendering
 with an English diagnostic; it does not repeatedly retry every frame. Device
 loss, uncaptured GPU errors and failed readback disable that device for the
-session and render the affected frame on the CPU. Restarting permits another
+session and render the affected frame on the CPU. Rust panics from GPU initialization
+or rendering are caught at the optional backend boundary so they cannot terminate
+the frame coordinator. This does not recover a native driver crash or a blocked
+driver call. Restarting permits another
 initialization attempt. An oversized tile working set or unusual tile dimensions
 uses CPU rendering for that view, preserving the general sampler.
 

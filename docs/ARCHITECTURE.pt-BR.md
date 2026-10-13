@@ -23,7 +23,9 @@ e um quadro concluído. Mudanças de provedor, versão histórica, tamanho ou es
 rejeitam resultados incompatíveis. Seleção, overlays e escala usam a câmera do
 quadro exibido, mantendo alinhamento durante movimento.
 
-`backend::FrameRenderer` escolhe wgpu ou CPU. Inicialização da GPU, uploads, execução
+`backend::FrameRenderer` escolhe wgpu ou CPU. A CPU é o padrão; a GPU requer
+`EARTHCRAFT_RENDERER=auto` ou `EARTHCRAFT_RENDERER=gpu` enquanto problemas de
+execução no Ubuntu são investigados. Inicialização da GPU, uploads, execução
 e leitura dos pixels ficam fora da thread do egui. Os shaders ficam em
 `crates/earthcraft-render/src/gpu/shaders`. Vistas próximas e grade usam CPU em
 precisão dupla; céu, horizonte e bordas de tiles recebem correção precisa na CPU.

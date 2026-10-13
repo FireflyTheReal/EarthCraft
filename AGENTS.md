@@ -160,8 +160,11 @@ User instructions and the requested scope take precedence over these defaults.
   Share an ID only when the meaning and usage match, not just the displayed text.
   See `docs/LOCALIZATION.md` for fallback, fixtures and contributor examples.
 
-- GPU acceleration remains optional: retain CPU rendering,
-  validate adapter capabilities/limits and precision, and fall back explicitly
+- GPU acceleration remains optional: retain CPU rendering.
+  Keep GPU selection opt-in until reported Ubuntu freezes have native regression
+  coverage, and keep GPU panics from terminating the frame coordinator. Do not
+  mistake panic recovery for protection against a blocked driver call or native crash.
+  Validate adapter capabilities/limits and precision, and fall back explicitly
   when adapter/device initialization fails. Add a CPU-forced diagnostic mode and
   test failure paths. Do not claim changing egui's backend accelerates the globe.
   Keep adapter/device initialization, uploads, dispatch, waits and readback on the

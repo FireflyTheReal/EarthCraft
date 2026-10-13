@@ -34,6 +34,8 @@ completed camera snapshots remain presentable during motion. Picking, borders,
 labels and scale use the displayed camera, keeping input and overlays aligned.
 
 `backend::FrameRenderer` selects optional wgpu overview rendering or CPU rendering.
+CPU rendering is the default; GPU selection requires `EARTHCRAFT_RENDERER=auto`
+or `EARTHCRAFT_RENDERER=gpu` while Ubuntu runtime failures are investigated.
 GPU initialization, uploads, dispatch and readback run on the coordinator. Shader
 files live under `crates/earthcraft-render/src/gpu/shaders`. Close views and exact
 grid rendering use the double-precision CPU path; GPU sky, horizon and tile seams

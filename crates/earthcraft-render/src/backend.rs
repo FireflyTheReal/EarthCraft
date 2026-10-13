@@ -6,6 +6,20 @@ use earthcraft_data::tiles::TileCache;
 #[cfg(feature = "gpu")]
 const MIN_AUTO_GPU_PIXELS: usize = 256 * 1024;
 
+// Optional GPU backend failures must not unwind the frame coordinator. A panic
+// loses its in-progress buffer; CPU fallback allocates another only on failure.
+#[cfg(feature = "gpu")]
+fn gpu_call<T>(operation: impl FnOnce() -> T) -> Result<T, String> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(operation)).map_err(|payload| {
+        let message = payload
+            .downcast_ref::<String>()
+            .map(String::as_str)
+            .or_else(|| payload.downcast_ref::<&str>().copied())
+            .unwrap_or("non-string panic payload");
+        format!("GPU backend panicked: {message}")
+    })
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BackendPreference {
     Auto,
@@ -14,13 +28,16 @@ pub enum BackendPreference {
 }
 impl BackendPreference {
     pub fn from_environment() -> Self {
-        match std::env::var("EARTHCRAFT_RENDERER").as_deref() {
-            Ok("cpu") => Self::Cpu,
-            Ok("gpu") => Self::Gpu,
-            Ok("auto") | Err(_) => Self::Auto,
-            Ok(value) => {
-                eprintln!("Unknown EARTHCRAFT_RENDERER value {value:?}; using automatic selection");
-                Self::Auto
+        Self::from_setting(std::env::var("EARTHCRAFT_RENDERER").ok().as_deref())
+    }
+    fn from_setting(setting: Option<&str>) -> Self {
+        match setting {
+            Some("gpu") => Self::Gpu,
+            Some("auto") => Self::Auto,
+            Some("cpu") | None => Self::Cpu,
+            Some(value) => {
+                eprintln!("Unknown EARTHCRAFT_RENDERER value {value:?}; using CPU rendering");
+                Self::Cpu
             }
         }
     }
@@ -58,7 +75,7 @@ impl FrameRenderer {
         }
         self.initialized = true;
         if self.preference != BackendPreference::Cpu {
-            match initialize() {
+            match gpu_call(initialize).and_then(|result| result) {
                 Ok(gpu) => self.gpu = Some(gpu),
                 Err(error) => eprintln!("GPU renderer unavailable; using CPU: {error}"),
             }
@@ -96,7 +113,9 @@ impl FrameRenderer {
         }
         #[cfg(feature = "gpu")]
         if let Some(gpu) = &mut self.gpu {
-            match gpu.render(request, cache, buffer) {
+            let result = gpu_call(|| gpu.render(request, cache, buffer))
+                .unwrap_or_else(|error| Err((error, Vec::new(), true)));
+            match result {
                 Ok(frame) => {
                     self.capacity_warning = false;
                     return frame;
@@ -135,6 +154,29 @@ impl FrameRenderer {
 mod tests {
     use super::*;
     #[test]
+    fn gpu_rendering_requires_explicit_opt_in() {
+        assert_eq!(
+            BackendPreference::from_setting(None),
+            BackendPreference::Cpu
+        );
+        assert_eq!(
+            BackendPreference::from_setting(Some("cpu")),
+            BackendPreference::Cpu
+        );
+        assert_eq!(
+            BackendPreference::from_setting(Some("invalid")),
+            BackendPreference::Cpu
+        );
+        assert_eq!(
+            BackendPreference::from_setting(Some("auto")),
+            BackendPreference::Auto
+        );
+        assert_eq!(
+            BackendPreference::from_setting(Some("gpu")),
+            BackendPreference::Gpu
+        );
+    }
+    #[test]
     fn forced_cpu_never_initializes_a_device() {
         let renderer = FrameRenderer::new(BackendPreference::Cpu);
         #[cfg(feature = "gpu")]
@@ -152,6 +194,22 @@ mod tests {
 #[cfg(all(test, feature = "gpu"))]
 mod fallback_tests {
     use super::*;
+    #[test]
+    fn gpu_calls_preserve_results_and_report_render_panics() {
+        assert_eq!(gpu_call(|| 42), Ok(42));
+        assert_eq!(
+            gpu_call(|| panic!("simulated driver render panic")),
+            Err::<(), _>("GPU backend panicked: simulated driver render panic".into())
+        );
+    }
+    #[test]
+    fn initialization_panic_disables_gpu_without_killing_the_frame_worker() {
+        let mut renderer = FrameRenderer::new(BackendPreference::Gpu);
+        renderer.initialize_with(|| panic!("simulated driver initialization panic"));
+        assert!(renderer.initialized);
+        assert!(renderer.gpu.is_none());
+        renderer.initialize_with(|| panic!("failed initialization must not repeat"));
+    }
     #[test]
     fn initialization_failure_disables_gpu_without_retrying_each_frame() {
         let mut renderer = FrameRenderer::new(BackendPreference::Auto);
