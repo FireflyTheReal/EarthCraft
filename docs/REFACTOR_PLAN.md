@@ -126,6 +126,32 @@ comparison procedure in [contributing](CONTRIBUTING.md) for a repeatable measure
 
 ## Next performance stages
 
+### Current remaining order
+
+The post-SIMD review and geographic-index discussion refine the remaining order:
+
+1. Align globe picking with the displayed frame's camera, matching the existing
+   overlay alignment. Cover input while a newer camera frame is still rendering.
+2. Isolate expensive boundary parsing and tile decoding so long feature jobs do
+   not occupy all blocking capacity needed by interactive tile I/O. Measure queue
+   wait and responsiveness with both workloads active.
+3. Avoid raster rebuilds for unrelated tile completions and overlay-only changes.
+4. Reuse frame buffers and texture storage while preserving screenshot ownership.
+5. Improve stale-view tile request scheduling without changing retry, admission
+   limits or coarse-tile fallback.
+6. Use `geo-index` for a static boundary-chunk index and conservative geographic
+   visibility culling before vertex conversion/projection. Benchmark construction,
+   memory and moving-view queries against a bulk-loaded `rstar` index and the
+   existing traversal. Keep mutable `rstar` for priority-ordered label occupancy.
+   Preserve visible segments across the horizon, poles and dateline; rejecting
+   chunks solely because their endpoints are invisible is insufficient.
+
+`geo-index` is approved for the static boundary initiative; it is not yet a
+runtime dependency or an implemented culling optimization. A separate k-d tree
+is not planned without a concrete point-query workload. Unicode normalization,
+MBTiles, conditional DashMap evaluation and the GPU/version stages remain below.
+Keep each initiative in its own logical commit.
+
 Commit and inspect the overview/batching build before starting these approved
 stages. Keep changes in separate logical commits and measure affected workloads:
 

@@ -119,33 +119,6 @@ impl App {
         }
 
         let basis = self.cam.basis(aspect);
-        self.cursor = resp.hover_pos().and_then(|p| basis.pick(rect, p));
-
-        if resp.double_clicked() {
-            if let Some((la, lo)) = resp
-                .interact_pointer_pos()
-                .and_then(|p| basis.pick(rect, p))
-            {
-                self.fly_to(
-                    la,
-                    lo,
-                    (self.cam.alt * POINT_FLY_ALTITUDE_RATIO).max(MIN_POINT_FLY_ALTITUDE_KM),
-                );
-            }
-        } else if resp.clicked() && self.ruler {
-            if let Some(pt) = resp
-                .interact_pointer_pos()
-                .and_then(|p| basis.pick(rect, p))
-            {
-                self.ruler_pts.push(pt);
-            }
-        }
-        if resp.secondary_clicked() {
-            self.menu_pick = resp
-                .interact_pointer_pos()
-                .and_then(|p| basis.pick(rect, p));
-        }
-
         // ── rendering
         let idle = self.last_interact.elapsed() > IDLE_RENDER_DELAY && !resp.dragged();
         let scale = if idle {
@@ -202,6 +175,34 @@ impl App {
             .hash(&mut presentation);
         let presentation = presentation.finish();
         self.poll_render(presentation, ctx);
+
+        let pick_basis = self.renderer.picking_basis(basis);
+        self.cursor = resp.hover_pos().and_then(|p| pick_basis.pick(rect, p));
+
+        if resp.double_clicked() {
+            if let Some((la, lo)) = resp
+                .interact_pointer_pos()
+                .and_then(|p| pick_basis.pick(rect, p))
+            {
+                self.fly_to(
+                    la,
+                    lo,
+                    (self.cam.alt * POINT_FLY_ALTITUDE_RATIO).max(MIN_POINT_FLY_ALTITUDE_KM),
+                );
+            }
+        } else if resp.clicked() && self.ruler {
+            if let Some(pt) = resp
+                .interact_pointer_pos()
+                .and_then(|p| pick_basis.pick(rect, p))
+            {
+                self.ruler_pts.push(pt);
+            }
+        }
+        if resp.secondary_clicked() {
+            self.menu_pick = resp
+                .interact_pointer_pos()
+                .and_then(|p| pick_basis.pick(rect, p));
+        }
 
         let mut need = state != self.last_state
             || gen != self.last_gen

@@ -39,6 +39,9 @@ impl Renderer {
     pub(super) fn is_idle(&self) -> bool {
         self.worker.is_idle()
     }
+    pub(super) fn picking_basis(&self, fallback: Basis) -> Basis {
+        displayed_basis(self.displayed, fallback)
+    }
     pub(super) fn displayed_view(&self) -> Option<(Cam, Basis)> {
         self.displayed
     }
@@ -105,5 +108,37 @@ impl App {
         }
         self.image = Some((w, h, buf));
         self.renderer.displayed = Some((frame.request.cam, frame.request.basis));
+    }
+}
+
+// Input must describe the same globe as the frame being presented.
+fn displayed_basis(displayed: Option<(Cam, Basis)>, fallback: Basis) -> Basis {
+    displayed.map_or(fallback, |(_, basis)| basis)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn picking_tracks_displayed_camera_while_new_view_is_pending() {
+        let shown = Cam {
+            lat: 20.0,
+            lon: 30.0,
+            heading: 0.0,
+            alt: 14000.0,
+        };
+        let requested = Cam { lon: 90.0, ..shown };
+        let rect = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(800.0, 600.0));
+        let shown_basis = shown.basis(4.0 / 3.0);
+        let requested_basis = requested.basis(4.0 / 3.0);
+        let pick = displayed_basis(Some((shown, shown_basis)), requested_basis)
+            .pick(rect, rect.center())
+            .unwrap();
+        assert!((pick.0 - shown.lat).abs() < 1e-8);
+        assert!((pick.1 - shown.lon).abs() < 1e-8);
+        assert_eq!(
+            displayed_basis(None, requested_basis).pick(rect, rect.center()),
+            requested_basis.pick(rect, rect.center())
+        );
     }
 }
