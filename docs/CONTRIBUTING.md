@@ -41,8 +41,9 @@ Keep `Cargo.lock` in version control. Normal verification uses `--locked` to
 catch unintended dependency resolution changes. Intentional dependency updates
 should be reviewed separately, including compatibility with Rust 1.89.
 CI formats, lints, tests, and builds on Linux/macOS/Windows, plus Linux with the
-minimum Rust version. GitHub Actions are pinned to commits; update the pins
-explicitly when updating CI tooling.
+minimum Rust version. Use the latest supported major version tags for GitHub
+Actions, rather than commit hashes. For actions without version tags, follow the
+maintained upstream branch. Keep Rust toolchain versions explicit.
 
 For preview artifacts, version tags and publication, see [releases](RELEASING.md).
 

@@ -16,7 +16,7 @@ native cross-platform GPU failures remain unresolved.
 | FreeBSD x86-64 | `.tar.gz` containing the executable |
 
 Each archive has a SHA-256 checksum file. Native Linux builds run on Ubuntu 22.04;
-RISC-V is cross-compiled on Ubuntu 24.04 with ArtCraft's pinned dependency setup
+RISC-V is cross-compiled on Ubuntu 24.04 with ArtCraft's maintained dependency setup
 and EarthCraft's GTK 3 dependencies. FreeBSD builds run in a FreeBSD 15.1 VM.
 GTK 3 and a working graphics driver are runtime requirements. macOS bundles
 target macOS 11 or newer and are unsigned/unnotarized. Archives are portable
