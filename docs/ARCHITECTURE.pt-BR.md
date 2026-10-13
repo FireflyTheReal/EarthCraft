@@ -225,3 +225,21 @@ removidos antes do overview global, com recuperação de páginas por auto-vacuu
 O botão existente limpa somente tiles e conserva dados em RAM, configurações e
 arquivos pessoais; a leitura de uso conta os tamanhos reais dos arquivos.
 R-tree e FTS5 estão disponíveis, mas não são necessários para chaves de imagens.
+
+## Preparação fora da thread da interface
+
+Os patches de limites são mesclados e deduplicados em um worker de `data`, que
+publica snapshots imutáveis do conjunto e dos nomes. A interface troca referências
+compartilhadas; a construção do índice FST continua em segundo plano.
+O coordenador prepara a imagem CPU do egui e a geometria de overlays para a mesma
+câmera antes de publicar cada frame. Índices, culling, projeção e ordenação de nomes
+ficam fora da interface. Mudanças de camada/dados com a câmera parada usam jobs
+coalescidos; resultados incompatíveis não desenham projeções antigas. Medição de
+fontes, colisão final dos rótulos, shapes e envio de texturas continuam no egui.
+Capturas PNG retêm o buffer exibido por `Arc`, sem copiar pixels na submissão;
+buffers com leitores ativos não são reciclados.
+
+Configurações e idioma são gravados por um worker de persistência, com alterações
+pendentes coalescidas e erros apresentados em inglês. O encerramento final aguarda
+as gravações pendentes; atualizações normais não esperam pelo disco. A leitura
+inicial dos pequenos arquivos e os diálogos nativos continuam no aplicativo.

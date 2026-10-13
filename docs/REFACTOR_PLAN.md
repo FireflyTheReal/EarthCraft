@@ -451,3 +451,39 @@ do not isolate wide alone. They exclude GUI upload, overlays, network and cache
 eviction pressure; no end-to-end FPS improvement is established by this test.
 The complete workspace has 87 passing tests and five ignored manual benchmarks.
 Rust 1.89 all-target checks also pass with the larger benchmark fixture.
+
+## Remaining UI-thread work moved into background preparation
+
+The follow-up is split into three implementation commits:
+
+- `0f686fc`: ordered boundary patch merging, city-label deduplication and immutable
+  name snapshots run on a data-owned processor. Latest publications coalesce,
+  previous snapshots remain immutable, and geographic lines retain shared storage.
+- `b71cd3a`: frame conversion and matching overlay preparation run before raster
+  publication. Static index construction, culling, border projection and stable
+  label-candidate sorting are off the UI thread. Unchanged geometry is shared and
+  reused. Stationary changes use a separate coalesced worker; camera-driven
+  geometry accompanies the matching frame to avoid overlay starvation. Screenshot
+  submission retains displayed RGBA with `Arc` instead of copying pixels; unique
+  buffers still recycle, while active exports keep their snapshots alive.
+- `8d4a891`: one filesystem worker coalesces settings and language writes, reports
+  errors and flushes pending values at final shutdown. Normal UI updates never
+  wait for serialization or filesystem writes.
+
+Font measurement, final label collision checks, styled shapes, texture submission,
+input, animation, picking and short prefix queries remain on egui's thread.
+Startup still reads small settings files; native dialogs and their path checks
+remain app-owned. The settings worker is joined at shutdown to preserve pending
+writes, so closing can wait for an unusually slow filesystem. No new dependency,
+GPU backend or version change was introduced.
+
+Validation: 93 workspace tests passed, with five manual benchmarks ignored;
+strict Clippy, formatting, the macOS ARM64 build and Rust 1.89 all-target checks
+passed. Tests cover background preparation, immutable ordered boundary snapshots,
+shared screenshot buffers, settings flush/coalescing, overlay view coalescing and
+unchanged-view reuse. Original raster fixtures remain unchanged. Native checks in
+an isolated cache exercised continuous rotation with aligned borders, Settings
+while rotating, stationary label toggles, sunlight/grid effects, PNG export and a
+folder edit persisted to settings. Other platforms, native KML dialogs and the
+full input/provider checklist were not rerun for this follow-up. No end-to-end
+performance percentage is claimed from these ownership changes.

@@ -48,9 +48,10 @@ update loop. Child modules extend that state through focused `impl App` blocks:
 - `rendering`: snapshots renderer inputs, owns the frame coordinator, and uploads
   completed pixels to egui. The render crate
   owns the bounded frame mailbox and accepts an injected repaint callback.
-- `overlays`: merges boundary patches and draws borders, labels and ruler marks.
+- `overlays`: applies prepared boundary snapshots and draws borders, labels and ruler marks.
   Its private `cache` retains one
-  egui shape view; `projected` measures fonts and builds styled border/text shapes.
+  egui shape view; `projected` measures fonts and builds styled border/text shapes
+  from background-prepared geometry.
   Geographic projection, visibility indexing, ordered label candidates and
   rectangle occupancy belong to `earthcraft-render::overlays`.
 - `ui/`: bars, sidebar, suggestions, settings, and navigation controls.
@@ -80,9 +81,12 @@ Widgets call existing app commands; camera math is tested in core directly.
    the initial altitude or farther away.
 5. The app injects a thread-safe repaint callback into `TileCache::new`. Workers
    signal completion through that callback; data does not import egui.
-6. The coordinator publishes a completed RGBA frame and wakes egui. The app
-   uploads it to a texture and draws geographic overlays on the UI thread.
-7. Boundary, search and historical-imagery workers return results through channels.
+6. The coordinator converts RGBA into the app-provided CPU image type and prepares
+   matching overlay geometry before publishing the frame and waking egui. The app
+   submits the texture and lays out/draws geographic labels on the UI thread.
+7. The data-owned boundary processor merges patches, deduplicates labels and
+   prepares immutable dataset/name snapshots. The UI swaps the latest snapshot;
+   search and historical-imagery workers also return results through channels.
    The UI update loop polls and applies them. Network calls stay off the UI thread.
 
 Cache generation and in-flight counts are exposed through read-only methods.
@@ -99,18 +103,30 @@ continuous camera motion, a completed compatible view may be displayed while the
 newest one renders; discarding every earlier camera snapshot would starve the
 display. Borders, labels and the scale bar use that frame's camera snapshot to
 stay aligned. The existing interaction/idle resolutions and tile redraw interval
-remain. Overlay cache misses and RGBA-to-egui conversion still run on the UI thread.
+remain. RGBA-to-egui conversion runs through a backend-specific preparation callback
+on the coordinator; render itself has no egui dependency. Overlay index construction,
+culling, border projection and stable label-candidate sorting also run in background
+jobs. Font measurement, final label occupancy and shape construction remain on the UI thread.
 Unavailable tile keys accompany each completed frame; only relevant successful
 arrivals trigger another raster. Overlay-only toggles do not change raster state.
-Previous screenshot buffers return to the worker for reuse. Same-size texture
+Displayed RGBA buffers use shared immutable ownership. Screenshot jobs clone an
+`Arc`, retaining the exact displayed pixels without copying them at submission.
+Previous buffers return to the worker for reuse when uniquely owned; a pending
+export can temporarily prevent reuse. Same-size texture
 updates preserve storage through partial uploads; resizing allocates new storage.
 
 Administrative border and label shapes are cached for one displayed projection.
 The key includes the full camera basis, viewport position/size, altitude, DPI,
 visible administrative layers, language and map text scale; every merged boundary
-patch explicitly invalidates it. Tile completion and unrelated UI repaints reuse
+snapshot explicitly invalidates it. Tile completion and unrelated UI repaints reuse
 these shapes and shared text galleys. Movement replaces the previous cached view,
-rather than retaining a history of views. Ruler and placemark drawing remains
+rather than retaining a history of views. Camera-driven geometry accompanies its
+matching raster so continuous motion does not starve overlays. Stationary layer
+or dataset changes use a render-owned worker with one active job, one replaceable
+pending view and one completed result. The app accepts only matching camera,
+viewport, layer and dataset results; it never draws stale projections while a
+replacement is pending. Preparation caches the last geometry and static index.
+Ruler and placemark drawing remains
 dynamic, so edits appear immediately.
 
 During rebuild, labels are collected and stably sorted by the existing feature
@@ -356,3 +372,13 @@ lexical index traversal never replaces source priority or stable ties. Query
 work retains only the best four local candidates before remote merging. The
 index owns a bounded immutable name snapshot, not copied boundary geometry.
 This prefix workload does not need a second FTS5 index or SQLite calls per key.
+
+## Settings persistence
+
+Startup still reads the small settings/language files before constructing the UI.
+Subsequent changes submit settings and language values to a data-owned filesystem
+worker. It coalesces each value independently, performs serialization and I/O
+outside the mailbox lock, and wakes the UI on completion. Errors reach the app's
+English diagnostic status. Final shutdown flushes pending writes and joins this
+worker; normal updates and language changes never wait for disk I/O. Native folder
+and file dialogs, including their small path checks, remain app-owned.

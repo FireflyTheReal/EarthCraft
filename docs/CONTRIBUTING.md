@@ -184,7 +184,9 @@ the production R-tree for 8,000 ordered rectangles in sparse/dense screen areas,
 asserting identical admissions. It also compares rebuild/reuse for 10,000
 32-point geographic lines and 8,000 labels using production overlay drawing.
 Medians exclude the first font/cache warmup, rendering, services, tessellation
-and GPU work. R-tree insertion/traversal can cost more at the current 500-label
+and GPU work. Overlay rebuild measurements now include waiting for asynchronous
+geometry preparation; cache reuse remains immediate. Do not compare these totals
+directly with the earlier synchronous rebuild numbers. R-tree insertion/traversal can cost more at the current 500-label
 cap; do not present cache reuse or this benchmark as an application FPS guarantee.
 
 For static geographic-index comparisons, run the render-owned benchmark:

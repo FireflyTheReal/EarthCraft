@@ -99,16 +99,29 @@ User instructions and the requested scope take precedence over these defaults.
   Capture save/export snapshots at submission, preserve dropped-file ordering,
   wake the UI on both success and failure, and apply results only in the app.
   Native dialogs remain app-owned; never wait on a file job in egui.
+  Retain displayed RGBA through shared immutable ownership for screenshots;
+  never copy the entire frame on submission or recycle a buffer with readers.
 - Keep whole-frame rasterization on the render-owned coordinator with the existing
   Rayon pool. Bound pending/completed frames; coalesce pending camera requests.
   Reject incompatible provider/style/size results and align overlays with the
   displayed frame's camera. Keep texture upload on egui's thread; never wait there
   for a raster job or create a pool per frame.
+  Prepare backend CPU images and camera-matched overlay geometry before frame
+  publication. Keep backend types in the app-provided preparation callback;
+  render must not depend on egui. Preserve unchanged-view geometry reuse.
 - Keep overlay caching scoped to one displayed view. Invalidate on boundary
   patches, camera/projection, viewport, DPI, visible layers, language and map
   text scale. Keep ruler and placemark edits immediate. Screen-space label
   indexing must preserve stable priority/rank order, touching-edge rejection,
   padding and the 500-label limit; do not use spatial traversal order as priority.
+  Build boundary indexes, cull/project geometry and sort label candidates off
+  the UI thread. Coalesce stationary overlay jobs and reject stale views/data.
+  Keep font layout, final occupancy and shapes on the UI thread. Publish geometry
+  with moving raster frames so coalescing cannot starve overlays during motion.
+  Merge boundary patches and build immutable name snapshots in data's processor;
+  UI application of a result should swap shared snapshots, not clone/dedupe datasets.
+  Coalesce settings/language writes on the persistence worker, report failures,
+  and flush pending writes only at final shutdown. Preserve filenames and JSON.
 - Bound decoded tiles by pixel bytes, not only tile counts. The Moka `sync` cache
   uses a 256 MiB best-effort weighted target and LRU eviction; brief overshoot is
   expected, so do not describe it as a hard RAM ceiling. Do not wrap ready-cache
