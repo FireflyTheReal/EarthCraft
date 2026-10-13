@@ -1,0 +1,101 @@
+# Contributing
+
+Start with [the architecture](ARCHITECTURE.md) ([português](ARCHITECTURE.pt-BR.md))
+and [agent rules](../AGENTS.md). Keep feature work separate from mechanical moves
+so reviewers can distinguish behavior changes from file organization.
+
+## Development
+
+Install Rust 1.88 or newer through rustup. The locked dependency graph includes
+packages requiring 1.88; the old README's 1.82 requirement was no longer accurate.
+The workspace declares 1.88 and CI includes that toolchain. Stable is suitable for
+day-to-day development; do not use APIs newer than the declared minimum.
+
+On Linux, install build prerequisites before compiling:
+
+```sh
+sudo apt install build-essential pkg-config libgtk-3-dev libxkbcommon-dev libwayland-dev libx11-dev
+```
+
+From the repository root:
+
+```sh
+cargo run --release
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --locked
+cargo build --workspace --locked
+```
+
+The default member is the desktop app. Plain `cargo test` does not run every
+library's unit tests: use `cargo test --workspace`. For focused changes:
+
+```sh
+cargo test -p earthcraft-core
+cargo test -p earthcraft-data
+cargo test -p earthcraft-render
+cargo run -p earthcraft
+```
+
+Keep `Cargo.lock` in version control. Normal verification uses `--locked` to
+catch unintended dependency resolution changes. Intentional dependency updates
+should be reviewed separately, including compatibility with Rust 1.88.
+CI formats, lints, tests, and builds on Linux/macOS/Windows, plus Linux with the
+minimum Rust version. GitHub Actions are pinned to commits; update the pins
+explicitly when updating CI tooling.
+
+## Tests and behavior preservation
+
+Camera tests call the same methods as the app. Boundary and search tests use
+local JSON/strings. KML tests use isolated temporary files. Raster regression
+fixtures were captured from the original implementation, including empty-cache
+and loaded-tile rendering; see [fixture provenance](../crates/earthcraft-render/tests/fixtures/README.md).
+Tests require no public map service or saved user configuration.
+
+Prefer tests of observable behavior and invariants. Avoid copies of production
+algorithms. For a behavior-preserving refactor, retain constants, coordinate
+order, persistence formats and UI strings. Do not regenerate regression fixtures
+unless a deliberately approved rendering change explains the difference.
+
+The automated tests do not validate live services, GUI event delivery, native
+file dialogs, or packaging. Run the following manual checks for affected areas:
+
+- Launch from the root and verify the icon, initial view and panels.
+- Orbit, zoom under the cursor, rotate with right-drag/Shift, use arrow keys,
+  compass/north reset, navigation widgets, double-click and fly-to.
+- Switch satellite/streets/topography/historical imagery; verify loading,
+  release selection, fallback and attribution.
+- Search by coordinates and address; select suggestions with mouse and keyboard.
+- Toggle borders, city/metropolitan layers, labels, grid, atmosphere and sunlight.
+- Create placemarks; save/open/drop KML; export a screenshot and use the ruler.
+- Switch English/Portuguese, change UI/map scales, then restart to verify persistence.
+
+Report which checks actually ran and which platforms/services remain unverified.
+For packaging, use the app manifest/package, e.g. a package-selecting command
+supported by your packaging tool or run it from `apps/earthcraft`. Release
+artifacts still go to the root `target/release`. The pre-existing missing
+`icon.icns` and `packaging/earthcraft.desktop` assets must be supplied before
+validating bundle/deb output; this refactor does not invent replacements.
+
+## Resource-constrained builds
+
+For a small disk or a quick local check, reduce generated debug information and
+incremental output without changing the shared development profile:
+
+```sh
+CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_DEV_INCREMENTAL=false cargo test --workspace --locked
+```
+
+On PowerShell, set those names with `$env:CARGO_PROFILE_DEV_DEBUG="0"` and
+`$env:CARGO_PROFILE_DEV_INCREMENTAL="false"`, then run Cargo normally.
+`cargo clean --profile dev` removes rebuildable development output. Never delete
+user caches, screenshots, KML, or unrelated files to make a build fit.
+
+## Review checklist
+
+Explain the concrete behavior affected, why the owning module is correct, and
+what ran. Keep imports explicit and public APIs small. Prefer a module to a new
+crate when code shares the same responsibility and dependency requirements.
+Update architecture docs when ownership or dependency direction changes. Update
+both READMEs when changing user-facing setup or feature descriptions. Stage
+explicit files and keep generated output out of commits.

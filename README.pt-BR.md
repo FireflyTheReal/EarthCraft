@@ -6,7 +6,7 @@ Globo 3D estilo Google Earth em Rust puro (egui + renderização por ray-casting
 Roda em Windows, macOS e Linux sem dependências de sistema além do driver gráfico.
 
 ### Compilar e executar
-Requer Rust 1.82+ (https://rustup.rs):
+Requer Rust 1.88+ (https://rustup.rs):
 
     cargo run --release
 
@@ -32,3 +32,9 @@ Duplo clique: voar · Setas: mover · N: norte para cima
 Terreno 3D com relevo real, prédios 3D, Street View, Google Earth Studio,
 fotos geolocalizadas, tours narrados, camadas de dados (clima, oceanos, Marte/Lua) e ícones
 Os tiles são serviços de terceiros: respeite os termos de uso (OSM limita uso intenso).
+
+### Desenvolvimento
+
+O aplicativo fica em `apps/earthcraft`, com bibliotecas em `crates/`.
+Veja a [arquitetura](docs/ARCHITECTURE.pt-BR.md), o [guia de contribuição](docs/CONTRIBUTING.md)
+e as [regras para agentes](AGENTS.md) para entender os módulos e continuar o desenvolvimento.

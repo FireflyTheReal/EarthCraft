@@ -5,7 +5,7 @@
 A 3D globe in the style of Google Earth, written in pure Rust (egui + CPU ray-casting). Runs on Windows, macOS and Linux with no system dependencies beyond a graphics driver.
 
 ### Build and run
-Requires Rust 1.82+ (https://rustup.rs):
+Requires Rust 1.88+ (https://rustup.rs):
 
     cargo run --release
 
@@ -31,3 +31,9 @@ Drag: rotate globe · Right-drag / Shift+drag: rotate view · Wheel / +/-: zoom 
 
 Real 3D terrain, 3D buildings, Street View, Google Earth Studio, geotagged photos, narrated tours, data layers (weather, oceans, Mars/Moon) and icons
 Tiles come from third-party services: please respect their terms of use (OSM limits heavy usage).
+
+### Development
+
+The desktop app lives in `apps/earthcraft`, with reusable libraries in `crates/`.
+See the [architecture](docs/ARCHITECTURE.md), [contributing guide](docs/CONTRIBUTING.md),
+and [agent rules](AGENTS.md) for module ownership, checks, and how to extend the project.
