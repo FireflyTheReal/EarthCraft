@@ -52,8 +52,14 @@ User instructions and the requested scope take precedence over these defaults.
 ## Library and resource practices
 
 - Use glam for vector/matrix/rotation operations. Keep camera and geographic
-  geometry in `f64` (`DVec*`, `DMat*`, `DQuat`); use SIMD `Vec4` for color work.
+  geometry in `f64` (`DVec*`, `DMat*`, `DQuat`); use SIMD `Vec4` through tile
+  sampling, blending, shading and final RGB clamping. Use `dcamera` view/projection
+  constructors for the double-precision camera. Preserve right-handed world axes,
+  Y-up/-Z-forward view space, screen Y inversion, field of view and horizon picking.
+  Cache camera transforms per basis; do not invert matrices per raster pixel.
   Choose types for actual operations rather than replacing every scalar or tuple.
+  Check precision and singular-case behavior before replacing geographic formulas
+  with approximate interpolation or rotation helpers.
   Egui screen geometry stays in `emath`; do not add conversions without a use.
 - Use safe bytemuck casts for byte-backed pixel layouts. RGBA arrays have byte
   alignment; a byte buffer is not automatically aligned for a SIMD vector. Keep

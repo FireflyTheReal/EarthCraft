@@ -77,8 +77,19 @@ de cálculo foram preservados.
 
 Veja [as escolhas de bibliotecas](LIBRARY_OPTIONS.md) para os usos adotados e os
 cuidados de compatibilidade. A câmera usa `DVec*`, `DMat*` e `DQuat` em precisão
-dupla. Cores usam `Vec4` com SIMD; bytemuck cria views RGBA sem cópias e sem
-presumir alinhamento de vetores SIMD.
+dupla. `dcamera::rh::view::look_to_mat3` constrói a rotação da vista, e
+`dcamera::rh::proj::directx::perspective_infinite` constrói a projeção. Matrizes
+ficam em cache por basis. A vista usa X à direita, Y para cima e -Z para frente;
+a conversão final inverte Y para a tela. O nome `directx` indica a convenção de
+profundidade, sem trocar o backend gráfico. O renderer mantém o campo de visão,
+o picking analítico de raios/esfera e a verificação do horizonte, sem clipping
+pela profundidade projetada.
+
+Amostragem, interpolação, iluminação e clamping mantêm RGB em `Vec4` com SIMD até
+a conversão para bytes; a quarta componente fica zerada e o alfa final permanece
+opaco. `lerp_monotonic` mantém a forma da interpolação; operações podem ser
+fundidas em algumas plataformas, respeitando a tolerância existente dos fixtures.
+Bytemuck cria views RGBA sem cópias nem suposições de alinhamento SIMD.
 
 ## Memória e carregamento
 

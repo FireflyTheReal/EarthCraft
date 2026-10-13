@@ -26,9 +26,10 @@ has its own commit. The early disk-space blocker was resolved before proceeding.
 
 - `cargo fmt --all -- --check`: passed.
 - `cargo clippy --workspace --all-targets --offline --locked -- -D warnings`: passed.
-- `cargo test --workspace --offline --locked`: all 30 tests passed.
+- `cargo test --workspace --offline --locked`: all 34 tests passed after the glam camera audit.
 - `cargo build --workspace --offline --locked`: passed on macOS ARM64.
-- Final desktop executable launched without startup errors.
+- Final desktop executable launched without startup errors; imagery, borders, labels
+  and geographic orientation were inspected in its native window.
 - Native-target dependency metadata declares no Rust minimum above 1.88. Rust
   1.88 is not installed locally; minimum-toolchain and other-platform builds
   remain CI validation.
@@ -38,6 +39,16 @@ Local builds used `CARGO_PROFILE_DEV_DEBUG=0` and
 profile. Cargo reports the existing transitive `block 0.1.6` future-compatibility
 warning. Full manual controls, file dialogs, language switching and live-service
 checks remain the contributor smoke checklist; launch alone does not verify them.
+
+## Further glam audit
+
+The camera now uses double-precision `dcamera` view and infinite perspective
+constructors. RGB stays in SIMD `Vec4` through sampling, shading and output
+clamping, with `lerp_monotonic` for blending. Four additional tests cover screen
+pick/projection agreement across headings, poles, aspect ratios and altitude
+limits; cardinal orientation; horizon/ray invariants; and tile interpolation.
+Original raster fixtures remain unchanged. Great-circle interpolation and
+axis/angle rotation retain their existing near-singular behavior.
 
 ## Memory observation
 

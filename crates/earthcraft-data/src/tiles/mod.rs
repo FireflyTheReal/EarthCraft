@@ -1,5 +1,6 @@
 use crate::wayback::wayback_tile_url;
 use earthcraft_core::language::Lang;
+use glam::Vec4;
 use std::hash::{BuildHasherDefault, Hasher};
 // Tile-key bit offsets/masks are part of the existing packed-key contract.
 const PROVIDER_SHIFT: u32 = 59;
@@ -145,7 +146,8 @@ impl Tile {
         })
     }
 
-    pub fn sample(&self, u: f64, v: f64) -> [f32; 3] {
+    /// Bilinear RGB in SIMD lanes, with the unused fourth lane set to zero.
+    pub fn sample(&self, u: f64, v: f64) -> Vec4 {
         let x = (u * self.w as f64 - 0.5).max(0.0);
         let y = (v * self.h as f64 - 0.5).max(0.0);
         let x0 = (x as usize).min(self.w - 1);
@@ -157,14 +159,34 @@ impl Tile {
         let pixels: &[[u8; 4]] = bytemuck::cast_slice(&self.px);
         let pixel = |xx: usize, yy: usize| {
             let rgba = pixels[yy * self.w + xx];
-            glam::Vec4::new(rgba[0] as f32, rgba[1] as f32, rgba[2] as f32, 0.0)
+            Vec4::new(rgba[0] as f32, rgba[1] as f32, rgba[2] as f32, 0.0)
         };
         let (a, b, c, d) = (pixel(x0, y0), pixel(x1, y0), pixel(x0, y1), pixel(x1, y1));
-        let top = a + (b - a) * fx;
-        let bottom = c + (d - c) * fx;
-        ((top + (bottom - top) * fy) / 255.0).truncate().to_array()
+        let top = a.lerp_monotonic(b, fx);
+        let bottom = c.lerp_monotonic(d, fx);
+        top.lerp_monotonic(bottom, fy) / 255.0
     }
 }
 
 mod cache;
 pub use cache::{Lookup, TileCache, DEFAULT_TILE_CACHE_BUDGET_BYTES, MAX_INFLIGHT};
+
+#[cfg(test)]
+mod sampling_tests {
+    use super::*;
+    #[test]
+    fn simd_sampling_preserves_pixel_centers_bilinear_weights_and_unused_lane() {
+        let tile = Tile {
+            w: 2,
+            h: 2,
+            px: vec![
+                255, 0, 0, 255, 0, 255, 0, 0, 0, 0, 255, 128, 255, 255, 255, 64,
+            ],
+        };
+        assert_eq!(tile.sample(0.25, 0.25), Vec4::new(1.0, 0.0, 0.0, 0.0));
+        assert_eq!(tile.sample(0.75, 0.25), Vec4::new(0.0, 1.0, 0.0, 0.0));
+        assert_eq!(tile.sample(0.5, 0.5), Vec4::new(0.5, 0.5, 0.5, 0.0));
+        assert_eq!(tile.sample(-1.0, -1.0), tile.sample(0.25, 0.25));
+        assert_eq!(tile.sample(2.0, 2.0), Vec4::new(1.0, 1.0, 1.0, 0.0));
+    }
+}

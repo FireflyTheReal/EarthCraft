@@ -126,8 +126,21 @@ names without changing their values or floating-point evaluation order.
 
 See [library choices](LIBRARY_OPTIONS.md) for the adopted dependencies and their
 compatibility constraints. Core uses glam double-precision camera matrices,
-quaternions and vectors. Tile interpolation and renderer blending use SIMD `Vec4`;
-bytemuck supplies safe byte-aligned RGBA views without pixel copies.
+quaternions and vectors. `dcamera::rh::view::look_to_mat3` builds the view rotation;
+`dcamera::rh::proj::directx::perspective_infinite` builds the perspective matrix.
+World/view rotations and projection are cached when constructing a camera basis.
+World geometry is right-handed with geographic north along +Z; view space is
+X-right/Y-up/-Z-forward. NDC Y is up and the final screen conversion inverts it.
+The `directx` constructor selects a depth convention, not a graphics backend;
+the CPU renderer does not use projected depth for clipping. It retains the
+existing field of view, analytic ray/sphere picking and geographic horizon test.
+
+Tile interpolation, zoom blending, sunlight, atmosphere and output clamping keep
+RGB in SIMD `Vec4` lanes until byte conversion. The fourth lane stays zero and
+output alpha remains opaque. `lerp_monotonic` expresses the original interpolation
+form; supported targets may fuse operations, so the unchanged original raster
+fixtures retain their existing one-step quantization tolerance. Bytemuck supplies
+safe byte-aligned RGBA views without pixel copies or SIMD-alignment assumptions.
 
 ## Network runtime
 

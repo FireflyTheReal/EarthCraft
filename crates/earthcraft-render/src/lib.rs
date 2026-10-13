@@ -1,5 +1,5 @@
 //! Parallel CPU globe rendering. No filesystem or UI lifecycle ownership.
-use glam::Vec2;
+use glam::{Vec2, Vec4};
 mod tuning;
 use earthcraft_core::METERS_PER_LATITUDE_DEGREE;
 use earthcraft_core::{
@@ -42,7 +42,7 @@ struct Local<'a, F> {
     misses: Vec<(TileKey, f32)>,
 }
 impl<F: Fn(TileKey) -> Lookup> Local<'_, F> {
-    fn tile_color(&mut self, k: TileKey, dist: f32, u: f64, v: f64) -> Option<[f32; 3]> {
+    fn tile_color(&mut self, k: TileKey, dist: f32, u: f64, v: f64) -> Option<Vec4> {
         if !self.map.contains_key(&k) {
             let val = match (self.lookup)(k) {
                 Lookup::Ready(t) => Some(t),
@@ -69,13 +69,6 @@ fn hash3(a: i64, b: i64, c: i64) -> u64 {
     h = h.wrapping_mul(0xFF51_AFD7_ED55_8CCD);
     h ^ (h >> 33)
 }
-fn mix(a: [f32; 3], b: [f32; 3], t: f32) -> [f32; 3] {
-    // Four color lanes use glam SIMD; geometry remains double precision.
-    let a = glam::Vec4::new(a[0], a[1], a[2], 0.0);
-    let b = glam::Vec4::new(b[0], b[1], b[2], 0.0);
-    (a + (b - a) * t).truncate().to_array()
-}
-
 /// Samples the tile at level `z`; if it has not loaded yet, falls back to coarser (parent) levels.
 fn sample_chain(
     loc: &mut Local<impl Fn(TileKey) -> Lookup>,
@@ -85,7 +78,7 @@ fn sample_chain(
     u: f64,
     v: f64,
     dist: f32,
-) -> [f32; 3] {
+) -> Vec4 {
     let mut zz = z;
     while zz >= 0 {
         let n = (1u64 << zz) as f64;
@@ -116,7 +109,7 @@ fn render_row(
     };
     let ny = 1.0 - (y as f64 + 0.5) / h as f64 * 2.0;
     let pa = 2.0 * VERTICAL_FOV_HALF_TAN / h as f64; // angle per pixel
-    let cc = b.c.dot(b.c);
+    let cc = b.c.length_squared();
     let maxz = cfg.provider.max_zoom() as f64;
 
     let pixels: &mut [[u8; RGBA_CHANNELS]] = bytemuck::cast_slice_mut(row);
@@ -125,7 +118,7 @@ fn render_row(
         let d = b.dir(nx, ny);
         let bb = b.c.dot(d);
         let disc = bb * bb - (cc - 1.0);
-        let mut col: [f32; 3];
+        let mut col: Vec4;
 
         if disc >= 0.0 && bb < 0.0 {
             let t = -bb - disc.sqrt();
@@ -166,7 +159,7 @@ fn render_row(
             col = sample_chain(&mut loc, cfg.provider, cfg.rel, z0, u, v, dist);
             if frac > MIN_ZOOM_BLEND_FRACTION {
                 let c2 = sample_chain(&mut loc, cfg.provider, cfg.rel, z0 + 1, u, v, dist);
-                col = mix(col, c2, frac);
+                col = col.lerp_monotonic(c2, frac);
             }
 
             if cfg.grid {
@@ -177,7 +170,7 @@ fn render_row(
                 let dlon =
                     (lon / st - (lon / st).round()).abs() * st * lat.to_radians().cos().abs();
                 if dlat < thr || dlon < thr {
-                    col = mix(col, GRID_COLOR, GRID_BLEND);
+                    col = col.lerp_monotonic(GRID_COLOR, GRID_BLEND);
                 }
             }
             if let Some(sun) = cfg.sun {
@@ -185,15 +178,11 @@ fn render_row(
                 let k = ((l + TWILIGHT_OFFSET) / TWILIGHT_WIDTH).clamp(0.0, 1.0) as f32;
                 let k = k * k * (3.0 - 2.0 * k);
                 let shade = NIGHT_BRIGHTNESS + DAY_BRIGHTNESS_RANGE * k;
-                col = [
-                    col[0] * shade,
-                    col[1] * shade,
-                    col[2] * shade + NIGHT_BLUE_TINT * (1.0 - k),
-                ];
+                col = col * shade + Vec4::new(0.0, 0.0, NIGHT_BLUE_TINT * (1.0 - k), 0.0);
             }
             if cfg.atmo {
                 let rim = (1.0 - cosinc as f32).powi(RIM_FALLOFF_POWER) * RIM_BLEND;
-                col = mix(col, RIM_COLOR, rim);
+                col = col.lerp_monotonic(RIM_COLOR, rim);
             }
         } else {
             col = SPACE_COLOR;
@@ -207,19 +196,20 @@ fn render_row(
                 let br = STAR_MIN_BRIGHTNESS
                     + ((hs >> STAR_BRIGHTNESS_SHIFT) & STAR_BRIGHTNESS_MASK) as f32
                         / STAR_BRIGHTNESS_DIVISOR;
-                col = [br, br, br];
+                col = Vec4::new(br, br, br, 0.0);
             }
             if cfg.atmo && bb < 0.0 {
                 let rho = (cc - bb * bb).max(0.0).sqrt();
                 if (1.0..ATMOSPHERE_RADIUS_RATIO).contains(&rho) {
                     let g = (1.0 - (rho - 1.0) / ATMOSPHERE_HEIGHT_RATIO).powi(2) as f32;
-                    col = mix(col, ATMOSPHERE_COLOR, g * ATMOSPHERE_BLEND);
+                    col = col.lerp_monotonic(ATMOSPHERE_COLOR, g * ATMOSPHERE_BLEND);
                 }
             }
         }
-        pixel[0] = (col[0].clamp(0.0, 1.0) * COLOR_CHANNEL_MAX) as u8;
-        pixel[1] = (col[1].clamp(0.0, 1.0) * COLOR_CHANNEL_MAX) as u8;
-        pixel[2] = (col[2].clamp(0.0, 1.0) * COLOR_CHANNEL_MAX) as u8;
+        let channels = col.clamp(Vec4::ZERO, Vec4::ONE) * COLOR_CHANNEL_MAX;
+        pixel[0] = channels.x as u8;
+        pixel[1] = channels.y as u8;
+        pixel[2] = channels.z as u8;
         pixel[3] = OPAQUE_ALPHA;
     }
     loc.misses
