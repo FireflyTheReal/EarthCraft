@@ -44,6 +44,8 @@ CI formats, lints, tests, and builds on Linux/macOS/Windows, plus Linux with the
 minimum Rust version. GitHub Actions are pinned to commits; update the pins
 explicitly when updating CI tooling.
 
+For preview artifacts, version tags and publication, see [releases](RELEASING.md).
+
 ## Tests and behavior preservation
 
 Camera tests call the same methods as the app. Boundary and search tests use
