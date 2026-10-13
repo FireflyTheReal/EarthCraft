@@ -76,6 +76,11 @@ User instructions and the requested scope take precedence over these defaults.
   Reject incompatible provider/style/size results and align overlays with the
   displayed frame's camera. Keep texture upload on egui's thread; never wait there
   for a raster job or create a pool per frame.
+- Keep overlay caching scoped to one displayed view. Invalidate on boundary
+  patches, camera/projection, viewport, DPI, visible layers, language and map
+  text scale. Keep ruler and placemark edits immediate. Screen-space label
+  indexing must preserve stable priority/rank order, touching-edge rejection,
+  padding and the 500-label limit; do not use spatial traversal order as priority.
 - Bound decoded tiles by pixel bytes, not only tile counts. The Moka `sync` cache
   uses a 256 MiB best-effort weighted target and LRU eviction; brief overshoot is
   expected, so do not describe it as a hard RAM ceiling. Do not wrap ready-cache

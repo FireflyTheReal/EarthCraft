@@ -84,6 +84,9 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
   release selection, fallback and attribution.
 - Search by coordinates and address; select suggestions with mouse and keyboard.
 - Toggle borders, city/metropolitan layers, labels, grid, atmosphere and sunlight.
+- For overlay caching, toggle label/border layers while stationary, switch
+  language/map text size, and resize. Verify updates without camera movement;
+  late boundary patches and ruler/placemark edits must appear immediately.
 - Create placemarks; save/open/drop KML; export a screenshot and use the ruler.
 - Switch English/Portuguese, change UI/map scales, then restart to verify persistence.
 
@@ -161,3 +164,17 @@ overview frames request no new tiles. Five rounds of two hundred frames include 
 casting, sampling, allocation and tile lookup; they exclude GUI upload, overlays,
 network and eviction pressure. Neither benchmark is a substitute for live-app
 frame-time and memory measurements.
+
+To measure overlay projection-cache reuse and label occupancy separately:
+
+```sh
+CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_DEV_INCREMENTAL=false cargo test -p earthcraft overlay_projection_and_label_occupancy_time --locked -- --ignored --nocapture --test-threads=1
+```
+
+The isolated synthetic benchmark compares the old linear intersection scan with
+the production R-tree for 8,000 ordered rectangles in sparse/dense screen areas,
+asserting identical admissions. It also compares rebuild/reuse for 10,000
+32-point geographic lines and 8,000 labels using production overlay drawing.
+Medians exclude the first font/cache warmup, rendering, services, tessellation
+and GPU work. R-tree insertion/traversal can cost more at the current 500-label
+cap; do not present cache reuse or this benchmark as an application FPS guarantee.

@@ -111,6 +111,20 @@ O renderer processa blocos de oito linhas com Rayon, compartilhando consultas e
 referências de tiles entre linhas vizinhas. Essas referências são liberadas ao
 terminar o bloco, sem manter outro cache entre frames.
 
+As formas projetadas de bordas e nomes ficam em um cache de uma única vista.
+A chave inclui a base completa da câmera, posição/tamanho da viewport, altitude,
+DPI, camadas administrativas, idioma e escala do texto. Cada patch de dados
+invalida o cache; conclusão de tiles e repaints de outros painéis reutilizam as
+formas e galleys. Régua e placemarks continuam dinâmicos. A projeção ainda ocorre
+na thread da interface quando a vista muda.
+
+Na reconstrução, a ordenação estável por prioridade e rank permanece. Um R*-tree
+de `rstar` indexa os retângulos já aceitos, com interseção inclusiva: bordas que
+se tocam também são rejeitadas. Padding, cores e limite de 500 nomes não mudam.
+O índice é somente de tela, sem alterar visibilidade geográfica ou carregamento;
+é descartado após reconstruir. Para conjuntos pequenos, uma varredura linear
+pode ser mais rápida; o benchmark separa esse custo do ganho de reutilização.
+
 Um coordenador da aplicação chama o renderer fora da thread da interface, usando
 o pool existente do Rayon. Há no máximo um frame ativo, uma solicitação pendente
 substituível e um resultado concluído. Novas posições de câmera substituem o

@@ -22,7 +22,7 @@ pub struct Cam {
     pub alt: f64,     // km above the surface
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Basis {
     pub c: DVec3, // camera position (Earth radii)
     view_from_world: DMat3,

@@ -129,12 +129,12 @@ comparison procedure in [contributing](CONTRIBUTING.md) for a repeatable measure
 Commit and inspect the overview/batching build before starting these approved
 stages. Keep changes in separate logical commits and measure affected workloads:
 
-1. Move whole-frame CPU rendering off egui's thread, retaining Rayon pixel
+1. **Completed:** Move whole-frame CPU rendering off egui's thread, retaining Rayon pixel
    parallelism. Keep the latest pending camera request and reject obsolete
    provider/style/size results. Present compatible completed camera snapshots
    during motion, with matching overlay projections, to avoid starving the
    display. Perform texture upload on egui's thread.
-2. Cache unchanged overlay projections. Evaluate `rstar` for screen-space label
+2. **Completed:** Cache unchanged overlay projections. Evaluate `rstar` for screen-space label
    overlap queries while preserving placement priority and visible labels.
 3. Use `wide` to batch independent ray calculations across pixels, preserving
    double-precision geometry and original raster fixture tolerances.
@@ -180,3 +180,42 @@ The isolated native window also closed successfully during rotation.
 These checks establish scheduling and behavior, not a quantified FPS improvement.
 Overlay caching/spatial indexing, SIMD, buffer reuse, decoding isolation and
 Unicode normalization remain separate pending stages before MBTiles.
+
+## Overlay cache and label index checkpoint
+
+Stage 2 caches projected administrative borders and placed label shapes for one
+displayed camera basis. Boundary patches, viewport/DPI, altitude, layer flags,
+language and map scale invalidate it; tile completion and unrelated repaints do
+not. Ruler and placemarks remain dynamic. `rstar` 0.13.0 replaces accepted-label
+rectangle scanning with inclusive, short-circuit R*-tree queries, preserving
+stable priority/rank order, padding and the 500-label limit. Its declared Rust
+minimum is 1.85, within the workspace's 1.88 requirement. Existing dependency
+versions remain locked; only its supporting packages/features were added.
+
+Six new tests cover reuse and invalidation, priority/rank/stable ties, border
+endpoints, the label cap, touching edges/containment and 20,000 deterministic
+rectangle decisions against egui intersection. All 57 workspace tests, strict
+Clippy, formatting and the macOS ARM64 optimized-dev build passed. Original
+raster fixtures remain unchanged. In the isolated native build, stationary
+label/border toggles updated immediately and a newly added placemark appeared
+without moving the camera. Borders/labels were visually inspected against the
+previous build and during rotation; this is not a pixel-exact native screenshot
+comparison or a full cross-platform/input smoke test.
+
+The manual synthetic benchmark reported medians of seven rounds:
+
+| Workload | Previous approach | Current approach |
+| --- | --- | --- |
+| 8,000 label rectangles, 1920×1080 area, 500 admitted | Linear: 0.367 ms | R-tree: 0.682 ms |
+| 8,000 label rectangles, 960×600 area, 255 admitted | Linear: 1.215 ms | R-tree: 1.293 ms |
+| 10,000 32-point lines + 8,000 labels, unchanged view | Rebuild: 15.044 ms | Reuse: 0.120 ms |
+
+The R-tree is retained as the library implementation of screen-space occupancy;
+it was slower than a flat scan at these small capped sizes. Projection caching
+provides the measured improvement. A trial with wider tree nodes increased
+insertion/query cost and was reverted to library defaults. Measurements exclude
+rasterization, tessellation, GPU upload/drawing and services, and are not FPS
+claims. Commands and workload limitations are in the contributing guide.
+
+Next is the separate `wide` ray-batching stage, then buffer reuse, decoding
+isolation and Unicode normalization before MBTiles and the later GPU renderer.

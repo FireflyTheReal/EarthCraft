@@ -15,6 +15,7 @@ updates. All original raster fixtures remain unchanged.
 | Tokio + reqwest | App-owned async runtime, pooled HTTP clients and bounded service work | Preserve provider policy, timeout values, retries, disk fallback and UI completion delivery; CPU rendering remains on Rayon |
 | Moka | Concurrent decoded-tile storage with byte weights and LRU eviction | 256 MiB is a best-effort target; keep request admission/retries separate and do not force frame-by-frame maintenance |
 | Fluent | Embedded English/Portuguese catalogs with cached labels and named message arguments | Preserve wording and number precision; test syntax, parity, resolution and fallback |
+| rstar | R*-tree of accepted screen-space label rectangles | Preserve ordered admission, inclusive edge intersection and the 500-label limit; index only the current overlay rebuild, without changing geographic visibility |
 
 Do not introduce matrices, affine transforms or typed integer vectors just because
 glam exposes them. Use an operation/type where it removes handwritten math or

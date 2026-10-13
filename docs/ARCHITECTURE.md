@@ -45,6 +45,8 @@ update loop. Child modules extend that state through focused `impl App` blocks:
 - `rendering`: snapshots renderer inputs, owns the frame coordinator, and uploads
   completed pixels to egui. Its private `worker` module owns the bounded mailbox.
 - `overlays`: merges boundary patches and draws borders, labels and ruler marks.
+  Its private `cache` retains one projected view, `projected` builds border/text
+  shapes, and `labels` owns screen-space R-tree occupancy.
 - `ui/`: bars, sidebar, suggestions, settings, and navigation controls.
 
 Keeping state in the parent lets child modules access it without exporting it to
@@ -88,8 +90,25 @@ continuous camera motion, a completed compatible view may be displayed while the
 newest one renders; discarding every earlier camera snapshot would starve the
 display. Borders, labels and the scale bar use that frame's camera snapshot to
 stay aligned. The existing interaction/idle resolutions and tile redraw interval
-remain. Overlay projection and RGBA-to-egui conversion still run on the UI thread
-and are separate optimization stages.
+remain. Overlay cache misses and RGBA-to-egui conversion still run on the UI thread.
+
+Administrative border and label shapes are cached for one displayed projection.
+The key includes the full camera basis, viewport position/size, altitude, DPI,
+visible administrative layers, language and map text scale; every merged boundary
+patch explicitly invalidates it. Tile completion and unrelated UI repaints reuse
+these shapes and shared text galleys. Movement replaces the previous cached view,
+rather than retaining a history of views. Ruler and placemark drawing remains
+dynamic, so edits appear immediately.
+
+During rebuild, labels are collected and stably sorted by the existing feature
+priority and rank. A `rstar` R*-tree stores accepted label rectangles; inclusive
+intersection rejects touching edges exactly like egui. Padding, text layout,
+colors, placement order and the 500-label cap are unchanged. The tree only serves
+screen-space occupancy; it does not approximate geographic visibility, change
+dateline/pole handling, or change which data loads. Internal traversal stops at
+the first intersection without allocating an iterator stack. The index is dropped
+after rebuild. Tiny capped workloads can favor a linear scan; the reproducible
+benchmark reports that tradeoff separately from projection-cache reuse.
 
 The coordinator holds no mailbox lock during rasterization or tile admission.
 It admits visible missing tiles before becoming idle; overview warmup waits for
