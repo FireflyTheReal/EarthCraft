@@ -10,6 +10,8 @@ publish = false
 workspace = true
 
 [features]
+default = ["gpu"]
+gpu = ["dep:wgpu", "dep:pollster"]
 profiling = ["earthcraft-data/profiling"]
 
 [dependencies]
@@ -19,9 +21,12 @@ rayon.workspace = true
 glam.workspace = true
 bytemuck.workspace = true
 wide.workspace = true
+wgpu = { workspace = true, optional = true }
+pollster = { workspace = true, optional = true }
 emath.workspace = true
 geo-index.workspace = true
 rstar.workspace = true
 
 [dev-dependencies]
+naga.workspace = true
 image.workspace = true

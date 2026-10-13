@@ -25,6 +25,9 @@ pub(super) struct Renderer {
 impl Renderer {
     pub(super) fn new(cache: Arc<earthcraft_data::tiles::TileCache>, ctx: egui::Context) -> Self {
         let admission_cache = cache.clone();
+        let mut backend = earthcraft_render::backend::FrameRenderer::new(
+            earthcraft_render::backend::BackendPreference::from_environment(),
+        );
         let mut overlay_preparer = earthcraft_render::overlays::OverlayPreparer::default();
         Self {
             worker: RenderWorker::with_prepare(
@@ -37,14 +40,7 @@ impl Renderer {
                         profile.values.height = request.height;
                         profile.values.inflight = cache.inflight();
                     }
-                    earthcraft_render::render_view_into(
-                        request.width,
-                        request.height,
-                        &request.basis,
-                        &request.cfg,
-                        &cache,
-                        buffer,
-                    )
+                    backend.render(request, &cache, buffer)
                 },
                 move || ctx.request_repaint(),
                 move |frame| {

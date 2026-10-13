@@ -11,6 +11,8 @@ authors = ["EarthCraft"]
 workspace = true
 
 [features]
+default = ["gpu"]
+gpu = ["earthcraft-render/gpu"]
 profiling = ["earthcraft-data/profiling", "earthcraft-render/profiling"]
 
 [dependencies]

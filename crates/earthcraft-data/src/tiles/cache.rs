@@ -56,7 +56,7 @@ impl TileCache {
                 .weigher(|_: &TileKey, tile: &Arc<Tile>| {
                     u32::try_from(tile.px.len()).unwrap_or(u32::MAX)
                 })
-                // Map browsing has a recency bias; retain the existing LRU policy.
+                // LRU favors imagery revisited during map browsing.
                 .eviction_policy(EvictionPolicy::lru())
                 .build_with_hasher(KeyBuild::default()),
             requests: Mutex::new(HashMap::default()),
@@ -81,6 +81,21 @@ impl TileCache {
             runtime.spawn(worker(Arc::downgrade(&c), r, x));
         }
         cache
+    }
+
+    /// Short-lived decoded handles for a renderer upload. Never retain this as a second RAM cache.
+    pub fn ready_tiles(
+        &self,
+        provider: super::Provider,
+        release: u16,
+    ) -> Vec<(TileKey, Arc<Tile>)> {
+        self.ready
+            .iter()
+            .filter_map(|(key, tile)| {
+                let (p, _, _, _, r) = unkey(*key);
+                (p == provider && r == release).then_some((*key, tile))
+            })
+            .collect()
     }
 
     pub fn lookup(&self, key: TileKey) -> Lookup {
@@ -112,7 +127,7 @@ impl TileCache {
         requests.insert(key, RequestState::Loading(self.disk.epoch()));
         self.queue.lock().unwrap().push_back(key);
         self.inflight.fetch_add(1, Ordering::Relaxed);
-        // If wake tickets are full, existing tickets already cover the bounded
+        // If wake tickets are full, queued tickets already cover the bounded
         // job queue. Retiring a view must not accumulate unbounded stale tickets.
         if matches!(
             self.tx.try_send(key),

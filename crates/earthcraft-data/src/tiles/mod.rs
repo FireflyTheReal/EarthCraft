@@ -2,7 +2,7 @@ use crate::wayback::wayback_tile_url;
 use earthcraft_core::language::Lang;
 use glam::Vec4;
 use std::hash::{BuildHasherDefault, Hasher};
-// Tile-key bit offsets/masks are part of the existing packed-key contract.
+// Tile-key bit offsets/masks are part of the packed-key contract.
 const PROVIDER_SHIFT: u32 = 59;
 const ZOOM_SHIFT: u32 = 54;
 const RELEASE_SHIFT: u32 = 38;
@@ -144,6 +144,11 @@ impl Tile {
             h: img.height() as usize,
             px: img.into_raw(),
         })
+    }
+
+    /// Decoded RGBA layout for backend texture upload; storage remains tile-owned.
+    pub fn rgba(&self) -> (usize, usize, &[u8]) {
+        (self.w, self.h, &self.px)
     }
 
     /// Bilinear RGB in SIMD lanes, with the unused fourth lane set to zero.

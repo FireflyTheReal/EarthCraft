@@ -1,0 +1,258 @@
+//! Backend selection owned by the background frame coordinator.
+use crate::{worker::RenderRequest, RenderedView};
+use earthcraft_data::tiles::TileCache;
+// Complete 512x384 GPU/CPU frames were tied on the baseline adapter; avoid
+// GPU synchronization overhead for small rasters while retaining forced tests.
+#[cfg(feature = "gpu")]
+const MIN_AUTO_GPU_PIXELS: usize = 256 * 1024;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BackendPreference {
+    Auto,
+    Cpu,
+    Gpu,
+}
+impl BackendPreference {
+    pub fn from_environment() -> Self {
+        match std::env::var("EARTHCRAFT_RENDERER").as_deref() {
+            Ok("cpu") => Self::Cpu,
+            Ok("gpu") => Self::Gpu,
+            Ok("auto") | Err(_) => Self::Auto,
+            Ok(value) => {
+                eprintln!("Unknown EARTHCRAFT_RENDERER value {value:?}; using automatic selection");
+                Self::Auto
+            }
+        }
+    }
+}
+
+/// Created cheaply on the UI thread; adapter/device initialization is deferred
+/// until `render` runs on the frame coordinator. A failed device is not retried
+/// every frame. Restarting the application permits another initialization attempt.
+pub struct FrameRenderer {
+    preference: BackendPreference,
+    initialized: bool,
+    #[cfg(feature = "gpu")]
+    gpu: Option<crate::gpu::GpuRenderer>,
+    #[cfg(feature = "gpu")]
+    capacity_warning: bool,
+}
+impl FrameRenderer {
+    pub fn new(preference: BackendPreference) -> Self {
+        Self {
+            preference,
+            initialized: false,
+            #[cfg(feature = "gpu")]
+            gpu: None,
+            #[cfg(feature = "gpu")]
+            capacity_warning: false,
+        }
+    }
+    #[cfg(feature = "gpu")]
+    fn initialize_with(
+        &mut self,
+        initialize: impl FnOnce() -> Result<crate::gpu::GpuRenderer, String>,
+    ) {
+        if self.initialized {
+            return;
+        }
+        self.initialized = true;
+        if self.preference != BackendPreference::Cpu {
+            match initialize() {
+                Ok(gpu) => self.gpu = Some(gpu),
+                Err(error) => eprintln!("GPU renderer unavailable; using CPU: {error}"),
+            }
+        }
+    }
+    pub fn render(
+        &mut self,
+        request: &RenderRequest,
+        cache: &TileCache,
+        buffer: Vec<u8>,
+    ) -> RenderedView {
+        #[cfg(feature = "gpu")]
+        if self.preference == BackendPreference::Cpu
+            || (self.preference == BackendPreference::Auto
+                && request.width.saturating_mul(request.height) < MIN_AUTO_GPU_PIXELS)
+            || !crate::gpu::GpuRenderer::supports(request)
+        {
+            return crate::render_view_into(
+                request.width,
+                request.height,
+                &request.basis,
+                &request.cfg,
+                cache,
+                buffer,
+            );
+        }
+        #[cfg(feature = "gpu")]
+        self.initialize_with(crate::gpu::GpuRenderer::new);
+        #[cfg(not(feature = "gpu"))]
+        {
+            if !self.initialized && self.preference != BackendPreference::Cpu {
+                eprintln!("GPU support is disabled in this build; using CPU renderer");
+            }
+            self.initialized = true;
+        }
+        #[cfg(feature = "gpu")]
+        if let Some(gpu) = &mut self.gpu {
+            match gpu.render(request, cache, buffer) {
+                Ok(frame) => {
+                    self.capacity_warning = false;
+                    return frame;
+                }
+                Err((error, buffer, permanent)) => {
+                    if permanent || !self.capacity_warning {
+                        eprintln!("GPU renderer using CPU fallback: {error}");
+                    }
+                    self.capacity_warning = true;
+                    if permanent {
+                        self.gpu = None;
+                    }
+                    return crate::render_view_into(
+                        request.width,
+                        request.height,
+                        &request.basis,
+                        &request.cfg,
+                        cache,
+                        buffer,
+                    );
+                }
+            }
+        }
+        crate::render_view_into(
+            request.width,
+            request.height,
+            &request.basis,
+            &request.cfg,
+            cache,
+            buffer,
+        )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn forced_cpu_never_initializes_a_device() {
+        let renderer = FrameRenderer::new(BackendPreference::Cpu);
+        #[cfg(feature = "gpu")]
+        let mut renderer = renderer;
+        #[cfg(feature = "gpu")]
+        renderer.initialize_with(|| panic!("forced CPU must skip initialization"));
+        assert_eq!(renderer.preference, BackendPreference::Cpu);
+        #[cfg(feature = "gpu")]
+        assert!(renderer.initialized);
+        #[cfg(feature = "gpu")]
+        assert!(renderer.gpu.is_none());
+    }
+}
+
+#[cfg(all(test, feature = "gpu"))]
+mod fallback_tests {
+    use super::*;
+    #[test]
+    fn initialization_failure_disables_gpu_without_retrying_each_frame() {
+        let mut renderer = FrameRenderer::new(BackendPreference::Auto);
+        renderer.initialize_with(|| Err("test adapter is unavailable".into()));
+        assert!(renderer.initialized);
+        assert!(renderer.gpu.is_none());
+        renderer.initialize_with(|| panic!("failed initialization must not repeat"));
+    }
+}
+
+#[cfg(all(test, feature = "gpu"))]
+mod native_fallback_tests {
+    use super::*;
+    #[test]
+    #[ignore = "requires native GPU; run explicitly and alone with --test-threads=1"]
+    fn gpu_device_loss_publishes_a_cpu_frame() {
+        struct Fixture {
+            root: std::path::PathBuf,
+            previous: Option<std::ffi::OsString>,
+        }
+        impl Drop for Fixture {
+            fn drop(&mut self) {
+                if let Some(previous) = &self.previous {
+                    std::env::set_var("LOCALAPPDATA", previous);
+                } else {
+                    std::env::remove_var("LOCALAPPDATA");
+                }
+                std::fs::remove_dir_all(&self.root).unwrap();
+            }
+        }
+        let root = std::env::temp_dir().join(format!(
+            "earthcraft-gpu-fallback-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let fixture = Fixture {
+            root,
+            previous: std::env::var_os("LOCALAPPDATA"),
+        };
+        std::env::set_var("LOCALAPPDATA", &fixture.root);
+        let runtime = earthcraft_data::runtime::ServiceRuntime::new().unwrap();
+        let cache = TileCache::new(|| {}, runtime.handle());
+        let gpu = crate::gpu::GpuRenderer::new().unwrap();
+        gpu.destroy_for_test();
+        let mut renderer = FrameRenderer {
+            preference: BackendPreference::Gpu,
+            initialized: true,
+            gpu: Some(gpu),
+            capacity_warning: false,
+        };
+        let cam = earthcraft_core::camera::Cam {
+            lat: -15.0,
+            lon: -50.0,
+            heading: 25.0,
+            alt: 14000.0,
+        };
+        let request = RenderRequest {
+            width: 65,
+            height: 49,
+            cam,
+            basis: cam.basis(65.0 / 49.0),
+            cfg: crate::RenderCfg {
+                provider: earthcraft_data::tiles::Provider::Satellite,
+                rel: 0,
+                grid: false,
+                grid_step: 10.0,
+                atmo: true,
+                sun: None,
+            },
+            overlays: None,
+            presentation: 0,
+        };
+        let fallback = renderer.render(&request, &cache, Vec::new());
+        let expected = crate::render_view_into(
+            request.width,
+            request.height,
+            &request.basis,
+            &request.cfg,
+            &cache,
+            Vec::new(),
+        );
+        assert_eq!(fallback.pixels, expected.pixels);
+        assert_eq!(
+            fallback
+                .required_tiles()
+                .into_iter()
+                .collect::<std::collections::HashSet<_>>(),
+            expected.required_tiles().into_iter().collect()
+        );
+        assert!(renderer.gpu.is_none(), "failed device must remain disabled");
+        assert_eq!(
+            renderer.render(&request, &cache, Vec::new()).pixels,
+            expected.pixels
+        );
+        drop(renderer);
+        drop(cache);
+        drop(runtime);
+        drop(fixture);
+    }
+}

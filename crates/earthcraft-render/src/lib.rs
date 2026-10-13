@@ -1,7 +1,12 @@
-//! Parallel CPU globe rendering. No filesystem or UI lifecycle ownership.
+//! Globe rasterization, optional GPU acceleration and background frame coordination.
 use glam::{DVec3, Vec2, Vec4};
+pub mod backend;
+#[cfg(feature = "gpu")]
+mod gpu;
 pub mod overlays;
+mod pixel;
 mod rays;
+use pixel::{sky, surface, Surface};
 mod tuning;
 pub mod worker;
 use earthcraft_core::{camera::Basis, math::v3_to_ll, EARTH_RADIUS_M, VERTICAL_FOV_HALF_TAN};
@@ -84,14 +89,6 @@ impl<F: Fn(TileKey) -> Lookup> Local<'_, F> {
     }
 }
 
-fn hash3(a: i64, b: i64, c: i64) -> u64 {
-    let mut h = (a as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15)
-        ^ (b as u64).wrapping_mul(0xC2B2_AE3D_27D4_EB4F)
-        ^ (c as u64).wrapping_mul(0x1656_67B1_9E37_79F9);
-    h ^= h >> 33;
-    h = h.wrapping_mul(0xFF51_AFD7_ED55_8CCD);
-    h ^ (h >> 33)
-}
 /// Samples the tile at level `z`; if it has not loaded yet, falls back to coarser (parent) levels.
 fn sample_chain(
     loc: &mut Local<impl Fn(TileKey) -> Lookup>,
@@ -116,6 +113,41 @@ fn sample_chain(
     MISSING_TILE_COLOR
 }
 
+fn shade_surface(
+    surface: Surface,
+    cfg: &RenderCfg,
+    loc: &mut Local<impl Fn(TileKey) -> Lookup>,
+) -> Vec4 {
+    let mut col;
+    col = sample_chain(
+        loc,
+        cfg.provider,
+        cfg.rel,
+        surface.z0,
+        surface.u,
+        surface.v,
+        surface.dist,
+    );
+    if surface.frac > MIN_ZOOM_BLEND_FRACTION {
+        let c2 = sample_chain(
+            loc,
+            cfg.provider,
+            cfg.rel,
+            surface.z0 + 1,
+            surface.u,
+            surface.v,
+            surface.dist,
+        );
+        col = col.lerp_monotonic(c2, surface.frac);
+    }
+    if surface.grid {
+        col = col.lerp_monotonic(GRID_COLOR, GRID_BLEND);
+    }
+    col = col * surface.shade + Vec4::new(0.0, 0.0, surface.night, 0.0);
+    col = col.lerp_monotonic(RIM_COLOR, surface.rim);
+    col
+}
+
 fn render_row(
     y: usize,
     w: usize,
@@ -125,10 +157,7 @@ fn render_row(
     loc: &mut Local<impl Fn(TileKey) -> Lookup>,
     row: &mut [u8],
 ) {
-    let pa = 2.0 * VERTICAL_FOV_HALF_TAN / h as f64; // angle per pixel
     let cc = rays.camera_len_squared;
-    let maxz = cfg.provider.max_zoom() as f64;
-
     let pixels: &mut [[u8; RGBA_CHANNELS]] = bytemuck::cast_slice_mut(row);
     for (pack, pixels) in pixels.chunks_mut(RAY_LANES).enumerate() {
         let first_x = pack * RAY_LANES;
@@ -136,97 +165,14 @@ fn render_row(
         // A short final pack only shades real pixels; padded lanes make no lookups.
         for (lane, (pixel, ray)) in pixels.iter_mut().zip(samples).enumerate() {
             let x = first_x + lane;
-            let d = ray.direction;
             let bb = ray.camera_dot;
             let disc = ray.discriminant;
-            let mut col: Vec4;
-
-            if disc >= 0.0 && bb < 0.0 {
-                let t = ray.distance;
-                let p = ray.point;
-                let cosinc = ray.incidence;
-                let (lat, lon) = v3_to_ll(p);
-                let coslat = lat.to_radians().cos().max(MIN_LOD_LATITUDE_COSINE);
-                // Level of detail (LOD): softer grazing-angle limit and a sharpness bias,
-                // which greatly enlarges the high-resolution area.
-                let mpp = t * EARTH_RADIUS_M * pa / cosinc.max(MIN_LOD_INCIDENCE_COSINE).sqrt();
-                let zf = ((2.0 * PI * EARTH_RADIUS_M * coslat) / (TILE_SIZE_PX * mpp)).log2();
-                let lod = zf + LOD_SHARPNESS_BIAS;
-                // Satellite: smooth blend between two levels (no visible circles).
-                // Text maps: single, slightly sharper level so labels are not duplicated.
-                let (zl, frac) = if cfg.provider.is_imagery() {
-                    let f = lod.floor();
-                    (f, lod - f)
-                } else {
-                    (lod.ceil(), 0.0)
-                };
-                let z0 = zl.clamp(0.0, maxz) as i32;
-                let frac = if (z0 as f64) >= maxz {
-                    0.0
-                } else {
-                    frac as f32
-                };
-
-                let latc = lat.clamp(
-                    -WEB_MERCATOR_MAX_LATITUDE_DEG,
-                    WEB_MERCATOR_MAX_LATITUDE_DEG,
-                );
-                let u = ((lon + 180.0) / 360.0).rem_euclid(1.0);
-                let s = latc.to_radians().sin();
-                let v = 0.5 - ((1.0 + s) / (1.0 - s)).ln() / (4.0 * PI);
-                let offset = Vec2::new(x as f32 - w as f32 / 2.0, y as f32 - h as f32 / 2.0);
-                let dist = offset.length_squared();
-
-                col = sample_chain(loc, cfg.provider, cfg.rel, z0, u, v, dist);
-                if frac > MIN_ZOOM_BLEND_FRACTION {
-                    let c2 = sample_chain(loc, cfg.provider, cfg.rel, z0 + 1, u, v, dist);
-                    col = col.lerp_monotonic(c2, frac);
-                }
-
-                if cfg.grid {
-                    let st = cfg.grid_step;
-                    let px_deg = mpp / METERS_PER_LATITUDE_DEGREE;
-                    let thr = px_deg * GRID_LINE_WIDTH_PX;
-                    let dlat = (lat / st - (lat / st).round()).abs() * st;
-                    let dlon =
-                        (lon / st - (lon / st).round()).abs() * st * lat.to_radians().cos().abs();
-                    if dlat < thr || dlon < thr {
-                        col = col.lerp_monotonic(GRID_COLOR, GRID_BLEND);
-                    }
-                }
-                if let Some(sun) = cfg.sun {
-                    let l = p.dot(sun);
-                    let k = ((l + TWILIGHT_OFFSET) / TWILIGHT_WIDTH).clamp(0.0, 1.0) as f32;
-                    let k = k * k * (3.0 - 2.0 * k);
-                    let shade = NIGHT_BRIGHTNESS + DAY_BRIGHTNESS_RANGE * k;
-                    col = col * shade + Vec4::new(0.0, 0.0, NIGHT_BLUE_TINT * (1.0 - k), 0.0);
-                }
-                if cfg.atmo {
-                    let rim = (1.0 - cosinc as f32).powi(RIM_FALLOFF_POWER) * RIM_BLEND;
-                    col = col.lerp_monotonic(RIM_COLOR, rim);
-                }
+            let col = if disc >= 0.0 && bb < 0.0 {
+                let surface = surface(x, y, w, h, &ray, cfg);
+                shade_surface(surface, cfg, loc)
             } else {
-                col = SPACE_COLOR;
-                let cell = (
-                    (d.x * STAR_GRID_RESOLUTION).floor() as i64,
-                    (d.y * STAR_GRID_RESOLUTION).floor() as i64,
-                    (d.z * STAR_GRID_RESOLUTION).floor() as i64,
-                );
-                let hs = hash3(cell.0, cell.1, cell.2);
-                if hs.is_multiple_of(STAR_OCCURRENCE_MODULUS) {
-                    let br = STAR_MIN_BRIGHTNESS
-                        + ((hs >> STAR_BRIGHTNESS_SHIFT) & STAR_BRIGHTNESS_MASK) as f32
-                            / STAR_BRIGHTNESS_DIVISOR;
-                    col = Vec4::new(br, br, br, 0.0);
-                }
-                if cfg.atmo && bb < 0.0 {
-                    let rho = (cc - bb * bb).max(0.0).sqrt();
-                    if (1.0..ATMOSPHERE_RADIUS_RATIO).contains(&rho) {
-                        let g = (1.0 - (rho - 1.0) / ATMOSPHERE_HEIGHT_RATIO).powi(2) as f32;
-                        col = col.lerp_monotonic(ATMOSPHERE_COLOR, g * ATMOSPHERE_BLEND);
-                    }
-                }
-            }
+                sky(&ray, cc, cfg)
+            };
             let channels = col.clamp(Vec4::ZERO, Vec4::ONE) * COLOR_CHANNEL_MAX;
             pixel[0] = channels.x as u8;
             pixel[1] = channels.y as u8;

@@ -9,7 +9,7 @@ struct ReferenceFrame {
 }
 
 #[test]
-fn raster_matches_the_original_implementation() {
+fn raster_matches_regression_fixtures() {
     let (w, h) = (64, 48);
     let basis = Cam {
         lat: -15.0,

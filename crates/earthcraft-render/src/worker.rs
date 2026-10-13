@@ -49,7 +49,7 @@ pub struct RenderWorker<T = ()> {
 
 impl RenderWorker {
     pub fn new(
-        render: impl Fn(&RenderRequest, Vec<u8>) -> crate::RenderedView + Send + 'static,
+        render: impl FnMut(&RenderRequest, Vec<u8>) -> crate::RenderedView + Send + 'static,
         repaint: impl Fn() + Send + 'static,
         admit: impl Fn(&crate::RenderedView) + Send + 'static,
     ) -> std::io::Result<Self> {
@@ -60,7 +60,7 @@ impl RenderWorker {
 impl<T: Send + 'static> RenderWorker<T> {
     /// Prepare backend-specific CPU resources on the coordinator, before publication.
     pub fn with_prepare(
-        render: impl Fn(&RenderRequest, Vec<u8>) -> crate::RenderedView + Send + 'static,
+        mut render: impl FnMut(&RenderRequest, Vec<u8>) -> crate::RenderedView + Send + 'static,
         repaint: impl Fn() + Send + 'static,
         admit: impl Fn(&crate::RenderedView) + Send + 'static,
         mut prepare: impl FnMut(&RenderRequest, &[u8]) -> T + Send + 'static,
