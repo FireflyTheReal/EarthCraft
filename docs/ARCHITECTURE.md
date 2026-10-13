@@ -42,7 +42,8 @@ update loop. Child modules extend that state through focused `impl App` blocks:
 - `files`: native dialogs, KML commands, dropped files, and screenshots.
 - `cache`: disk-cache clearing commands and completion polling.
 - `globe`: viewport interaction, redraw decisions, and image presentation.
-- `rendering`: builds renderer inputs and uploads returned pixels to egui.
+- `rendering`: snapshots renderer inputs, owns the frame coordinator, and uploads
+  completed pixels to egui. Its private `worker` module owns the bounded mailbox.
 - `overlays`: merges boundary patches and draws borders, labels and ruler marks.
 - `ui/`: bars, sidebar, suggestions, settings, and navigation controls.
 
@@ -56,7 +57,8 @@ Widgets call existing app commands; camera math is tested in core directly.
 2. Core calculates camera basis vectors, projection and cursor picking. It uses
    `emath`'s lightweight `Pos2`/`Rect` types, also re-exported by egui, without
    depending on widgets or a windowing backend.
-3. The renderer ray-casts eight-row batches in parallel with Rayon. Each batch
+3. A dedicated app-owned coordinator calls the renderer off the UI thread. The
+   renderer ray-casts eight-row batches in parallel with Rayon. Each batch
    shares tile lookups and handles across adjacent rows, then releases them at
    completion. It samples cached tiles,
    blends imagery zoom levels, and applies the grid, atmosphere, sunlight and stars.
@@ -67,7 +69,8 @@ Widgets call existing app commands; camera math is tested in core directly.
    the initial altitude or farther away.
 5. The app injects a thread-safe repaint callback into `TileCache::new`. Workers
    signal completion through that callback; data does not import egui.
-6. The app uploads RGBA output to a texture and draws geographic overlays.
+6. The coordinator publishes a completed RGBA frame and wakes egui. The app
+   uploads it to a texture and draws geographic overlays on the UI thread.
 7. Boundary, search and historical-imagery workers return results through channels.
    The UI update loop polls and applies them. Network calls stay off the UI thread.
 
@@ -75,6 +78,25 @@ Cache generation and in-flight counts are exposed through read-only methods.
 Tile maps, queues and atomics stay private. HTTP cache helpers and persistence
 paths stay private to data. Search and boundary deduplication reuse core's
 existing name-normalization function.
+
+The frame mailbox holds at most one active job, one replaceable pending request,
+and one completed buffer. New camera positions replace pending work rather than
+queuing every input event. Completed buffers supersede unread older buffers.
+Provider, historical release, raster size/aspect, grid, atmosphere and sunlight
+changes reject incompatible results both at publication and UI polling. During
+continuous camera motion, a completed compatible view may be displayed while the
+newest one renders; discarding every earlier camera snapshot would starve the
+display. Borders, labels and the scale bar use that frame's camera snapshot to
+stay aligned. The existing interaction/idle resolutions and tile redraw interval
+remain. Overlay projection and RGBA-to-egui conversion still run on the UI thread
+and are separate optimization stages.
+
+The coordinator holds no mailbox lock during rasterization or tile admission.
+It admits visible missing tiles before becoming idle; overview warmup waits for
+that idle state. Shutdown drops pending/completed work and wakes the coordinator
+without waiting on egui; an active job finishes before releasing worker resources.
+The existing Rayon pool handles pixel parallelism, without creating a new pool
+per frame or occupying Tokio's bounded parsing/decoding workers.
 
 ## Preserved contracts
 

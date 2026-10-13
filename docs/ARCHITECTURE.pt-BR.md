@@ -111,6 +111,22 @@ O renderer processa blocos de oito linhas com Rayon, compartilhando consultas e
 referências de tiles entre linhas vizinhas. Essas referências são liberadas ao
 terminar o bloco, sem manter outro cache entre frames.
 
+Um coordenador da aplicação chama o renderer fora da thread da interface, usando
+o pool existente do Rayon. Há no máximo um frame ativo, uma solicitação pendente
+substituível e um resultado concluído. Novas posições de câmera substituem o
+trabalho pendente. Mudanças de provedor, data histórica, tamanho/aspecto ou efeitos
+descartam resultados incompatíveis. Durante movimento contínuo, a vista concluída
+compatível aparece enquanto a mais recente é calculada; bordas, nomes e escala
+usam a câmera desse frame para permanecer alinhados. A interface recebe um repaint
+ao concluir e mantém a atualização de texturas, projeção de overlays e conversão
+RGBA, que serão otimizadas separadamente.
+
+O coordenador não segura o mutex durante rasterização ou admissão de tiles. O
+aquecimento global aguarda sua ociosidade para dar prioridade aos tiles visíveis.
+Fechar a janela descarta solicitações pendentes sem esperar pelo frame ativo;
+o coordenador libera seus recursos ao terminar esse trabalho. Não cria um pool
+por frame nem ocupa os workers limitados de parsing/decodificação do Tokio.
+
 `TileWarmup` percorre uma vez por sessão os níveis 0–4 de satélite, dos mais
 simples aos mais detalhados: 341 tiles RGBA de 256×256 somam cerca de 85 MiB.
 Eles usam o mesmo cache em memória de 256 MiB e o cache em disco. O aquecimento

@@ -188,8 +188,24 @@ impl App {
             .hash(&mut hs);
         let state = hs.finish();
         let gen = self.cache.generation();
+        let mut presentation = std::collections::hash_map::DefaultHasher::new();
+        (
+            w,
+            h,
+            aspect.to_bits(),
+            self.effective_provider().id(),
+            self.wayback_idx,
+            self.show_grid,
+            self.show_atmo,
+            sun_key,
+        )
+            .hash(&mut presentation);
+        let presentation = presentation.finish();
+        self.poll_render(presentation, ctx);
 
-        let mut need = state != self.last_state || gen != self.last_gen || self.texture.is_none();
+        let mut need = state != self.last_state
+            || gen != self.last_gen
+            || (self.texture.is_none() && self.renderer.is_idle());
         if need
             && state == self.last_state
             && self.texture.is_some()
@@ -199,7 +215,7 @@ impl App {
             need = false;
         }
         if need {
-            self.render(w, h, aspect, ctx);
+            self.request_render(w, h, aspect, presentation);
             self.last_state = state;
             self.last_gen = gen;
             self.last_render = Instant::now();
@@ -207,9 +223,10 @@ impl App {
         if !idle {
             ctx.request_repaint_after(ACTIVE_REPAINT_INTERVAL);
         }
-        // Render queues the current viewport first. Pause speculative work when
-        // the user interacts, zooms closer, or selects another imagery layer.
+        // The frame worker admits visible tiles before becoming idle. Speculative
+        // work waits for it, and pauses during interaction/closer zoom/other layers.
         if idle
+            && self.renderer.is_idle()
             && self.provider == Provider::Satellite
             && self.cam.alt >= INITIAL_CAMERA.alt
             && self.tile_warmup.pump(&self.cache)
@@ -228,7 +245,11 @@ impl App {
                 Color32::WHITE,
             );
         }
-        self.draw_overlays(&painter, &basis, rect);
+        // Keep projected borders and labels aligned with the displayed raster
+        // while the coordinator works on the latest camera position.
+        let (display_cam, display_basis) =
+            self.renderer.displayed_view().unwrap_or((self.cam, basis));
+        self.draw_overlays(&painter, &display_basis, rect, display_cam.alt);
 
         // Google Earth style navigation controls (rotate / move / zoom)
         let dt_nav = ctx.input(|i| i.stable_dt).min(MAX_FRAME_DELTA_SECS) as f64;
@@ -238,9 +259,9 @@ impl App {
         }
 
         // scale bar
-        if self.cam.alt < MAX_SCALE_BAR_ALTITUDE_KM {
-            let mpp =
-                self.cam.alt * METERS_PER_KM * 2.0 * VERTICAL_FOV_HALF_TAN / rect.height() as f64;
+        if display_cam.alt < MAX_SCALE_BAR_ALTITUDE_KM {
+            let mpp = display_cam.alt * METERS_PER_KM * 2.0 * VERTICAL_FOV_HALF_TAN
+                / rect.height() as f64;
             let target = mpp * TARGET_SCALE_BAR_WIDTH_POINTS;
             let pow = 10f64.powf(target.log10().floor());
             let nice = [5.0, 2.0, 1.0]

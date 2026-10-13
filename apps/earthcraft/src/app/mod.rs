@@ -65,6 +65,7 @@ pub(crate) struct App {
     show_sun: bool,
     auto_rotate: bool,
 
+    renderer: rendering::Renderer,
     texture: Option<egui::TextureHandle>,
     image: Option<(usize, usize, Vec<u8>)>,
     last_state: u64,
@@ -126,17 +127,20 @@ impl App {
                 let ctx = cc.egui_ctx.clone();
                 move || ctx.request_repaint()
             });
+        let cache = TileCache::new(
+            {
+                let ctx = cc.egui_ctx.clone();
+                move || ctx.request_repaint()
+            },
+            runtime.handle(),
+        );
+        let renderer = rendering::Renderer::new(cache.clone(), cc.egui_ctx.clone());
         App {
             lang,
             cam: INITIAL_CAMERA,
             fly: None,
-            cache: TileCache::new(
-                {
-                    let ctx = cc.egui_ctx.clone();
-                    move || ctx.request_repaint()
-                },
-                runtime.handle(),
-            ),
+            cache,
+            renderer,
             provider: Provider::Satellite,
             tile_warmup: TileWarmup::startup_satellite(),
             cache_controls: cache::CacheControls::default(),

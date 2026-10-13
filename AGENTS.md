@@ -71,6 +71,11 @@ User instructions and the requested scope take precedence over these defaults.
   data; use pooled reqwest clients and async I/O. Keep CPU rasterization on Rayon,
   large decoding/projection on bounded blocking workers, and UI access on egui's
   thread. Completion must wake the UI, including the last background job.
+- Keep whole-frame rasterization on the app's coordinator with the existing
+  Rayon pool. Bound pending/completed frames; coalesce pending camera requests.
+  Reject incompatible provider/style/size results and align overlays with the
+  displayed frame's camera. Keep texture upload on egui's thread; never wait there
+  for a raster job or create a pool per frame.
 - Bound decoded tiles by pixel bytes, not only tile counts. The Moka `sync` cache
   uses a 256 MiB best-effort weighted target and LRU eviction; brief overshoot is
   expected, so do not describe it as a hard RAM ceiling. Do not wrap ready-cache

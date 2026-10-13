@@ -66,6 +66,10 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
 - Launch from the root and verify the icon, initial view and panels.
 - Orbit, zoom under the cursor, rotate with right-drag/Shift, use arrow keys,
   compass/north reset, navigation widgets, double-click and fly-to.
+- With background rendering, open Settings during continuous rotation/flight;
+  verify input remains responsive, new imagery keeps arriving and borders/labels
+  stay aligned. Stop input and check full-resolution recovery. Rapidly switch
+  providers/effects and resize to check obsolete results, then close while busy.
 - At the initial distance, let the satellite overview warm, then rotate to the
   opposite hemisphere. Check that overview imagery is available, close zoom
   still loads detail, and other layers remain on demand. Compare cold and warm

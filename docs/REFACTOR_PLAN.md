@@ -130,8 +130,10 @@ Commit and inspect the overview/batching build before starting these approved
 stages. Keep changes in separate logical commits and measure affected workloads:
 
 1. Move whole-frame CPU rendering off egui's thread, retaining Rayon pixel
-   parallelism. Keep the latest camera request, discard obsolete results, and
-   perform texture upload on egui's thread.
+   parallelism. Keep the latest pending camera request and reject obsolete
+   provider/style/size results. Present compatible completed camera snapshots
+   during motion, with matching overlay projections, to avoid starving the
+   display. Perform texture upload on egui's thread.
 2. Cache unchanged overlay projections. Evaluate `rstar` for screen-space label
    overlap queries while preserving placement priority and visible labels.
 3. Use `wide` to batch independent ray calculations across pixels, preserving
@@ -156,3 +158,25 @@ justify changing admission coordination; it does not replace the decoded Moka ca
 After the complete series, including the later GPU renderer, passes validation,
 bump the workspace version to 0.1.0 and regenerate the lockfile. The version
 remains 0.0.2 during these intermediate stages.
+
+## Background frame coordinator checkpoint
+
+Stage 1 now runs whole-frame CPU rendering on an app-owned coordinator with the
+existing Rayon pool. The mailbox coalesces pending camera input and retains only
+one completed frame; provider/style/size changes reject incompatible output.
+Compatible camera snapshots remain presentable during continuous motion, and
+overlays/scale use their camera to stay aligned. Texture upload and screenshot
+buffer ownership stay on egui's thread. Overview warming waits until visible
+tile admission finishes; closing drops queued work without waiting for the raster.
+
+Four deterministic scheduler tests cover background execution, coalescing 200
+camera requests, presentation filtering, completed-buffer replacement, completion
+repaint and non-blocking shutdown. All 51 workspace tests, strict Clippy, formatting
+and the macOS ARM64 optimized-dev build passed; original raster fixtures are
+unchanged. Native checks opened Settings during continuous rotation, toggled the
+grid and switched topography/satellite. Exported PNGs were 808×601 while moving
+and 2000×1488 after idle recovery; imagery and geographic overlays were inspected.
+The isolated native window also closed successfully during rotation.
+These checks establish scheduling and behavior, not a quantified FPS improvement.
+Overlay caching/spatial indexing, SIMD, buffer reuse, decoding isolation and
+Unicode normalization remain separate pending stages before MBTiles.

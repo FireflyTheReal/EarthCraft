@@ -16,6 +16,7 @@ Uma conexão com a internet é necessária para baixar os tiles do mapa.
 
 ### Funções
 - Globo 3D com órbita, zoom, rotação da vista (heading) e bússola
+- Renderização em CPU em segundo plano com blocos de pixels em paralelo; texturas atualizadas na thread da interface
 - Imagens de satélite (Esri), ruas (OSM) e topografia (OpenTopoMap) com tiles em múltiplos níveis de zoom e cache em disco
 - Carregamento em segundo plano da visão de satélite de todo o globo na distância inicial; tiles detalhados carregam ao aproximar
 - Limpeza dos tiles baixados em disco pelas configurações

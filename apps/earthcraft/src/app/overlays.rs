@@ -32,7 +32,13 @@ impl App {
         self.last_state = 0; // redraw overlays immediately
     }
 
-    pub(super) fn draw_overlays(&self, painter: &egui::Painter, basis: &Basis, rect: Rect) {
+    pub(super) fn draw_overlays(
+        &self,
+        painter: &egui::Painter,
+        basis: &Basis,
+        rect: Rect,
+        altitude_km: f64,
+    ) {
         // Administrative boundaries are drawn as a separate overlay, independent of imagery.
         // Densify long geographic edges at close zoom. Many admin-1 polygons have very
         // sparse vertices; projecting only the endpoints makes their borders disappear
@@ -40,7 +46,7 @@ impl App {
         // the visible middle portions drawable, including small countries at ~500 km.
         // Far away, consecutive vertices fall on the same pixel; skipping those keeps the many
         // thousands of segments of the world borders cheap to draw.
-        let min_sq: f32 = if self.cam.alt > SIMPLIFY_BORDER_ALTITUDE_KM {
+        let min_sq: f32 = if altitude_km > SIMPLIFY_BORDER_ALTITUDE_KM {
             MIN_BORDER_SEGMENT_POINTS * MIN_BORDER_SEGMENT_POINTS
         } else {
             0.0
@@ -97,7 +103,7 @@ impl App {
                 }
             }
         };
-        let close_zoom = self.cam.alt <= CLOSE_BORDER_ALTITUDE_KM;
+        let close_zoom = altitude_km <= CLOSE_BORDER_ALTITUDE_KM;
         if self.show_country_boundaries {
             draw_lines(
                 &self.boundaries.countries,
@@ -109,7 +115,7 @@ impl App {
         if self.show_state_boundaries {
             let step = if close_zoom {
                 0.12
-            } else if self.cam.alt <= MEDIUM_BORDER_ALTITUDE_KM {
+            } else if altitude_km <= MEDIUM_BORDER_ALTITUDE_KM {
                 0.5
             } else {
                 2.0
@@ -118,7 +124,7 @@ impl App {
             // States of the largest countries: visible at every zoom level (whole Earth in view).
             draw_lines(&self.boundaries.states_big, col, 1.0, step);
             // States/provinces of the other countries: only from medium zoom on.
-            if self.cam.alt < OTHER_STATES_MAX_ALTITUDE_KM {
+            if altitude_km < OTHER_STATES_MAX_ALTITUDE_KM {
                 draw_lines(&self.boundaries.states, col, 1.0, step);
             }
         }
@@ -144,7 +150,7 @@ impl App {
             // skipping any name that would overlap one already drawn.
             let mut cands: Vec<(u8, u8, Pos2, &MapLabel)> = Vec::new();
             for label in &self.boundaries.labels {
-                let enabled = label.visible_at(self.cam.alt)
+                let enabled = label.visible_at(altitude_km)
                     && match label.kind {
                         LabelKind::Country | LabelKind::City => true,
                         LabelKind::State => self.show_state_boundaries,
