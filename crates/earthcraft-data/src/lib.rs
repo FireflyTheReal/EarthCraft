@@ -14,3 +14,6 @@ mod features;
 pub mod files;
 mod json_fields;
 pub mod runtime;
+
+#[cfg(feature = "profiling")]
+pub mod profiling;

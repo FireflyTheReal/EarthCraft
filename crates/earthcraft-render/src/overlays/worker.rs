@@ -41,6 +41,8 @@ pub struct OverlayPreparer {
 }
 impl OverlayPreparer {
     pub fn prepare(&mut self, request: OverlayInput) -> Arc<OverlayGeometry> {
+        #[cfg(feature = "profiling")]
+        let _profile = earthcraft_data::profiling::Span::new("overlay.prepare");
         if let Some(geometry) = self
             .latest
             .as_ref()
@@ -53,6 +55,8 @@ impl OverlayPreparer {
             .as_ref()
             .is_none_or(|(data, _)| !Arc::ptr_eq(data, &request.data))
         {
+            #[cfg(feature = "profiling")]
+            let _profile = earthcraft_data::profiling::Span::new("overlay.index");
             self.indexed = Some((request.data.clone(), BoundaryIndex::new(&request.data)));
         }
         let index = &self.indexed.as_ref().unwrap().1;

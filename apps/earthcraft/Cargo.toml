@@ -10,6 +10,9 @@ authors = ["EarthCraft"]
 [lints]
 workspace = true
 
+[features]
+profiling = ["earthcraft-data/profiling", "earthcraft-render/profiling"]
+
 [dependencies]
 earthcraft-core.workspace = true
 earthcraft-data.workspace = true

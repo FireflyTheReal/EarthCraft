@@ -88,6 +88,8 @@ impl OverlayCache {
                 .as_ref()
                 .filter(|geometry| geometry.matches(geometry_view, boundaries))
             {
+                #[cfg(feature = "profiling")]
+                let _profile = earthcraft_data::profiling::Span::new("ui.overlay_shapes");
                 self.shapes = projected::build_prepared(painter, geometry, style);
                 self.key = Some((view, style));
             } else {

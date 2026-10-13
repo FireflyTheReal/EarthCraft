@@ -29,6 +29,14 @@ impl Renderer {
         Self {
             worker: RenderWorker::with_prepare(
                 move |request, buffer| {
+                    #[cfg(feature = "profiling")]
+                    let mut profile = earthcraft_data::profiling::Span::new("frame.raster");
+                    #[cfg(feature = "profiling")]
+                    {
+                        profile.values.width = request.width;
+                        profile.values.height = request.height;
+                        profile.values.inflight = cache.inflight();
+                    }
                     earthcraft_render::render_view_into(
                         request.width,
                         request.height,
@@ -43,10 +51,14 @@ impl Renderer {
                     admission_cache.prioritize_view(&frame.required_tiles());
                 },
                 move |request, pixels| {
+                    #[cfg(feature = "profiling")]
+                    let conversion = earthcraft_data::profiling::Span::new("frame.convert");
                     let image = egui::ColorImage::from_rgba_unmultiplied(
                         [request.width, request.height],
                         pixels,
                     );
+                    #[cfg(feature = "profiling")]
+                    drop(conversion);
                     let geometry = request.overlays.as_ref().map(|input| {
                         overlay_preparer.prepare(earthcraft_render::overlays::OverlayInput {
                             view: input.view,
@@ -151,6 +163,18 @@ impl App {
         let Some(frame) = self.renderer.worker.take_completed(presentation) else {
             return;
         };
+        #[cfg(feature = "profiling")]
+        earthcraft_data::profiling::Span::elapsed(
+            "frame.delivery",
+            frame.submitted,
+            earthcraft_data::profiling::Values {
+                width: frame.request.width,
+                height: frame.request.height,
+                ..Default::default()
+            },
+        );
+        #[cfg(feature = "profiling")]
+        let _upload = earthcraft_data::profiling::Span::new("ui.texture_submit");
         let (w, h, buf) = (frame.request.width, frame.request.height, frame.pixels);
 
         let PreparedFrame {

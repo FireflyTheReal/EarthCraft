@@ -128,9 +128,15 @@ impl TileCache {
     /// Put the latest view first; retire old queued work while keeping active
     /// downloads and the small satellite overview queue. Keys arrive coarse-first.
     pub fn prioritize_view(&self, keys: &[TileKey]) {
+        #[cfg(feature = "profiling")]
+        let _profile = crate::profiling::Span::new("tiles.admission");
         let wanted: HashSet<_> = keys.iter().copied().collect();
         {
+            #[cfg(feature = "profiling")]
+            let waiting = std::time::Instant::now();
             let mut requests = self.requests.lock().unwrap();
+            #[cfg(feature = "profiling")]
+            crate::profiling::Span::elapsed("tiles.admission_lock", waiting, Default::default());
             let mut queue = self.queue.lock().unwrap();
             queue.retain(|key| {
                 let (provider, zoom, _, _, _) = unkey(*key);

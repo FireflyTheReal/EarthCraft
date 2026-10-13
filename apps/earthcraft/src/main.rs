@@ -14,6 +14,8 @@ use eframe::egui;
 const INITIAL_WINDOW_SIZE_POINTS: [f32; 2] = [1280.0, 800.0];
 
 fn main() -> Result<(), eframe::Error> {
+    #[cfg(feature = "profiling")]
+    earthcraft_data::profiling::init();
     let mut viewport = egui::ViewportBuilder::default()
         .with_inner_size(INITIAL_WINDOW_SIZE_POINTS)
         .with_title("EarthCraft")

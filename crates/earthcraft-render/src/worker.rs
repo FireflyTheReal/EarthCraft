@@ -16,14 +16,22 @@ pub struct RenderRequest {
 
 pub struct RenderedFrame<T = ()> {
     pub prepared: T,
+    #[cfg(feature = "profiling")]
+    pub submitted: std::time::Instant,
     pub request: RenderRequest,
     pub pixels: Vec<u8>,
     pub waiting: Vec<earthcraft_data::tiles::TileKey>,
     pub required: Vec<earthcraft_data::tiles::TileKey>,
 }
 
+struct PendingRequest {
+    request: RenderRequest,
+    #[cfg(feature = "profiling")]
+    submitted: std::time::Instant,
+}
+
 struct Mailbox<T> {
-    pending: Option<RenderRequest>,
+    pending: Option<PendingRequest>,
     completed: Option<RenderedFrame<T>>,
     active: bool,
     stopped: bool,
@@ -71,7 +79,7 @@ impl<T: Send + 'static> RenderWorker<T> {
         std::thread::Builder::new()
             .name("earthcraft-frame".into())
             .spawn(move || loop {
-                let (request, buffer) = {
+                let (pending, buffer) = {
                     let mut mailbox = worker.mailbox.lock().unwrap();
                     while !mailbox.stopped && mailbox.pending.is_none() {
                         mailbox = worker.wake.wait(mailbox).unwrap();
@@ -85,6 +93,13 @@ impl<T: Send + 'static> RenderWorker<T> {
                         mailbox.spare.take().unwrap_or_default(),
                     )
                 };
+                #[cfg(feature = "profiling")]
+                earthcraft_data::profiling::Span::elapsed(
+                    "frame.queue",
+                    pending.submitted,
+                    Default::default(),
+                );
+                let request = pending.request;
                 // Rasterization holds no mailbox lock. Admission is synchronized below.
                 let frame = render(&request, buffer);
                 let prepared = prepare(&request, &frame.pixels);
@@ -96,7 +111,7 @@ impl<T: Send + 'static> RenderWorker<T> {
                 let obsolete = mailbox
                     .pending
                     .as_ref()
-                    .is_some_and(|next| next.presentation != request.presentation);
+                    .is_some_and(|next| next.request.presentation != request.presentation);
                 if !obsolete {
                     // Admission is short and bounded; synchronize it with pending
                     // presentation changes so incompatible rasters cannot fetch tiles.
@@ -107,6 +122,8 @@ impl<T: Send + 'static> RenderWorker<T> {
                     let required = frame.required_tiles();
                     mailbox.completed = Some(RenderedFrame {
                         prepared,
+                        #[cfg(feature = "profiling")]
+                        submitted: pending.submitted,
                         request,
                         pixels: frame.pixels,
                         waiting: frame.waiting,
@@ -126,7 +143,11 @@ impl<T: Send + 'static> RenderWorker<T> {
     }
 
     pub fn submit(&self, request: RenderRequest) {
-        self.shared.mailbox.lock().unwrap().pending = Some(request);
+        self.shared.mailbox.lock().unwrap().pending = Some(PendingRequest {
+            request,
+            #[cfg(feature = "profiling")]
+            submitted: std::time::Instant::now(),
+        });
         self.shared.wake.notify_one();
     }
 

@@ -9,6 +9,9 @@ publish = false
 [lints]
 workspace = true
 
+[features]
+profiling = []
+
 [dependencies]
 earthcraft-core.workspace = true
 tokio.workspace = true

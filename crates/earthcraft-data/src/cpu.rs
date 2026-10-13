@@ -34,8 +34,20 @@ pub(crate) async fn run<T: Send + 'static>(
     service: Service,
     work: impl FnOnce() -> Result<T, crate::Error> + Send + 'static,
 ) -> Result<T, crate::Error> {
+    #[cfg(feature = "profiling")]
+    let queued = std::time::Instant::now();
+    #[cfg(feature = "profiling")]
+    let (queue_name, work_name) = match service {
+        Service::Features => ("features.queue", "features.work"),
+        Service::Tiles => ("decode.queue", "decode.work"),
+        Service::Files => ("files.queue", "files.work"),
+    };
     let (send, receive) = tokio::sync::oneshot::channel();
     service.pool()?.spawn(move || {
+        #[cfg(feature = "profiling")]
+        crate::profiling::Span::elapsed(queue_name, queued, Default::default());
+        #[cfg(feature = "profiling")]
+        let _profile = crate::profiling::Span::new(work_name);
         let _ = send.send(work());
     });
     receive

@@ -217,7 +217,13 @@ impl App {
     }
 }
 impl eframe::App for App {
+    #[cfg(feature = "profiling")]
+    fn on_exit(&mut self, _: Option<&eframe::glow::Context>) {
+        earthcraft_data::profiling::flush();
+    }
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        #[cfg(feature = "profiling")]
+        let mut profile = earthcraft_data::profiling::Span::new("ui.update");
         let dt = ctx.input(|i| i.unstable_dt).min(MAX_FRAME_DELTA_SECS) as f64;
         if (self.settings.ui_scale - self.applied_ui_scale).abs() > 1e-4 {
             ui::apply_ui_scale(ctx, self.settings.ui_scale);
@@ -267,5 +273,10 @@ impl eframe::App for App {
         egui::CentralPanel::default()
             .frame(egui::Frame::none())
             .show(ctx, |ui| self.globe_view(ui, ctx));
+        #[cfg(feature = "profiling")]
+        {
+            profile.values.inflight = self.cache.inflight();
+            profile.values.resident_bytes = self.cache.resident_bytes();
+        }
     }
 }
