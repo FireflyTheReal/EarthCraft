@@ -363,3 +363,13 @@ rotation showed aligned imagery/borders/labels, Settings opened during rotation,
 and the isolated window closed normally. Full mouse input, live-provider,
 file-dialog and other-platform checks are still separate. The shutdown test now
 waits for channel disconnection rather than racing the capture destructor order.
+
+## Background file jobs
+
+KML open/drop/save and PNG encoding now run through a data-owned ordered service,
+with one file worker and at most four pending jobs. Save/export jobs capture their
+inputs before execution; admission is checked before cloning snapshot data.
+Completion wakes egui, which applies imported marks, flight targets, paths and
+localized statuses. Native dialogs remain app-owned. Feature parsing and tile
+decoding use their separate pools. A local test covers ordered save/open, edits
+after submission, missing-file errors, PNG content and completion wakeups.

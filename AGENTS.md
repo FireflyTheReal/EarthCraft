@@ -95,6 +95,10 @@ User instructions and the requested scope take precedence over these defaults.
   data; use pooled reqwest clients and async I/O. Keep CPU rasterization on Rayon,
   large decoding/projection on bounded blocking workers, and UI access on egui's
   thread. Completion must wake the UI, including the last background job.
+- Run KML I/O and screenshot encoding on the bounded data-owned file service.
+  Capture save/export snapshots at submission, preserve dropped-file ordering,
+  wake the UI on both success and failure, and apply results only in the app.
+  Native dialogs remain app-owned; never wait on a file job in egui.
 - Keep whole-frame rasterization on the render-owned coordinator with the existing
   Rayon pool. Bound pending/completed frames; coalesce pending camera requests.
   Reject incompatible provider/style/size results and align overlays with the

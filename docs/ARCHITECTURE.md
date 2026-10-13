@@ -40,7 +40,9 @@ update loop. Child modules extend that state through focused `impl App` blocks:
 - `search`: asynchronous search, suggestion polling, and selection. Data owns
   local match ranking, deduplication and merging with remote results.
 - `wayback`: historical imagery loading and selected release state.
-- `files`: native dialogs, KML commands, dropped files, and screenshots.
+- `files`: native dialogs, KML commands, dropped files, screenshot submission
+  and application of background file results. Data owns the bounded ordered
+  KML/PNG service; no KML parsing or PNG encoding runs on egui's thread.
 - `cache`: disk-cache clearing commands and completion polling.
 - `globe`: viewport interaction, redraw decisions, and image presentation.
 - `rendering`: snapshots renderer inputs, owns the frame coordinator, and uploads

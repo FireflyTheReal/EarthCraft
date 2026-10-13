@@ -11,5 +11,6 @@ pub mod wayback;
 pub use error::Error;
 mod cpu;
 mod features;
+pub mod files;
 mod json_fields;
 pub mod runtime;

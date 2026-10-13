@@ -71,6 +71,8 @@ pub(crate) struct App {
     search_rx: Option<mpsc::Receiver<Result<Vec<GeoResult>, earthcraft_data::Error>>>,
     status: String,
 
+    file_jobs: earthcraft_data::files::FileJobs,
+    file_results: mpsc::Receiver<earthcraft_data::files::FileCompletion>,
     placemarks: Vec<Placemark>,
     new_name: String,
     kml_path: String,
@@ -128,6 +130,10 @@ impl App {
             runtime.handle(),
         );
         let renderer = rendering::Renderer::new(cache.clone(), cc.egui_ctx.clone());
+        let (file_jobs, file_results) = earthcraft_data::files::FileJobs::new(runtime.handle(), {
+            let ctx = cc.egui_ctx.clone();
+            move || ctx.request_repaint()
+        });
         App {
             lang,
             cam: INITIAL_CAMERA,
@@ -162,6 +168,8 @@ impl App {
             search_rx: None,
             status: lang.text("app-ready-status").into(),
             placemarks: vec![],
+            file_jobs,
+            file_results,
             new_name: String::new(),
             kml_path: "placemarks.kml".into(),
             menu_pick: None,
@@ -204,6 +212,7 @@ impl eframe::App for App {
             self.settings.save();
             self.saved_settings = self.settings.clone();
         }
+        self.poll_files();
         self.handle_dropped_files(ctx);
         self.ensure_wayback(ctx);
         self.poll_wayback();

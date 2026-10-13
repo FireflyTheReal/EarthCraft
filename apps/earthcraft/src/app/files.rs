@@ -1,6 +1,6 @@
 use super::App;
 use earthcraft_core::{language::Lang, math::now_unix};
-use earthcraft_data::kml::{load_kml, save_kml};
+use earthcraft_data::files::{FileCompletion, FileKind, FileOutcome};
 use eframe::egui;
 use std::path::PathBuf;
 impl App {
@@ -14,42 +14,59 @@ impl App {
     }
 
     pub(super) fn save_kml_to(&mut self, path: PathBuf) {
-        let lg = self.lang;
-        if let Some(d) = path.parent() {
-            let _ = std::fs::create_dir_all(d);
+        if let Err(error) = self.file_jobs.save_kml(path, &self.placemarks) {
+            self.status = Lang::En.format("kml-save-error", &[("error", error.to_string().into())]);
         }
-        self.status = match save_kml(&path.to_string_lossy(), &self.placemarks) {
-            Ok(_) => {
-                self.kml_path = path.to_string_lossy().into_owned();
-                lg.format(
-                    "kml-save-success",
-                    &[("path", path.display().to_string().into())],
-                )
-            }
-            Err(e) => Lang::En.format("kml-save-error", &[("error", e.to_string().into())]),
-        };
     }
 
     pub(super) fn load_kml_from(&mut self, path: &std::path::Path) {
-        let lg = self.lang;
-        match load_kml(&path.to_string_lossy(), lg) {
-            Ok(v) => {
-                self.status = lg.format(
-                    "kml-import-success",
-                    &[
-                        ("count", v.len().to_string().into()),
-                        ("path", path.display().to_string().into()),
-                    ],
-                );
-                self.kml_path = path.to_string_lossy().into_owned();
-                if let Some(first) = v.first() {
-                    let (la, lo) = (first.lat, first.lon);
-                    self.fly_to(la, lo, if v.len() == 1 { 3.0 } else { 2000.0 });
+        if let Err(error) = self.file_jobs.open_kml(path.to_path_buf(), self.lang) {
+            self.status = Lang::En.format("kml-open-error", &[("error", error.to_string().into())]);
+        }
+    }
+
+    pub(super) fn poll_files(&mut self) {
+        while let Ok(FileCompletion { kind, result }) = self.file_results.try_recv() {
+            match result {
+                Ok(FileOutcome::KmlSaved { path }) => {
+                    self.kml_path = path.to_string_lossy().into_owned();
+                    self.status = self.lang.format(
+                        "kml-save-success",
+                        &[("path", path.display().to_string().into())],
+                    );
                 }
-                self.placemarks.extend(v);
-            }
-            Err(e) => {
-                self.status = Lang::En.format("kml-open-error", &[("error", e.to_string().into())])
+                Ok(FileOutcome::KmlLoaded { path, placemarks }) => {
+                    self.status = self.lang.format(
+                        "kml-import-success",
+                        &[
+                            ("count", placemarks.len().to_string().into()),
+                            ("path", path.display().to_string().into()),
+                        ],
+                    );
+                    self.kml_path = path.to_string_lossy().into_owned();
+                    if let Some(first) = placemarks.first() {
+                        self.fly_to(
+                            first.lat,
+                            first.lon,
+                            if placemarks.len() == 1 { 3.0 } else { 2000.0 },
+                        );
+                    }
+                    self.placemarks.extend(placemarks);
+                }
+                Ok(FileOutcome::ScreenshotSaved { path }) => {
+                    self.status = self.lang.format(
+                        "screenshot-save-success",
+                        &[("path", path.display().to_string().into())],
+                    );
+                }
+                Err(error) => {
+                    let id = match kind {
+                        FileKind::OpenKml => "kml-open-error",
+                        FileKind::SaveKml => "kml-save-error",
+                        FileKind::Screenshot => "screenshot-save-error",
+                    };
+                    self.status = Lang::En.format(id, &[("error", error.to_string().into())]);
+                }
             }
         }
     }
@@ -90,25 +107,22 @@ impl App {
     }
 
     pub(super) fn save_screenshot(&mut self) {
-        let lg = self.lang;
-        self.status = match &self.image {
-            Some((w, h, buf)) => {
-                let dir = PathBuf::from(&self.settings.screenshot_dir);
-                let _ = std::fs::create_dir_all(&dir);
-                let path = dir.join(format!("earthcraft_{}.png", now_unix() as u64));
-                match image::save_buffer(&path, buf, *w as u32, *h as u32, image::ColorType::Rgba8)
+        match &self.image {
+            Some((width, height, pixels)) => {
+                let path = PathBuf::from(&self.settings.screenshot_dir)
+                    .join(format!("earthcraft_{}.png", now_unix() as u64));
+                if let Err(error) =
+                    self.file_jobs
+                        .screenshot(path, *width as u32, *height as u32, pixels)
                 {
-                    Ok(_) => lg.format(
-                        "screenshot-save-success",
-                        &[("path", path.display().to_string().into())],
-                    ),
-                    Err(e) => {
-                        Lang::En.format("screenshot-save-error", &[("error", e.to_string().into())])
-                    }
+                    self.status = Lang::En.format(
+                        "screenshot-save-error",
+                        &[("error", error.to_string().into())],
+                    );
                 }
             }
-            None => Lang::En.text("screenshot-empty-error").into(),
-        };
+            None => self.status = Lang::En.text("screenshot-empty-error").into(),
+        }
     }
 
     pub(super) fn handle_dropped_files(&mut self, ctx: &egui::Context) {

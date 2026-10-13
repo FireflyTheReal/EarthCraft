@@ -6,18 +6,21 @@ const CPU_THREADS_PER_SERVICE: usize = 2;
 pub(crate) enum Service {
     Features,
     Tiles,
+    Files,
 }
 impl Service {
     fn pool(&self) -> Result<&'static rayon::ThreadPool, crate::Error> {
         static FEATURES: OnceLock<Result<rayon::ThreadPool, String>> = OnceLock::new();
+        static FILES: OnceLock<Result<rayon::ThreadPool, String>> = OnceLock::new();
         static TILES: OnceLock<Result<rayon::ThreadPool, String>> = OnceLock::new();
-        let (slot, name) = match self {
-            Self::Features => (&FEATURES, "earthcraft-features"),
-            Self::Tiles => (&TILES, "earthcraft-decode"),
+        let (slot, name, threads) = match self {
+            Self::Features => (&FEATURES, "earthcraft-features", CPU_THREADS_PER_SERVICE),
+            Self::Tiles => (&TILES, "earthcraft-decode", CPU_THREADS_PER_SERVICE),
+            Self::Files => (&FILES, "earthcraft-files", 1),
         };
         slot.get_or_init(|| {
             rayon::ThreadPoolBuilder::new()
-                .num_threads(CPU_THREADS_PER_SERVICE)
+                .num_threads(threads)
                 .thread_name(move |index| format!("{name}-{index}"))
                 .build()
                 .map_err(|error| error.to_string())
