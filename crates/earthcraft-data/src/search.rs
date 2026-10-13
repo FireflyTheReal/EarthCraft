@@ -205,3 +205,6 @@ mod tests {
 
 mod local;
 pub use local::merge_suggestions;
+
+mod prefix;
+pub use prefix::LocalSearch;

@@ -345,3 +345,14 @@ coordinator and accepts renderer/admission/repaint callbacks without importing
 windowing. Core owns `Flight` interpolation; data owns `merge_suggestions`.
 Changes to input timing, font metrics, dialogs or texture lifetimes belong in app;
 changes to geometry, visibility, ranking or scheduling belong in these libraries.
+
+## Local prefix search
+
+Loaded place names use data-owned immutable FST prefix maps for English and
+Portuguese. The background builder folds names once per dataset revision and
+coalesces pending snapshots. UI queries use only the current generation, with
+the original scan as a temporary fallback. Candidate ranking remains explicit;
+lexical index traversal never replaces source priority or stable ties. Query
+work retains only the best four local candidates before remote merging. The
+index owns a bounded immutable name snapshot, not copied boundary geometry.
+This prefix workload does not need a second FTS5 index or SQLite calls per key.

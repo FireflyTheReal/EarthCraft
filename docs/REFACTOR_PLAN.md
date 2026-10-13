@@ -393,3 +393,27 @@ queries. Native cache usage and clearing were exercised while imagery remained
 available. Rust 1.89 all-target checks, workspace regressions, strict Clippy and
 the macOS ARM64 build passed. Other platforms and native KML dialogs remain
 unverified for this checkpoint.
+
+## Loaded-name prefix index
+
+`fst` 0.4.7 now builds compact immutable prefix automata for both loaded name
+languages on the bounded feature CPU service. Pending dataset rebuilds coalesce,
+only a matching generation is used, and the original scan remains a fallback
+while rebuilding. Prefix queries normalize once rather than folding every loaded
+name. Source rank/kind/UTF-8 length/stable-order ties, normalized duplicates and
+remote merging are unchanged; a four-entry standard-library heap avoids sorting
+all hits for broad prefixes. Geometry arrays are not copied by this index.
+
+One synthetic 16k-name run measured 19.431 ms construction off the UI thread,
+4.637 ms/query for the original scan versus 0.118 ms/query for FST across broad,
+narrow and missing prefixes. The two maps occupied 143,470 bytes, excluding the
+immutable label snapshot. This is a component result, not an FPS guarantee.
+Tests compare complete suggestion records against the existing algorithm for
+both languages, composed/decomposed accents, Cyrillic/CJK, ranks and duplicates,
+and verify latest-generation background publication and repaint.
+
+Prefix validation also passed Rust 1.89 all-target checks, workspace regressions,
+strict Clippy and the macOS ARM64 build. Native typing of `sao` displayed the
+expected accented local names, including São Tomé and São Paulo. No new provider
+or language was added; public service behavior and cross-platform input remain
+separate checks.

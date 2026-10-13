@@ -66,6 +66,7 @@ pub(crate) struct App {
     last_render: Instant,
     last_interact: Instant,
 
+    local_search: earthcraft_data::search::LocalSearch,
     query: String,
     results: Vec<GeoResult>,
     search_rx: Option<mpsc::Receiver<Result<Vec<GeoResult>, earthcraft_data::Error>>>,
@@ -134,6 +135,10 @@ impl App {
             let ctx = cc.egui_ctx.clone();
             move || ctx.request_repaint()
         });
+        let local_search = earthcraft_data::search::LocalSearch::new(runtime.handle(), {
+            let ctx = cc.egui_ctx.clone();
+            move || ctx.request_repaint()
+        });
         App {
             lang,
             cam: INITIAL_CAMERA,
@@ -163,6 +168,7 @@ impl App {
             last_gen: u64::MAX,
             last_render: Instant::now(),
             last_interact: Instant::now(),
+            local_search,
             query: String::new(),
             results: vec![],
             search_rx: None,
@@ -217,6 +223,9 @@ impl eframe::App for App {
         self.ensure_wayback(ctx);
         self.poll_wayback();
         self.poll_suggestions(ctx);
+        if let Some(error) = self.local_search.take_error() {
+            self.status = format!("Local prefix index failed: {error}");
+        }
         self.poll_search();
         self.poll_cache_clear();
         if let Some(rx) = self.boundaries_rx.take() {

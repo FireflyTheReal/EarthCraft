@@ -61,6 +61,7 @@ pub(super) fn is_big_country(feature: &serde_json::Value) -> bool {
     false
 }
 
+#[derive(Clone)]
 pub struct MapLabel {
     pub lat: f64,
     pub lon: f64,

@@ -30,12 +30,17 @@ impl App {
 
     /// Instant local matches (countries, states, cities already loaded) + remote results.
     pub(super) fn rebuild_suggestions(&mut self) {
-        self.suggestions = merge_suggestions(
-            &self.query,
-            self.lang,
-            &self.boundaries.labels,
-            &self.remote_sugg,
-        );
+        self.suggestions = self
+            .local_search
+            .merge(&self.query, self.lang, &self.remote_sugg)
+            .unwrap_or_else(|| {
+                merge_suggestions(
+                    &self.query,
+                    self.lang,
+                    &self.boundaries.labels,
+                    &self.remote_sugg,
+                )
+            });
         if self.sugg_sel.is_some_and(|i| i >= self.suggestions.len()) {
             self.sugg_sel = None;
         }

@@ -28,6 +28,9 @@ impl App {
         }
         b.labels.extend(patch.labels);
         dedupe_city_labels(&mut b.labels);
+        if let Err(error) = self.local_search.update(&b.labels) {
+            self.status = format!("Local prefix index failed: {error}");
+        }
         self.overlay_cache.invalidate();
         self.last_state = 0; // redraw overlays immediately
     }

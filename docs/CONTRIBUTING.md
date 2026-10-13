@@ -197,3 +197,13 @@ It compares candidate results with rstar and linear bounds checks over moving
 views, separately from fonts, shape caching and GPU work. Geographic projection,
 occupancy and frame scheduling tests live in render; egui shape/font tests remain
 in the desktop app. Native checks still verify their integration.
+
+To compare loaded-name prefix search independently of network/UI work:
+
+```sh
+CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_DEV_INCREMENTAL=false cargo test -p earthcraft-data prefix_index_time --locked -- --ignored --nocapture --test-threads=1
+```
+
+It verifies complete suggestion parity while measuring broad, narrow and missing
+prefixes over 16,000 synthetic names. Report map bytes separately from the owned
+name snapshot; compare construction separately from per-query cost.

@@ -14,6 +14,8 @@ pub enum Error {
     #[error(transparent)]
     Kml(#[from] ::kml::Error),
     #[error(transparent)]
+    PrefixIndex(#[from] fst::Error),
+    #[error(transparent)]
     Sqlite(#[from] rusqlite::Error),
     #[error(transparent)]
     SqliteWorker(#[from] tokio_rusqlite::Error),

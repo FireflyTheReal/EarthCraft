@@ -131,6 +131,11 @@ User instructions and the requested scope take precedence over these defaults.
   demand. Measure CPU frame time separately from network readiness and GUI work.
   Renderer batch-local tile handles must be released after their batch, rather
   than accumulating a persistent duplicate cache.
+- Keep loaded-name prefix indexes in data. Build normalized FST snapshots off
+  the UI thread and coalesce pending revisions. Preserve both languages, Unicode
+  folding, rank/kind/name-byte ordering, stable source ties and remote merging.
+  Never use lexical trie traversal as result priority. Keep a scan fallback while
+  rebuilding and do not add a duplicate SQLite text index without a new workload.
 - UI translations live in `crates/earthcraft-core/locales/{en,pt-BR}.ftl`.
   Add the same semantic ID and named variables to both catalogs. Use `Lang::text`
   for static labels and `Lang::format` for whole messages; do not assemble translated
