@@ -26,7 +26,8 @@ Drag: rotate globe · Right-drag / Shift+drag: rotate view · Wheel / +/-: zoom 
 
 ### Not implemented (would require proprietary data/infrastructure)
 
-Real 3D terrain, 3D buildings, Street View, historical imagery, Google Earth Studio, geotagged photos, narrated tours, data layers (weather, oceans, Mars/Moon), KMZ/icons. Tiles come from third-party services: please respect their terms of use (OSM limits heavy usage).
+Real 3D terrain, 3D buildings, Street View, Google Earth Studio, geotagged photos, narrated tours, data layers (weather, oceans, Mars/Moon) and icons
+Tiles come from third-party services: please respect their terms of use (OSM limits heavy usage).
 
 ## Brazilian Portuguese
 Globo 3D estilo Google Earth em Rust puro (egui + renderização por ray-casting em CPU).
@@ -54,6 +55,6 @@ Arrastar: girar · Botão direito/Shift+arrastar: girar vista · Roda/+/-: zoom 
 Duplo clique: voar · Setas: mover · N: norte para cima
 
 ### Não implementado (exigiria dados/infra proprietários)
-Terreno 3D com relevo real, prédios 3D, Street View, histórico de imagens, Google Earth Studio,
-fotos geolocalizadas, tours narrados, camadas de dados (clima, oceanos, Marte/Lua), KMZ/ícones.
+Terreno 3D com relevo real, prédios 3D, Street View, Google Earth Studio,
+fotos geolocalizadas, tours narrados, camadas de dados (clima, oceanos, Marte/Lua) e icones
 Os tiles são serviços de terceiros: respeite os termos de uso (OSM limita uso intenso).
