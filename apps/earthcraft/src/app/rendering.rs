@@ -17,6 +17,7 @@ struct PreparedFrame {
 pub(super) struct Renderer {
     worker: RenderWorker<PreparedFrame>,
     displayed: Option<(Cam, Basis)>,
+    displayed_rect: Option<egui::Rect>,
     waiting: Vec<earthcraft_data::tiles::TileKey>,
     required: Vec<earthcraft_data::tiles::TileKey>,
     retry_at: Option<std::time::Instant>,
@@ -69,6 +70,7 @@ impl Renderer {
             )
             .expect("start frame renderer"),
             displayed: None,
+            displayed_rect: None,
             waiting: Vec::new(),
             required: Vec::new(),
             retry_at: None,
@@ -99,6 +101,9 @@ impl Renderer {
     }
     pub(super) fn picking_basis(&self, fallback: Basis) -> Basis {
         displayed_basis(self.displayed, fallback)
+    }
+    pub(super) fn displayed_rect(&self) -> Option<egui::Rect> {
+        self.displayed_rect
     }
     pub(super) fn displayed_view(&self) -> Option<(Cam, Basis)> {
         self.displayed
@@ -199,6 +204,7 @@ impl App {
         self.renderer.retry_at = None;
         // Recheck dependencies even if a tile finished before frame publication.
         self.last_gen = u64::MAX;
+        self.renderer.displayed_rect = frame.request.overlays.as_ref().map(|input| input.view.rect);
         self.renderer.displayed = Some((frame.request.cam, frame.request.basis));
     }
 }

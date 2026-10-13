@@ -285,8 +285,11 @@ for hardware limits, performance and CPU-only build instructions.
 The toolbar's sidebar button hides and reopens the sidebar with egui's panel
 animation. The sidebar is open at startup; toggling it does not reset layer,
 placemark, ruler or section state. Reopening restores its width and scroll state.
-The map uses the space released by the panel, and resizing invalidates frames
-through the existing renderer path. KML drops remain available with it hidden.
+The map uses the space released by the panel. While it animates, frame submission
+and publication pause; in-flight jobs can finish without blocking egui. Keep the
+previous frame and overlays at their original rectangle, clipped to the available
+map area, until a compatible frame for the settled viewport arrives. KML drops
+remain available with the sidebar hidden.
 
 macOS uses muda 0.19 (compatible with Rust 1.89) in `apps/earthcraft/src/app/menu`.
 Menu objects and handlers stay on the window thread. Callbacks enqueue actions

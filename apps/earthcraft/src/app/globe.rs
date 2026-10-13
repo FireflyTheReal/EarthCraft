@@ -22,8 +22,14 @@ const OVERVIEW_WARMUP_POLL_INTERVAL: Duration = Duration::from_millis(100);
 impl App {
     pub(super) fn globe_view(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
         let lg = self.lang;
-        let rect = ui.available_rect_before_wrap();
-        let resp = ui.allocate_rect(rect, Sense::click_and_drag());
+        let viewport = ui.available_rect_before_wrap();
+        let rect = self.renderer.displayed_rect().unwrap_or(viewport);
+        let sense = if self.sidebar_animating {
+            Sense::hover()
+        } else {
+            Sense::click_and_drag()
+        };
+        let resp = ui.allocate_rect(viewport, sense);
         let ppp = ctx.pixels_per_point();
         let aspect = (rect.width() / rect.height()) as f64;
         let shift = ctx.input(|i| i.modifiers.shift);
@@ -124,12 +130,13 @@ impl App {
         let basis = self.cam.basis(aspect);
         // ── rendering
         let idle = self.last_interact.elapsed() > IDLE_RENDER_DELAY && !resp.dragged();
-        let (w, h) = earthcraft_render::view::raster_size(rect.size(), ppp, idle);
+        let render_aspect = (viewport.width() / viewport.height()) as f64;
+        let (w, h) = earthcraft_render::view::raster_size(viewport.size(), ppp, idle);
         let keys = earthcraft_render::view::RasterView {
             camera: self.cam,
             width: w,
             height: h,
-            aspect,
+            aspect: render_aspect,
             provider: self.effective_provider(),
             release_index: self.wayback_idx,
             grid: self.show_grid,
@@ -140,14 +147,23 @@ impl App {
         let state = keys.state;
         let gen = self.cache.generation();
         let presentation = keys.presentation;
-        self.poll_render(presentation, ctx);
+        // Keep the displayed view stable while the sidebar changes the viewport.
+        // A running job may finish, but publication/submission resume only at rest.
+        if !self.sidebar_animating {
+            self.poll_render(presentation, ctx);
+        }
+        let rect = self.renderer.displayed_rect().unwrap_or(viewport);
 
         let pick_basis = self.renderer.picking_basis(basis);
-        self.cursor = resp.hover_pos().and_then(|p| pick_basis.pick(rect, p));
+        self.cursor = resp
+            .hover_pos()
+            .filter(|p| rect.contains(*p))
+            .and_then(|p| pick_basis.pick(rect, p));
 
         if resp.double_clicked() {
             if let Some((la, lo)) = resp
                 .interact_pointer_pos()
+                .filter(|p| rect.contains(*p))
                 .and_then(|p| pick_basis.pick(rect, p))
             {
                 self.fly_to(
@@ -159,6 +175,7 @@ impl App {
         } else if resp.clicked() && self.ruler {
             if let Some(pt) = resp
                 .interact_pointer_pos()
+                .filter(|p| rect.contains(*p))
                 .and_then(|p| pick_basis.pick(rect, p))
             {
                 self.ruler_pts.push(pt);
@@ -167,6 +184,7 @@ impl App {
         if resp.secondary_clicked() {
             self.menu_pick = resp
                 .interact_pointer_pos()
+                .filter(|p| rect.contains(*p))
                 .and_then(|p| pick_basis.pick(rect, p));
         }
 
@@ -181,8 +199,8 @@ impl App {
             ctx.request_repaint_after(TILE_REDRAW_INTERVAL);
             need = false;
         }
-        if need {
-            self.request_render(w, h, aspect, presentation, rect);
+        if need && !self.sidebar_animating {
+            self.request_render(w, h, render_aspect, presentation, viewport);
             self.last_state = state;
             self.last_gen = gen;
             self.last_render = Instant::now();
@@ -191,7 +209,9 @@ impl App {
             self.renderer
                 .refill_requests(&self.cache, gen != self.last_gen, ctx);
         }
-        self.last_gen = gen;
+        if !self.sidebar_animating {
+            self.last_gen = gen;
+        }
         if !idle {
             ctx.request_repaint();
         }
@@ -207,8 +227,11 @@ impl App {
         }
 
         // ── drawing
+        ui.painter_at(viewport)
+            .rect_filled(viewport, 0.0, Color32::BLACK);
+        // Until a matching frame arrives, clip the previous view at its original
+        // size rather than stretching its texture and projected overlays.
         let painter = ui.painter_at(rect);
-        painter.rect_filled(rect, 0.0, Color32::BLACK);
         if let Some(tex) = &self.texture {
             painter.image(
                 tex.id(),

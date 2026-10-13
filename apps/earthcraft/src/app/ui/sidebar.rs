@@ -13,9 +13,19 @@ impl App {
         let (mut save_now, mut save_as, mut open_dialog, mut open_typed, mut shot) =
             (false, false, false, false, false);
         self.kml_drop_rect = egui::Rect::NOTHING;
-        egui::SidePanel::left("side")
-            .default_width(270.0)
-            .show_animated(ctx, self.sidebar_open, |ui| {
+        egui::SidePanel::show_animated_between(
+            ctx,
+            self.sidebar_open,
+            egui::SidePanel::left("side_collapsed")
+                .frame(egui::Frame::none())
+                .exact_width(0.0),
+            egui::SidePanel::left("side").default_width(270.0),
+            |ui, openness| {
+                let settled_openness = if self.sidebar_open { 1.0 } else { 0.0 };
+                self.sidebar_animating = openness != settled_openness;
+                if openness < 1.0 {
+                    return;
+                }
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     egui::CollapsingHeader::new(lg.text("layers-section-title"))
                         .default_open(true)
@@ -301,7 +311,8 @@ impl App {
                         ui.label(lg.text("controls-help-text"));
                     }
                 });
-            });
+            },
+        );
         if let Some(i) = del {
             self.placemarks.remove(i);
         }

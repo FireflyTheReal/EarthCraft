@@ -95,6 +95,7 @@ pub(crate) struct App {
     ruler_pts: Vec<(f64, f64)>,
     cursor: Option<(f64, f64)>,
     sidebar_open: bool,
+    sidebar_animating: bool,
     show_help: bool,
 
     settings: Settings,
@@ -208,6 +209,7 @@ impl App {
             ruler_pts: vec![],
             cursor: None,
             sidebar_open: true,
+            sidebar_animating: false,
             show_help: false,
             ui_scale_edit: settings.ui_scale,
             settings: settings.clone(),
