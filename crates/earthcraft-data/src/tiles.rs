@@ -189,19 +189,15 @@ impl Tile {
         let y1 = (y0 + 1).min(self.h - 1);
         let fx = ((x - x0 as f64) as f32).min(1.0);
         let fy = ((y - y0 as f64) as f32).min(1.0);
-        let p = |xx: usize, yy: usize| {
-            let pixels: &[[u8; 4]] = bytemuck::cast_slice(&self.px);
-            let pixel = pixels[yy * self.w + xx];
-            [pixel[0] as f32, pixel[1] as f32, pixel[2] as f32]
+        let pixels: &[[u8; 4]] = bytemuck::cast_slice(&self.px);
+        let pixel = |xx: usize, yy: usize| {
+            let rgba = pixels[yy * self.w + xx];
+            glam::Vec4::new(rgba[0] as f32, rgba[1] as f32, rgba[2] as f32, 0.0)
         };
-        let (a, b, c, d) = (p(x0, y0), p(x1, y0), p(x0, y1), p(x1, y1));
-        let mut out = [0.0; 3];
-        for i in 0..3 {
-            let top = a[i] + (b[i] - a[i]) * fx;
-            let bot = c[i] + (d[i] - c[i]) * fx;
-            out[i] = (top + (bot - top) * fy) / 255.0;
-        }
-        out
+        let (a, b, c, d) = (pixel(x0, y0), pixel(x1, y0), pixel(x0, y1), pixel(x1, y1));
+        let top = a + (b - a) * fx;
+        let bottom = c + (d - c) * fx;
+        ((top + (bottom - top) * fy) / 255.0).truncate().to_array()
     }
 }
 

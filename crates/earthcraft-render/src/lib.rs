@@ -1,4 +1,5 @@
 //! Parallel CPU globe rendering. No filesystem or UI lifecycle ownership.
+use glam::Vec2;
 mod tuning;
 use earthcraft_core::METERS_PER_LATITUDE_DEGREE;
 use earthcraft_core::{
@@ -159,7 +160,8 @@ fn render_row(
             let u = ((lon + 180.0) / 360.0).rem_euclid(1.0);
             let s = latc.to_radians().sin();
             let v = 0.5 - ((1.0 + s) / (1.0 - s)).ln() / (4.0 * PI);
-            let dist = (x as f32 - w as f32 / 2.0).powi(2) + (y as f32 - h as f32 / 2.0).powi(2);
+            let offset = Vec2::new(x as f32 - w as f32 / 2.0, y as f32 - h as f32 / 2.0);
+            let dist = offset.length_squared();
 
             col = sample_chain(&mut loc, cfg.provider, cfg.rel, z0, u, v, dist);
             if frac > MIN_ZOOM_BLEND_FRACTION {

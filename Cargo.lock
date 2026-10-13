@@ -1090,6 +1090,7 @@ version = "0.0.2"
 dependencies = [
  "bytemuck",
  "earthcraft-core",
+ "glam",
  "image 0.25.10",
  "rayon",
  "serde",

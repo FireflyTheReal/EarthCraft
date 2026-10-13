@@ -18,3 +18,4 @@ image.workspace = true
 bytemuck.workspace = true
 thiserror.workspace = true
 serde.workspace = true
+glam.workspace = true

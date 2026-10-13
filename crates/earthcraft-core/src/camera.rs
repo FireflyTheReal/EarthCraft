@@ -4,6 +4,7 @@ use crate::{
 };
 use crate::{MAX_CAMERA_LATITUDE_DEG, METERS_PER_KM, METERS_PER_LATITUDE_DEGREE};
 use emath::{Pos2, Rect};
+use glam::{DMat2, DMat3, DQuat, DVec2};
 // Numerical tolerances and pole protection retain the original camera behavior.
 const PROJECTION_DEPTH_EPSILON: f64 = 1e-9;
 const ROTATION_AXIS_EPSILON: f64 = 1e-13;
@@ -22,9 +23,7 @@ pub struct Cam {
 #[derive(Clone, Copy)]
 pub struct Basis {
     pub c: DVec3, // camera position (Earth radii)
-    f: DVec3,
-    r: DVec3,
-    u: DVec3,
+    orientation: DMat3,
     aspect: f64,
 }
 
@@ -40,9 +39,7 @@ impl Cam {
         let r = f.cross(u);
         Basis {
             c: n * (1.0 + self.alt / EARTH_RADIUS_KM),
-            f,
-            r,
-            u,
+            orientation: DMat3::from_cols(r, u, f),
             aspect,
         }
     }
@@ -50,22 +47,25 @@ impl Cam {
 
 impl Basis {
     pub fn dir(&self, nx: f64, ny: f64) -> DVec3 {
-        (self.f
-            + self.r * (nx * self.aspect * VERTICAL_FOV_HALF_TAN)
-            + self.u * (ny * VERTICAL_FOV_HALF_TAN))
-            .normalize()
+        let view_ray = DVec3::new(
+            nx * self.aspect * VERTICAL_FOV_HALF_TAN,
+            ny * VERTICAL_FOV_HALF_TAN,
+            1.0,
+        );
+        (self.orientation * view_ray).normalize()
     }
     pub fn project(&self, p: DVec3, rect: Rect) -> Option<Pos2> {
         if p.dot(self.c) < 1.0 {
             return None; // behind the horizon
         }
         let v = p - self.c;
-        let z = v.dot(self.f);
+        let local = self.orientation.transpose() * v;
+        let z = local.z;
         if z <= PROJECTION_DEPTH_EPSILON {
             return None;
         }
-        let nx = v.dot(self.r) / (z * self.aspect * VERTICAL_FOV_HALF_TAN);
-        let ny = v.dot(self.u) / (z * VERTICAL_FOV_HALF_TAN);
+        let nx = local.x / (z * self.aspect * VERTICAL_FOV_HALF_TAN);
+        let ny = local.y / (z * VERTICAL_FOV_HALF_TAN);
         Some(Pos2::new(
             rect.center().x + nx as f32 * rect.width() * 0.5,
             rect.center().y - ny as f32 * rect.height() * 0.5,
@@ -95,8 +95,8 @@ impl Cam {
     pub fn pan(&mut self, dx: f64, dy: f64, height_pts: f32) {
         let k = self.deg_per_pt(height_pts);
         let h = self.heading.to_radians();
-        let de = -dx * k * h.cos() + dy * k * h.sin();
-        let dn = dx * k * h.sin() + dy * k * h.cos();
+        let movement = DMat2::from_angle(-h) * DVec2::new(-dx * k, dy * k);
+        let (de, dn) = (movement.x, movement.y);
         self.lat = (self.lat + dn).clamp(-MAX_CAMERA_LATITUDE_DEG, MAX_CAMERA_LATITUDE_DEG);
         self.lon =
             wrap_lon(self.lon + de / self.lat.to_radians().cos().max(MIN_PAN_LATITUDE_COSINE));
@@ -115,15 +115,14 @@ impl Cam {
         }
         let ang = sn.atan2(from.dot(to));
         let k = axis * (1.0 / sn);
-        let rot =
-            |v: DVec3| v * ang.cos() + k.cross(v) * ang.sin() + k * (k.dot(v) * (1.0 - ang.cos()));
+        let rotation = DQuat::from_axis_angle(k, ang);
         let n = ll_to_v3(self.lat, self.lon);
         let (la, lo) = (self.lat.to_radians(), self.lon.to_radians());
         let east = DVec3::new(-lo.sin(), lo.cos(), 0.0);
         let north = DVec3::new(-la.sin() * lo.cos(), -la.sin() * lo.sin(), la.cos());
         let h = self.heading.to_radians();
         let up = north * h.cos() + east * h.sin();
-        let (n2, u2) = (rot(n).normalize(), rot(up));
+        let (n2, u2) = ((rotation * n).normalize(), rotation * up);
         let (lat2, lon2) = v3_to_ll(n2);
         let (la2, lo2) = (lat2.to_radians(), lon2.to_radians());
         let east2 = DVec3::new(-lo2.sin(), lo2.cos(), 0.0);
