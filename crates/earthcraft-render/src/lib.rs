@@ -3,7 +3,7 @@ mod tuning;
 use earthcraft_core::METERS_PER_LATITUDE_DEGREE;
 use earthcraft_core::{
     camera::Basis,
-    math::{v3_to_ll, V3},
+    math::{v3_to_ll, DVec3},
     EARTH_RADIUS_M, VERTICAL_FOV_HALF_TAN,
 };
 use earthcraft_data::tiles::{
@@ -32,7 +32,7 @@ pub struct RenderCfg {
     pub grid: bool,
     pub grid_step: f64,
     pub atmo: bool,
-    pub sun: Option<V3>,
+    pub sun: Option<DVec3>,
 }
 
 struct Local<'a, F> {
@@ -69,11 +69,10 @@ fn hash3(a: i64, b: i64, c: i64) -> u64 {
     h ^ (h >> 33)
 }
 fn mix(a: [f32; 3], b: [f32; 3], t: f32) -> [f32; 3] {
-    [
-        a[0] + (b[0] - a[0]) * t,
-        a[1] + (b[1] - a[1]) * t,
-        a[2] + (b[2] - a[2]) * t,
-    ]
+    // Four color lanes use glam SIMD; geometry remains double precision.
+    let a = glam::Vec4::new(a[0], a[1], a[2], 0.0);
+    let b = glam::Vec4::new(b[0], b[1], b[2], 0.0);
+    (a + (b - a) * t).truncate().to_array()
 }
 
 /// Samples the tile at level `z`; if it has not loaded yet, falls back to coarser (parent) levels.

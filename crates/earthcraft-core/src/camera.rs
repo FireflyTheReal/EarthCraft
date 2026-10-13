@@ -1,4 +1,4 @@
-use crate::math::{ll_to_v3, v3_to_ll, wrap_lon, V3};
+use crate::math::{ll_to_v3, v3_to_ll, wrap_lon, DVec3};
 use crate::{
     EARTH_RADIUS_KM, MAX_CAMERA_ALTITUDE_KM, MIN_CAMERA_ALTITUDE_KM, VERTICAL_FOV_HALF_TAN,
 };
@@ -21,10 +21,10 @@ pub struct Cam {
 
 #[derive(Clone, Copy)]
 pub struct Basis {
-    pub c: V3, // camera position (Earth radii)
-    f: V3,
-    r: V3,
-    u: V3,
+    pub c: DVec3, // camera position (Earth radii)
+    f: DVec3,
+    r: DVec3,
+    u: DVec3,
     aspect: f64,
 }
 
@@ -32,8 +32,8 @@ impl Cam {
     pub fn basis(&self, aspect: f64) -> Basis {
         let n = ll_to_v3(self.lat, self.lon);
         let (la, lo) = (self.lat.to_radians(), self.lon.to_radians());
-        let east = V3::new(-lo.sin(), lo.cos(), 0.0);
-        let north = V3::new(-la.sin() * lo.cos(), -la.sin() * lo.sin(), la.cos());
+        let east = DVec3::new(-lo.sin(), lo.cos(), 0.0);
+        let north = DVec3::new(-la.sin() * lo.cos(), -la.sin() * lo.sin(), la.cos());
         let h = self.heading.to_radians();
         let u = north * h.cos() + east * h.sin();
         let f = n * -1.0;
@@ -49,13 +49,13 @@ impl Cam {
 }
 
 impl Basis {
-    pub fn dir(&self, nx: f64, ny: f64) -> V3 {
+    pub fn dir(&self, nx: f64, ny: f64) -> DVec3 {
         (self.f
             + self.r * (nx * self.aspect * VERTICAL_FOV_HALF_TAN)
             + self.u * (ny * VERTICAL_FOV_HALF_TAN))
-            .norm()
+            .normalize()
     }
-    pub fn project(&self, p: V3, rect: Rect) -> Option<Pos2> {
+    pub fn project(&self, p: DVec3, rect: Rect) -> Option<Pos2> {
         if p.dot(self.c) < 1.0 {
             return None; // behind the horizon
         }
@@ -107,7 +107,7 @@ impl Cam {
     }
 
     /// Rigidly rotates the camera (centre and "up" direction) by the rotation that takes `from` to `to`.
-    fn rotate(&mut self, from: V3, to: V3) {
+    fn rotate(&mut self, from: DVec3, to: DVec3) {
         let axis = from.cross(to);
         let sn = axis.dot(axis).sqrt();
         if sn < ROTATION_AXIS_EPSILON {
@@ -116,18 +116,18 @@ impl Cam {
         let ang = sn.atan2(from.dot(to));
         let k = axis * (1.0 / sn);
         let rot =
-            |v: V3| v * ang.cos() + k.cross(v) * ang.sin() + k * (k.dot(v) * (1.0 - ang.cos()));
+            |v: DVec3| v * ang.cos() + k.cross(v) * ang.sin() + k * (k.dot(v) * (1.0 - ang.cos()));
         let n = ll_to_v3(self.lat, self.lon);
         let (la, lo) = (self.lat.to_radians(), self.lon.to_radians());
-        let east = V3::new(-lo.sin(), lo.cos(), 0.0);
-        let north = V3::new(-la.sin() * lo.cos(), -la.sin() * lo.sin(), la.cos());
+        let east = DVec3::new(-lo.sin(), lo.cos(), 0.0);
+        let north = DVec3::new(-la.sin() * lo.cos(), -la.sin() * lo.sin(), la.cos());
         let h = self.heading.to_radians();
         let up = north * h.cos() + east * h.sin();
-        let (n2, u2) = (rot(n).norm(), rot(up));
+        let (n2, u2) = (rot(n).normalize(), rot(up));
         let (lat2, lon2) = v3_to_ll(n2);
         let (la2, lo2) = (lat2.to_radians(), lon2.to_radians());
-        let east2 = V3::new(-lo2.sin(), lo2.cos(), 0.0);
-        let north2 = V3::new(-la2.sin() * lo2.cos(), -la2.sin() * lo2.sin(), la2.cos());
+        let east2 = DVec3::new(-lo2.sin(), lo2.cos(), 0.0);
+        let north2 = DVec3::new(-la2.sin() * lo2.cos(), -la2.sin() * lo2.sin(), la2.cos());
         self.lat = lat2.clamp(-MAX_CAMERA_LATITUDE_DEG, MAX_CAMERA_LATITUDE_DEG);
         self.lon = wrap_lon(lon2);
         self.heading = wrap_lon(u2.dot(east2).atan2(u2.dot(north2)).to_degrees());

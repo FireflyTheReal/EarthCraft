@@ -20,6 +20,7 @@ earthcraft-data = { path = "crates/earthcraft-data" }
 earthcraft-render = { path = "crates/earthcraft-render" }
 eframe = "0.27"
 emath = "0.27"
+glam = { version = "0.34", default-features = false, features = ["std", "f64"] }
 rayon = "1.10"
 ureq = { version = "2.9", features = ["json"] }
 serde_json = "1"

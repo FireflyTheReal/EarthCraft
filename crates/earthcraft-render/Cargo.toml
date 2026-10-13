@@ -13,3 +13,4 @@ workspace = true
 earthcraft-core.workspace = true
 earthcraft-data.workspace = true
 rayon.workspace = true
+glam.workspace = true

@@ -11,3 +11,4 @@ workspace = true
 
 [dependencies]
 emath.workspace = true
+glam.workspace = true
