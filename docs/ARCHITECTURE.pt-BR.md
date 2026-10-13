@@ -88,3 +88,24 @@ egui view; the CPU path remains the default and fallback. Set
 The Explorer, live meteorological/aircraft layers, moon and custom planet
 remain integrated in `apps/earthcraft`. See [GPU_RENDERER.md](GPU_RENDERER.md)
 for hardware limits, performance and CPU-only build instructions.
+
+## Limites entre frontends para o EarthCraft web
+
+Core contém a seleção de corpos celestes, as rotas de voos ilustrativos e os
+cálculos de órbita e zoom. Render contém malhas dos corpos (posições, UVs e
+índices), composição meteorológica, projeção de aeronaves e régua, escala,
+resolução e chaves de compatibilidade dos quadros. Essas APIs usam valores de
+domínio, imagens e `emath`, sem widgets egui, texturas ou janelas. O adaptador
+desktop envia texturas, mede fontes, recebe entradas e desenha a geometria.
+
+Data contém downloads de nuvens/radar, atualização e novas tentativas, conversão
+da paleta, URLs geográficas e documentos `.earthplanet`. As APIs de codificação
+e leitura de bytes permitem ao frontend resolver imagens externas da versão
+antiga; a leitura de caminhos nativos fica separada. Abrir URLs, sintetizar voz
+e mostrar diálogos continuam sendo responsabilidades do desktop.
+
+Essa extração prepara a lógica compartilhada; não torna Tokio, SQLite, serviços
+de arquivos nativos ou leitura de GPU compatíveis com WebAssembly. O frontend web
+ainda precisa de adaptadores de rede, armazenamento e execução do navegador.
+A projeção meteorológica e a construção das malhas mantêm seu agendamento atual;
+essa mudança não adiciona tarefas em segundo plano.

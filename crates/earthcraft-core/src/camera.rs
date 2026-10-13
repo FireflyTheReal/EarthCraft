@@ -345,3 +345,58 @@ mod projection_tests {
         }
     }
 }
+
+impl Cam {
+    /// Independent body orbit; one viewport height spans a half-turn.
+    pub fn orbit_body(&mut self, dx_points: f64, dy_points: f64, height_points: f32) {
+        let sensitivity = 180.0 / height_points.max(1.0) as f64;
+        self.lon = wrap_lon(self.lon - dx_points * sensitivity);
+        self.lat = (self.lat + dy_points * sensitivity)
+            .clamp(-MAX_CAMERA_LATITUDE_DEG, MAX_CAMERA_LATITUDE_DEG);
+    }
+    pub fn zoom_fraction(&self) -> f32 {
+        let (min, max) = (MIN_CAMERA_ALTITUDE_KM.ln(), MAX_CAMERA_ALTITUDE_KM.ln());
+        ((self.alt.ln() - min) / (max - min)).clamp(0.0, 1.0) as f32
+    }
+    pub fn set_zoom_fraction(&mut self, fraction: f64) {
+        let (min, max) = (MIN_CAMERA_ALTITUDE_KM.ln(), MAX_CAMERA_ALTITUDE_KM.ln());
+        self.alt = (min + fraction.clamp(0.0, 1.0) * (max - min))
+            .exp()
+            .clamp(MIN_CAMERA_ALTITUDE_KM, MAX_CAMERA_ALTITUDE_KM);
+    }
+}
+
+#[cfg(test)]
+mod body_control_tests {
+    use super::*;
+    #[test]
+    fn body_orbit_wraps_and_clamps_without_ground_pan() {
+        let mut cam = Cam {
+            lat: 0.0,
+            lon: 170.0,
+            alt: 14_000.0,
+            heading: 45.0,
+        };
+        cam.orbit_body(-100.0, 500.0, 100.0);
+        assert_eq!(cam.lon, -10.0);
+        assert_eq!(cam.lat, MAX_CAMERA_LATITUDE_DEG);
+        assert_eq!(cam.heading, 45.0);
+    }
+    #[test]
+    fn slider_round_trip_and_endpoints() {
+        let mut cam = Cam {
+            lat: 0.0,
+            lon: 0.0,
+            alt: 14_000.0,
+            heading: 0.0,
+        };
+        for fraction in [0.0, 0.25, 0.5, 0.75, 1.0] {
+            cam.set_zoom_fraction(fraction);
+            assert!((cam.zoom_fraction() as f64 - fraction).abs() < 1e-6);
+        }
+        cam.set_zoom_fraction(-1.0);
+        assert!((cam.alt - MIN_CAMERA_ALTITUDE_KM).abs() < 1e-12);
+        cam.set_zoom_fraction(2.0);
+        assert!((cam.alt - MAX_CAMERA_ALTITUDE_KM).abs() < 1e-8);
+    }
+}

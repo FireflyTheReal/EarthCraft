@@ -20,3 +20,6 @@ pub const METERS_PER_LATITUDE_DEGREE: f64 = 111_195.0;
 pub const MAX_CAMERA_LATITUDE_DEG: f64 = 89.9;
 
 pub mod flight;
+
+pub mod aircraft;
+pub mod body;

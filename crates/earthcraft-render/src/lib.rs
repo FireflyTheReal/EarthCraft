@@ -342,3 +342,10 @@ mod tests;
 
 #[cfg(test)]
 mod benchmarks;
+
+pub mod aircraft;
+pub mod planet;
+pub mod scale_bar;
+pub mod weather;
+
+pub mod view;

@@ -39,6 +39,12 @@ User instructions and the requested scope take precedence over these defaults.
   a repaint callback. UI event timing, input delivery, texture ownership and
   native dialogs remain app responsibilities. Audit the owner before adding
   non-widget algorithms to an app module.
+  Keep body/flight models and camera-control math in core; body meshes, weather
+  compositing, ruler/aircraft projection and raster compatibility policy in render.
+  Keep live imagery refresh/fetch state and portable planet documents in data.
+  Frontends own textures, widgets, OS commands and native dialogs. Expose byte/image
+  APIs where another frontend can supply its own file or storage integration;
+  moving logic into crates alone does not imply WebAssembly support.
   Keep `main.rs` limited to startup. Avoid catch-all `utils` or `common` modules.
 - Keep implementation private. Expose only APIs needed across modules/crates;
   use `pub(super)`/`pub(crate)` where possible. Keep synchronization internals private.
