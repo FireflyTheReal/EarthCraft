@@ -31,19 +31,33 @@ impl Lang {
     }
 }
 
-/// Lower-cases and strips common Portuguese/Latin accents, for name de-duplication.
+/// Canonically decomposes and removes combining accents for name matching.
+/// This is a comparison key, not a transliteration or a displayed place name.
 pub fn fold_name(s: &str) -> String {
-    s.chars()
-        .map(|c| c.to_lowercase().next().unwrap_or(c))
-        .map(|c| match c {
-            'á' | 'à' | 'â' | 'ã' | 'ä' => 'a',
-            'é' | 'è' | 'ê' | 'ë' => 'e',
-            'í' | 'ì' | 'î' | 'ï' => 'i',
-            'ó' | 'ò' | 'ô' | 'õ' | 'ö' => 'o',
-            'ú' | 'ù' | 'û' | 'ü' => 'u',
-            'ç' => 'c',
-            c => c,
-        })
-        .filter(|c| c.is_alphanumeric())
+    use unicode_normalization::{char::is_combining_mark, UnicodeNormalization};
+    s.nfd()
+        .flat_map(char::to_lowercase)
+        .filter(|c| !is_combining_mark(*c) && c.is_alphanumeric())
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn names_match_across_canonical_accents_and_case_without_transliterating_scripts() {
+        for (name, expected) in [
+            ("São Paulo", "saopaulo"),
+            ("SA\u{303}O PAULO", "saopaulo"),
+            ("ÁÀÂÃÄ ÉÈÊË ÍÌÎÏ ÓÒÔÕÖ ÚÙÛÜ Ç", "aaaaaeeeeiiiiooooouuuuc"),
+            ("İstanbul", "istanbul"),
+            ("Thành phố Huế", "thanhphohue"),
+            ("Αθήνα", "αθηνα"),
+            ("東京", "東京"),
+            ("Москва", "москва"),
+        ] {
+            assert_eq!(fold_name(name), expected, "{name}");
+        }
+        assert_eq!(fold_name("Huế"), fold_name("Hue\u{302}\u{301}"));
+    }
 }

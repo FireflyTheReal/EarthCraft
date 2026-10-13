@@ -340,3 +340,9 @@ Mean moving-view queries over 360 views were 0.012 ms for geo-index plus planes,
 0.029 ms for a linear plane scan and 0.031 ms for rstar plus planes. Candidate sets
 matched. The packed tree occupied 362,754 bytes, excluding IDs/3D bounds. These
 are synthetic index measurements, not full overlay or application FPS results.
+
+Unicode name matching now uses canonical decomposition and combining-mark
+removal from `unicode-normalization`, followed by full lowercase expansion and
+alphanumeric filtering. Existing Portuguese matching is preserved; decomposed
+names, Vietnamese, Greek and Turkish accents are covered, while Cyrillic/CJK
+letters remain in their own scripts. Display names are never rewritten.
