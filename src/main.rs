@@ -1066,7 +1066,7 @@ const BIG_COUNTRIES_NAME: [&str; 10] = [
     "Russia", "Canada", "United States of America", "China", "Brazil", "Australia", "India", "Argentina", "Kazakhstan", "Algeria",
 ];
 /// Below this camera altitude (km) the states of every other country appear too.
-const OTHER_STATES_ALT: f64 = 7000.0;
+const OTHER_STATES_ALT: f64 = 3000.0;
 const BIG_STATE_LABELS_ALT: f64 = 22_000.0;
 
 fn is_big_country(feature: &serde_json::Value) -> bool {
