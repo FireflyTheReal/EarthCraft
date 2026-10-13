@@ -27,8 +27,8 @@ An internet connection is required to download map tiles.
 - Geodesic distance ruler (great-circle)
 - Lat/lon grid, atmosphere, stars, real-time sunlight (day/night)
 - Scale bar, cursor coordinates, PNG screenshot, context menu
-- Background GPU overview rendering with automatic CPU fallback for close views and unsupported devices
-- Force CPU rendering with `EARTHCRAFT_RENDERER=cpu`; see [GPU rendering](docs/GPU_RENDERER.md) for supported views and resource limits
+- Background CPU rendering; GPU overview rendering is opt-in while cross-platform runtime issues are investigated
+- Use `EARTHCRAFT_RENDERER=auto` to try GPU rendering with CPU fallback; see [GPU rendering](docs/GPU_RENDERER.md) for supported views and resource limits
 
 ### Controls
 Drag: rotate globe · Right-drag / Shift+drag: rotate view · Wheel / +/-: zoom · Double-click: fly to point · Arrow keys: move · N: north up

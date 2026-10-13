@@ -28,8 +28,8 @@ Uma conexão com a internet é necessária para baixar os tiles do mapa.
 - Régua de distância geodésica (grande círculo)
 - Grade lat/lon, atmosfera, estrelas, luz solar em tempo real (dia/noite)
 - Barra de escala, coordenadas do cursor, captura de tela PNG, menu de contexto
-- Renderização da visão geral na GPU em segundo plano, com fallback automático para CPU em vistas próximas e dispositivos sem suporte
-- Use `EARTHCRAFT_RENDERER=cpu` para forçar a CPU; veja [renderização na GPU](docs/GPU_RENDERER.md) para vistas compatíveis e limites de recursos
+- Renderização na CPU em segundo plano; a renderização da visão geral na GPU é opcional enquanto problemas de execução em outras plataformas são investigados
+- Use `EARTHCRAFT_RENDERER=auto` para testar a GPU com fallback para CPU; veja [renderização na GPU](docs/GPU_RENDERER.md) para vistas compatíveis e limites de recursos
 
 ### Controles
 Arrastar: girar · Botão direito/Shift+arrastar: girar vista · Roda/+/-: zoom ·
