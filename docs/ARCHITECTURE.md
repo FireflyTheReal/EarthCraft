@@ -127,3 +127,21 @@ egui view; the CPU path remains the default and fallback. Set
 The Explorer, live meteorological/aircraft layers, moon and custom planet
 remain integrated in `apps/earthcraft`. See [GPU_RENDERER.md](GPU_RENDERER.md)
 for hardware limits, performance and CPU-only build instructions.
+
+## Frontend boundaries for EarthCraft web
+
+Core owns body selection, illustrative flight-route sampling and camera orbit/zoom
+mapping. Render owns body meshes (positions/UVs/indices), weather compositing,
+aircraft/ruler projection, scale-bar selection, raster sizing and frame keys.
+These APIs use domain values, image buffers and `emath`, with no egui widgets,
+texture handles or window objects. The desktop adapter uploads textures, measures
+fonts, handles input and draws the returned geometry.
+
+Data owns cloud/radar fetching, refresh/retry state, palette decoding, geographic
+resource URLs and `.earthplanet` documents. Byte-oriented planet encode/decode APIs
+support a frontend-provided legacy sidecar resolver; native path I/O is separate.
+OS URL opening, speech commands and file dialogs remain desktop responsibilities.
+This extraction prepares reusable logic; it does not make Tokio, SQLite, native
+file services or GPU readback compile for WebAssembly. A web frontend still needs
+browser transport/storage/execution adapters. Weather projection and body mesh
+construction retain their current frontend scheduling; this PR does not add jobs.

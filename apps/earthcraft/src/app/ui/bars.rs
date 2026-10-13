@@ -12,16 +12,16 @@ impl App {
                     self.explorer.open = true;
                 }
                 for (name, body) in [
-                    (lg.text("top-earth"), super::super::explorer::Body::Earth),
-                    (lg.text("top-moon"), super::super::explorer::Body::Moon),
+                    (lg.text("top-earth"), earthcraft_core::body::Body::Earth),
+                    (lg.text("top-moon"), earthcraft_core::body::Body::Moon),
                     (
                         lg.text("top-custom-planet"),
-                        super::super::explorer::Body::Custom,
+                        earthcraft_core::body::Body::Custom,
                     ),
                 ] {
                     if ui.button(name).clicked() {
                         self.explorer.choose(body, ctx);
-                        if body == super::super::explorer::Body::Custom {
+                        if body == earthcraft_core::body::Body::Custom {
                             self.explorer.open = true;
                         }
                         self.touch();

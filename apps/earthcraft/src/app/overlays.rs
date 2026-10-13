@@ -1,18 +1,16 @@
 use super::App;
 use earthcraft_core::{
     camera::Basis,
-    math::{fmt_dist, great_circle, haversine_km, ll_to_v3},
+    math::{fmt_dist, ll_to_v3},
 };
 use earthcraft_data::boundaries::BoundarySnapshot;
-use eframe::egui::{self, Align2, Color32, FontId, Pos2, Rect, Stroke, Vec2};
+use eframe::egui::{self, Align2, Color32, FontId, Rect, Stroke, Vec2};
 #[cfg(test)]
 mod benchmarks;
 mod cache;
 mod projected;
 pub(super) use cache::OverlayCache;
 use cache::{OverlayLayers, OverlayStyle, OverlayView};
-
-const RULER_ARC_SEGMENTS: usize = 48;
 
 impl App {
     pub(super) fn overlay_layers(&self) -> earthcraft_render::overlays::OverlayLayers {
@@ -59,22 +57,12 @@ impl App {
         let ms = self.settings.map_scale;
         // ruler
         let stroke = Stroke::new(2.5_f32, Color32::from_rgb(255, 80, 80));
-        for pair in self.ruler_pts.windows(2) {
-            let pts: Vec<Option<Pos2>> = great_circle(pair[0], pair[1], RULER_ARC_SEGMENTS)
-                .into_iter()
-                .map(|p| basis.project(p, rect))
-                .collect();
-            for s in pts.windows(2) {
-                if let (Some(a), Some(b)) = (s[0], s[1]) {
-                    painter.line_segment([a, b], stroke);
-                }
+        for leg in earthcraft_render::overlays::ruler::project_ruler(basis, rect, &self.ruler_pts) {
+            for segment in leg.segments {
+                painter.line_segment(segment, stroke);
             }
-            if let (Some(a), Some(b)) = (
-                basis.project(ll_to_v3(pair[0].0, pair[0].1), rect),
-                basis.project(ll_to_v3(pair[1].0, pair[1].1), rect),
-            ) {
-                let mid = Pos2::new((a.x + b.x) / 2.0, (a.y + b.y) / 2.0);
-                let txt = fmt_dist(haversine_km(pair[0], pair[1]));
+            if let Some(mid) = leg.label_position {
+                let txt = fmt_dist(leg.distance_km);
                 painter.text(
                     mid + Vec2::new(1.0, 1.0),
                     Align2::CENTER_BOTTOM,

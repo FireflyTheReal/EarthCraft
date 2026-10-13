@@ -1,16 +1,12 @@
 //! Optional explorer utilities. Does not modify the CPU globe renderer.
 use super::App;
+use earthcraft_core::body::Body;
+use earthcraft_data::{
+    links::photo_search,
+    planet::{load_planet, save_planet},
+};
 use eframe::egui::{self, ColorImage, TextureHandle};
-use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, process::Command};
-
-#[derive(Clone, Copy, Default, PartialEq, Eq)]
-pub(super) enum Body {
-    #[default]
-    Earth,
-    Moon,
-    Custom,
-}
 
 #[derive(Default)]
 pub(super) struct Explorer {
@@ -25,17 +21,6 @@ pub(super) struct Explorer {
     pub(super) message: String,
     tour_text: String,
     generated_tour_text: String,
-}
-
-#[derive(Serialize, Deserialize)]
-struct PlanetFile {
-    version: u32,
-    name: String,
-    texture: String,
-    #[serde(default)]
-    texture_bytes: Vec<u8>,
-    #[serde(default)]
-    sky_bytes: Vec<u8>,
 }
 
 fn texture(ctx: &egui::Context, file: &Path) -> Result<TextureHandle, String> {
@@ -120,24 +105,6 @@ fn speak(text: &str, _lang: earthcraft_core::language::Lang) -> Result<(), Strin
         .map_err(|e| format!("TTS unavailable (install espeak on Linux): {e}"))
 }
 
-fn photo_search(name: &str) -> String {
-    // Wikimedia Commons Special:MediaSearch; human-selected photographs, not invented imagery.
-    format!(
-        "https://commons.wikimedia.org/wiki/Special:MediaSearch?type=image&search={}",
-        encode(name)
-    )
-}
-fn encode(s: &str) -> String {
-    let mut out = String::new();
-    for byte in s.bytes() {
-        if byte.is_ascii_alphanumeric() || b"-_.~".contains(&byte) {
-            out.push(byte as char)
-        } else {
-            out.push_str(&format!("%{byte:02X}"));
-        }
-    }
-    out
-}
 impl App {
     pub(super) fn explorer_window(&mut self, ctx: &egui::Context) {
         if !self.explorer.open {
@@ -214,15 +181,15 @@ impl App {
                 ui.horizontal(|ui| {
                     if ui.button(lg.text("explorer-save-planet")).clicked(){
                         if let Some(path)=rfd::FileDialog::new().add_filter("EarthCraft planet", &["earthplanet"]).set_file_name("my-planet.earthplanet").save_file(){
-                            self.explorer.message=save_planet(&path,&self.explorer.name,&self.explorer.image_path,&self.explorer.sky_path).unwrap_or_else(|e|e);
+                            self.explorer.message=save_planet(&path,&self.explorer.name,&self.explorer.image_path,&self.explorer.sky_path).unwrap_or_else(|e|e.to_string());
                         }
                     }
                     if ui.button(lg.text("explorer-load-planet")).clicked(){
                         if let Some(path)=rfd::FileDialog::new().add_filter("EarthCraft planet", &["earthplanet"]).pick_file(){
-                            self.explorer.message=match load_planet(&path,ctx){Ok((name,planet,sky))=>{
-                                self.explorer.name=name;self.explorer.viewer=Some(planet);self.explorer.sky=sky;self.explorer.active=Body::Custom;
+                            self.explorer.message=match load_planet(&path){Ok(loaded)=>{
+                                self.explorer.name=loaded.name;self.explorer.viewer=Some(upload_image(ctx,"loaded-planet",loaded.planet));self.explorer.sky=loaded.sky.map(|image|upload_image(ctx,"loaded-sky",image));self.explorer.active=Body::Custom;
                                 lg.text("explorer-planet-loaded").into()
-                            },Err(e)=>e};
+                            },Err(e)=>e.to_string()};
                         }
                     }
                 });
@@ -239,49 +206,12 @@ impl App {
         self.explorer.open = open;
     }
 }
-fn save_planet(path: &Path, name: &str, source: &str, sky: &str) -> Result<String, String> {
-    let texture_bytes = fs::read(source).map_err(|e| format!("Planet image: {e}"))?;
-    image::load_from_memory(&texture_bytes).map_err(|e| e.to_string())?;
-    let sky_bytes = if sky.trim().is_empty() {
-        Vec::new()
-    } else {
-        let b = fs::read(sky).map_err(|e| format!("Sky: {e}"))?;
-        image::load_from_memory(&b).map_err(|e| e.to_string())?;
-        b
-    };
-    let doc = PlanetFile {
-        version: 2,
-        name: name.to_owned(),
-        texture: String::new(),
-        texture_bytes,
-        sky_bytes,
-    };
-    fs::write(path, serde_json::to_vec(&doc).map_err(|e| e.to_string())?)
-        .map_err(|e| e.to_string())?;
-    Ok(format!("Planet and sky embedded in {}", path.display()))
-}
-fn load_planet(
-    path: &Path,
-    ctx: &egui::Context,
-) -> Result<(String, TextureHandle, Option<TextureHandle>), String> {
-    let doc: PlanetFile = serde_json::from_slice(&fs::read(path).map_err(|e| e.to_string())?)
-        .map_err(|e| e.to_string())?;
-    let data = if doc.version == 1 {
-        let rel = Path::new(&doc.texture);
-        if rel.components().count() != 1 {
-            return Err("Invalid path".into());
-        }
-        fs::read(path.parent().unwrap_or(Path::new(".")).join(rel)).map_err(|e| e.to_string())?
-    } else if doc.version == 2 {
-        doc.texture_bytes
-    } else {
-        return Err("Unsupported version".into());
-    };
-    let planet = texture_bytes(ctx, "loaded-planet", &data)?;
-    let sky = if doc.sky_bytes.is_empty() {
-        None
-    } else {
-        Some(texture_bytes(ctx, "loaded-sky", &doc.sky_bytes)?)
-    };
-    Ok((doc.name, planet, sky))
+
+fn upload_image(ctx: &egui::Context, label: &str, image: image::RgbaImage) -> TextureHandle {
+    let size = [image.width() as usize, image.height() as usize];
+    ctx.load_texture(
+        label,
+        ColorImage::from_rgba_unmultiplied(size, image.as_raw()),
+        Default::default(),
+    )
 }

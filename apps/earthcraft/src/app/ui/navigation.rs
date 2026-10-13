@@ -1,6 +1,6 @@
 use super::super::App;
 use crate::app::PAN_SPEED_POINTS_PER_SECOND;
-use earthcraft_core::{math::wrap_lon, MAX_CAMERA_ALTITUDE_KM, MIN_CAMERA_ALTITUDE_KM};
+use earthcraft_core::math::wrap_lon;
 use eframe::egui::{self, Align2, Color32, FontId, Pos2, Rect, Sense, Stroke, Vec2};
 // Navigation palette and geometry in egui points before UI scaling.
 const MIN_CONTROL_SCALE: f32 = 0.8;
@@ -251,8 +251,7 @@ impl App {
         let y_minus = t_bot + 8.0 * k + r_btn;
         let cplus = Pos2::new(cx, y0);
         let cminus = Pos2::new(cx, y_minus);
-        let (ln_min, ln_max) = (MIN_CAMERA_ALTITUDE_KM.ln(), MAX_CAMERA_ALTITUDE_KM.ln());
-        let t = ((self.cam.alt.ln() - ln_min) / (ln_max - ln_min)).clamp(0.0, 1.0) as f32;
+        let t = self.cam.zoom_fraction();
 
         painter.line_segment(
             [Pos2::new(cx, t_top), Pos2::new(cx, t_bot)],
@@ -304,9 +303,7 @@ impl App {
         if track.dragged() || track.clicked() || track.is_pointer_button_down_on() {
             if let Some(p) = track.interact_pointer_pos() {
                 let tt = ((p.y - t_top) / track_len).clamp(0.0, 1.0) as f64;
-                self.cam.alt = (ln_min + tt * (ln_max - ln_min))
-                    .exp()
-                    .clamp(MIN_CAMERA_ALTITUDE_KM, MAX_CAMERA_ALTITUDE_KM);
+                self.cam.set_zoom_fraction(tt);
                 self.fly = None;
                 active = true;
             }
