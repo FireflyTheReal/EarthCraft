@@ -207,7 +207,7 @@ impl App {
             need = false;
         }
         if need {
-            self.request_render(w, h, aspect, presentation);
+            self.request_render(w, h, aspect, presentation, rect);
             self.last_state = state;
             self.last_gen = gen;
             self.last_render = Instant::now();

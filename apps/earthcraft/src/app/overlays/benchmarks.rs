@@ -110,7 +110,8 @@ fn overlay_projection_and_label_occupancy_time() {
         lang: Lang::En,
     };
     let ctx = egui::Context::default();
-    let mut cache = OverlayCache::default();
+    let mut cache = OverlayCache::new(ctx.clone());
+    let data = Arc::new(data);
     let mut rebuild = Vec::new();
     let mut reuse = Vec::new();
     for round in 0..8 {
@@ -121,7 +122,13 @@ fn overlay_projection_and_label_occupancy_time() {
                 cache.invalidate();
             }
             let start = Instant::now();
-            cache.draw(&painter, view, &data, style);
+            loop {
+                cache.draw(&painter, view, &data, style);
+                if cache.is_ready(view, style) {
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(1));
+            }
             let elapsed = start.elapsed().as_secs_f64() * 1000.0;
             if round > 0 {
                 if fresh {

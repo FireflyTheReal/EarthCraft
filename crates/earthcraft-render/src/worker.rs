@@ -9,34 +9,34 @@ pub struct RenderRequest {
     pub cam: Cam,
     pub basis: Basis,
     pub cfg: RenderCfg,
+    pub overlays: Option<crate::overlays::OverlayInput>,
     // Camera motion may lag by one job; provider/style/size changes must not.
     pub presentation: u64,
 }
 
-pub struct RenderedFrame {
+pub struct RenderedFrame<T = ()> {
+    pub prepared: T,
     pub request: RenderRequest,
     pub pixels: Vec<u8>,
     pub waiting: Vec<earthcraft_data::tiles::TileKey>,
     pub required: Vec<earthcraft_data::tiles::TileKey>,
 }
 
-#[derive(Default)]
-struct Mailbox {
+struct Mailbox<T> {
     pending: Option<RenderRequest>,
-    completed: Option<RenderedFrame>,
+    completed: Option<RenderedFrame<T>>,
     active: bool,
     stopped: bool,
     spare: Option<Vec<u8>>,
 }
 
-#[derive(Default)]
-struct Shared {
-    mailbox: Mutex<Mailbox>,
+struct Shared<T> {
+    mailbox: Mutex<Mailbox<T>>,
     wake: Condvar,
 }
 
-pub struct RenderWorker {
-    shared: Arc<Shared>,
+pub struct RenderWorker<T = ()> {
+    shared: Arc<Shared<T>>,
 }
 
 impl RenderWorker {
@@ -45,7 +45,28 @@ impl RenderWorker {
         repaint: impl Fn() + Send + 'static,
         admit: impl Fn(&crate::RenderedView) + Send + 'static,
     ) -> std::io::Result<Self> {
-        let shared = Arc::new(Shared::default());
+        Self::with_prepare(render, repaint, admit, |_, _| ())
+    }
+}
+
+impl<T: Send + 'static> RenderWorker<T> {
+    /// Prepare backend-specific CPU resources on the coordinator, before publication.
+    pub fn with_prepare(
+        render: impl Fn(&RenderRequest, Vec<u8>) -> crate::RenderedView + Send + 'static,
+        repaint: impl Fn() + Send + 'static,
+        admit: impl Fn(&crate::RenderedView) + Send + 'static,
+        mut prepare: impl FnMut(&RenderRequest, &[u8]) -> T + Send + 'static,
+    ) -> std::io::Result<Self> {
+        let shared = Arc::new(Shared {
+            mailbox: Mutex::new(Mailbox {
+                pending: None,
+                completed: None,
+                active: false,
+                stopped: false,
+                spare: None,
+            }),
+            wake: Condvar::new(),
+        });
         let worker = shared.clone();
         std::thread::Builder::new()
             .name("earthcraft-frame".into())
@@ -66,6 +87,7 @@ impl RenderWorker {
                 };
                 // Rasterization holds no mailbox lock. Admission is synchronized below.
                 let frame = render(&request, buffer);
+                let prepared = prepare(&request, &frame.pixels);
                 let mut mailbox = worker.mailbox.lock().unwrap();
                 mailbox.active = false;
                 if mailbox.stopped {
@@ -84,6 +106,7 @@ impl RenderWorker {
                     }
                     let required = frame.required_tiles();
                     mailbox.completed = Some(RenderedFrame {
+                        prepared,
                         request,
                         pixels: frame.pixels,
                         waiting: frame.waiting,
@@ -107,7 +130,7 @@ impl RenderWorker {
         self.shared.wake.notify_one();
     }
 
-    pub fn take_completed(&self, presentation: u64) -> Option<RenderedFrame> {
+    pub fn take_completed(&self, presentation: u64) -> Option<RenderedFrame<T>> {
         self.shared
             .mailbox
             .lock()
@@ -123,7 +146,7 @@ impl RenderWorker {
     }
 }
 
-impl Drop for RenderWorker {
+impl<T> Drop for RenderWorker<T> {
     fn drop(&mut self) {
         let mut mailbox = self.shared.mailbox.lock().unwrap();
         mailbox.stopped = true;

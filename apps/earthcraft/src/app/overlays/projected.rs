@@ -1,10 +1,11 @@
 //! Cached administrative border projection and ordered geographic labels.
-use super::{OverlayStyle, OverlayView};
-use earthcraft_data::boundaries::{BoundaryData, LabelKind};
-use earthcraft_render::overlays::{
-    project_borders, project_labels, BorderKind, LabelIndex, OverlayProjection, ProjectedLabel,
-    MAX_VISIBLE_LABELS,
-};
+use super::OverlayStyle;
+#[cfg(test)]
+use super::OverlayView;
+#[cfg(test)]
+use earthcraft_data::boundaries::BoundaryData;
+use earthcraft_data::boundaries::LabelKind;
+use earthcraft_render::overlays::{BorderKind, LabelIndex, OverlayGeometry, MAX_VISIBLE_LABELS};
 use eframe::egui::{self, Align2, Color32, FontId, Rect, Shape, Stroke, Vec2};
 const LABEL_PADDING_POINTS: f32 = 2.0;
 const LABEL_HIGHLIGHT_OFFSET_POINTS: f32 = -0.5;
@@ -16,44 +17,63 @@ pub(super) fn build(
     boundaries: &BoundaryData,
     style: OverlayStyle,
 ) -> Vec<Shape> {
-    build_indexed(painter, view, boundaries, style, None)
-}
-
-pub(super) fn build_indexed(
-    painter: &egui::Painter,
-    view: OverlayView,
-    boundaries: &BoundaryData,
-    style: OverlayStyle,
-    visible: Option<&earthcraft_render::overlays::VisibleBoundaries>,
-) -> Vec<Shape> {
-    let (basis, rect) = (&view.basis, view.rect);
-    let mut shapes = Vec::new();
-    let projection = OverlayProjection {
-        basis,
-        rect,
+    let projection = earthcraft_render::overlays::OverlayProjection {
+        basis: &view.basis,
+        rect: view.rect,
         altitude_km: view.altitude_km,
         layers: style.layers,
     };
-    project_borders(&projection, boundaries, visible, |kind, segment| {
+    let mut borders = Vec::new();
+    earthcraft_render::overlays::project_borders(&projection, boundaries, None, |kind, points| {
+        borders.push((kind, points))
+    });
+    let labels = earthcraft_render::overlays::project_labels(&projection, &boundaries.labels);
+    build_parts(
+        painter,
+        style,
+        &borders,
+        labels.iter().map(|label| (label.position, label.label)),
+    )
+}
+
+pub(super) fn build_prepared(
+    painter: &egui::Painter,
+    geometry: &OverlayGeometry,
+    style: OverlayStyle,
+) -> Vec<Shape> {
+    build_parts(
+        painter,
+        style,
+        &geometry.borders,
+        geometry
+            .labels
+            .iter()
+            .map(|label| (label.position, &geometry.data.labels[label.source_index])),
+    )
+}
+
+fn build_parts<'a>(
+    painter: &egui::Painter,
+    style: OverlayStyle,
+    borders: &[(BorderKind, [egui::Pos2; 2])],
+    cands: impl IntoIterator<Item = (egui::Pos2, &'a earthcraft_data::boundaries::MapLabel)>,
+) -> Vec<Shape> {
+    let mut shapes = Vec::new();
+    for (kind, segment) in borders {
         let (color, width): (Color32, f32) = match kind {
             BorderKind::Country => (Color32::from_rgba_unmultiplied(255, 235, 150, 235), 1.15),
             BorderKind::State => (Color32::from_rgba_unmultiplied(120, 220, 255, 220), 1.0),
             BorderKind::City => (Color32::from_rgba_unmultiplied(255, 160, 80, 210), 0.7),
             BorderKind::Metro => (Color32::from_rgba_unmultiplied(255, 100, 210, 235), 1.5),
         };
-        shapes.push(Shape::line_segment(segment, Stroke::new(width, color)));
-    });
+        shapes.push(Shape::line_segment(*segment, Stroke::new(width, color)));
+    }
     let ms = style.map_scale;
     if style.layers.labels {
         // Collect what is visible, then place by priority (countries > states > metro > cities)
         // skipping any name that would overlap one already drawn.
-        let cands = project_labels(&projection, &boundaries.labels);
         let mut placed = LabelIndex::default();
-        for ProjectedLabel {
-            position: pos,
-            label,
-        } in cands
-        {
+        for (pos, label) in cands {
             if placed.len() >= MAX_VISIBLE_LABELS {
                 break;
             }

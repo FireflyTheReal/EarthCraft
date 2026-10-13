@@ -25,6 +25,7 @@ fn request(longitude: f64, presentation: u64) -> RenderRequest {
             sun: None,
         },
         presentation,
+        overlays: None,
     }
 }
 
@@ -187,4 +188,30 @@ fn returned_screenshot_buffer_is_reused_for_the_next_frame() {
     let next = test.worker.take_completed(7).unwrap();
     assert_eq!(next.pixels.as_ptr(), pointer);
     assert!(next.pixels.iter().all(|&value| value == 2));
+}
+
+#[test]
+fn frame_preparation_runs_off_ui_and_is_published_with_its_pixels() {
+    let caller = std::thread::current().id();
+    let (tx, rx) = mpsc::channel();
+    let worker = RenderWorker::with_prepare(
+        |_, _| crate::RenderedView {
+            pixels: vec![10, 20, 30, 255],
+            waiting: vec![],
+            requests: vec![],
+        },
+        move || {
+            tx.send(()).unwrap();
+        },
+        |_| {},
+        move |request, pixels| {
+            assert_ne!(std::thread::current().id(), caller);
+            (request.cam.lon, pixels.to_vec())
+        },
+    )
+    .unwrap();
+    worker.submit(request(25.0, 7));
+    rx.recv_timeout(TEST_TIMEOUT).unwrap();
+    let frame = worker.take_completed(7).unwrap();
+    assert_eq!(frame.prepared, (25.0, frame.pixels.clone()));
 }

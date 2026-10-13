@@ -30,7 +30,7 @@ pub struct FileCompletion {
 enum Job {
     Open(PathBuf, Lang),
     Save(PathBuf, Vec<Placemark>),
-    Screenshot(PathBuf, u32, u32, Vec<u8>),
+    Screenshot(PathBuf, u32, u32, Arc<Vec<u8>>),
 }
 impl Job {
     fn kind(&self) -> FileKind {
@@ -109,10 +109,10 @@ impl FileJobs {
         path: PathBuf,
         width: u32,
         height: u32,
-        pixels: &[u8],
+        pixels: &Arc<Vec<u8>>,
     ) -> Result<(), crate::Error> {
         self.reserve()?
-            .send(Job::Screenshot(path, width, height, pixels.to_vec()));
+            .send(Job::Screenshot(path, width, height, pixels.clone()));
         Ok(())
     }
 }

@@ -9,8 +9,12 @@ use earthcraft_data::boundaries::{
 use emath::{Pos2, Rect};
 mod labels;
 mod spatial;
+mod worker;
 pub use labels::LabelIndex;
 pub use spatial::{BoundaryIndex, VisibleBoundaries};
+pub use worker::{
+    OverlayGeometry, OverlayInput, OverlayPreparer, OverlayView, OverlayWorker, PreparedLabel,
+};
 const SIMPLIFY_BORDER_ALTITUDE_KM: f64 = 1500.0;
 const MIN_BORDER_SEGMENT_POINTS: f32 = 1.4;
 const MAX_BORDER_SUBDIVISIONS: usize = 96;
@@ -146,6 +150,7 @@ pub fn project_borders(
 pub struct ProjectedLabel<'a> {
     pub position: Pos2,
     pub label: &'a MapLabel,
+    pub source_index: usize,
 }
 pub fn project_labels<'a>(
     view: &OverlayProjection<'_>,
@@ -155,8 +160,8 @@ pub fn project_labels<'a>(
         return Vec::new();
     }
     let (basis, rect) = (view.basis, view.rect);
-    let mut cands: Vec<(u8, u8, Pos2, &MapLabel)> = Vec::new();
-    for label in labels {
+    let mut cands: Vec<(u8, u8, Pos2, &MapLabel, usize)> = Vec::new();
+    for (source_index, label) in labels.iter().enumerate() {
         let enabled = label.visible_at(view.altitude_km)
             && match label.kind {
                 LabelKind::Country | LabelKind::City => true,
@@ -174,13 +179,17 @@ pub fn project_labels<'a>(
                     LabelKind::Metro => 2,
                     LabelKind::City => 3,
                 };
-                cands.push((prio, label.rank, pos, label));
+                cands.push((prio, label.rank, pos, label, source_index));
             }
         }
     }
     cands.sort_by_key(|c| (c.0, c.1));
     cands
         .into_iter()
-        .map(|(_, _, position, label)| ProjectedLabel { position, label })
+        .map(|(_, _, position, label, source_index)| ProjectedLabel {
+            position,
+            label,
+            source_index,
+        })
         .collect()
 }

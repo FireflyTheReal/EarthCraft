@@ -60,7 +60,7 @@ pub(crate) struct App {
 
     renderer: rendering::Renderer,
     texture: Option<egui::TextureHandle>,
-    image: Option<(usize, usize, Vec<u8>)>,
+    image: Option<(usize, usize, Arc<Vec<u8>>)>,
     last_state: u64,
     last_gen: u64,
     last_render: Instant,
@@ -155,7 +155,7 @@ impl App {
             show_metro_boundaries: false,
             show_place_labels: true,
             boundaries: Arc::new(BoundaryData::default()),
-            overlay_cache: overlays::OverlayCache::default(),
+            overlay_cache: overlays::OverlayCache::new(cc.egui_ctx.clone()),
             boundaries_rx: BoundaryUpdates::new(boundaries_rx, {
                 let ctx = cc.egui_ctx.clone();
                 move || ctx.request_repaint()

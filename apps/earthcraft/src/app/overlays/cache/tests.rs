@@ -70,17 +70,18 @@ fn headless(test: impl FnOnce(&egui::Painter)) {
 #[test]
 fn unchanged_view_reuses_shapes_and_boundary_invalidation_rebuilds() {
     headless(|painter| {
-        let (view, style, mut data) = scene();
-        let mut cache = OverlayCache::default();
-        cache.draw(painter, view, &data, style);
+        let (view, style, data) = scene();
+        let mut data = Arc::new(data);
+        let mut cache = OverlayCache::new(painter.ctx().clone());
+        draw_ready(&mut cache, painter, view, &data, style);
         let before = cache.shapes.clone();
-        data.labels[0].en = "Replacement".into();
+        Arc::make_mut(&mut data).labels[0].en = "Replacement".into();
         // A data patch explicitly invalidates. Until then unchanged keys reuse
         // exactly the same projected shapes, including their shared text galleys.
-        cache.draw(painter, view, &data, style);
+        draw_ready(&mut cache, painter, view, &data, style);
         assert_eq!(cache.shapes, before);
         cache.invalidate();
-        cache.draw(painter, view, &data, style);
+        draw_ready(&mut cache, painter, view, &data, style);
         assert_eq!(texts(&cache.shapes), ["Replacement"]);
         assert_ne!(cache.shapes, before);
     });
@@ -89,7 +90,8 @@ fn unchanged_view_reuses_shapes_and_boundary_invalidation_rebuilds() {
 #[test]
 fn camera_viewport_altitude_density_layers_language_and_map_scale_invalidate() {
     headless(|painter| {
-        let (view, style, mut data) = scene();
+        let (view, style, data) = scene();
+        let mut data = Arc::new(data);
         let variants = [
             (
                 OverlayView {
@@ -151,13 +153,13 @@ fn camera_viewport_altitude_density_layers_language_and_map_scale_invalidate() {
             ),
         ];
         for (next_view, next_style) in variants {
-            let mut cache = OverlayCache::default();
-            data.labels[0].en = "Before".into();
-            data.labels[0].pt = "Antes".into();
-            cache.draw(painter, view, &data, style);
-            data.labels[0].en = "After".into();
-            data.labels[0].pt = "Depois".into();
-            cache.draw(painter, next_view, &data, next_style);
+            let mut cache = OverlayCache::new(painter.ctx().clone());
+            Arc::make_mut(&mut data).labels[0].en = "Before".into();
+            Arc::make_mut(&mut data).labels[0].pt = "Antes".into();
+            draw_ready(&mut cache, painter, view, &data, style);
+            Arc::make_mut(&mut data).labels[0].en = "After".into();
+            Arc::make_mut(&mut data).labels[0].pt = "Depois".into();
+            draw_ready(&mut cache, painter, next_view, &data, next_style);
             assert_eq!(
                 texts(&cache.shapes),
                 [if next_style.lang == Lang::PtBr {
@@ -267,4 +269,25 @@ fn label_limit_remains_five_hundred() {
             500
         );
     });
+}
+
+fn draw_ready(
+    cache: &mut OverlayCache,
+    painter: &egui::Painter,
+    view: OverlayView,
+    data: &Arc<BoundaryData>,
+    style: OverlayStyle,
+) {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    loop {
+        cache.draw(painter, view, data, style);
+        if cache.key == Some((view, style)) {
+            break;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "overlay preparation completes"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
 }

@@ -9,8 +9,13 @@ use earthcraft_render::RenderCfg;
 use eframe::egui;
 use std::sync::Arc;
 
+struct PreparedFrame {
+    image: egui::ColorImage,
+    overlays: Option<Arc<earthcraft_render::overlays::OverlayGeometry>>,
+}
+
 pub(super) struct Renderer {
-    worker: RenderWorker,
+    worker: RenderWorker<PreparedFrame>,
     displayed: Option<(Cam, Basis)>,
     waiting: Vec<earthcraft_data::tiles::TileKey>,
     required: Vec<earthcraft_data::tiles::TileKey>,
@@ -20,8 +25,9 @@ pub(super) struct Renderer {
 impl Renderer {
     pub(super) fn new(cache: Arc<earthcraft_data::tiles::TileCache>, ctx: egui::Context) -> Self {
         let admission_cache = cache.clone();
+        let mut overlay_preparer = earthcraft_render::overlays::OverlayPreparer::default();
         Self {
-            worker: RenderWorker::new(
+            worker: RenderWorker::with_prepare(
                 move |request, buffer| {
                     earthcraft_render::render_view_into(
                         request.width,
@@ -35,6 +41,22 @@ impl Renderer {
                 move || ctx.request_repaint(),
                 move |frame| {
                     admission_cache.prioritize_view(&frame.required_tiles());
+                },
+                move |request, pixels| {
+                    let image = egui::ColorImage::from_rgba_unmultiplied(
+                        [request.width, request.height],
+                        pixels,
+                    );
+                    let geometry = request.overlays.as_ref().map(|input| {
+                        overlay_preparer.prepare(earthcraft_render::overlays::OverlayInput {
+                            view: input.view,
+                            data: input.data.clone(),
+                        })
+                    });
+                    PreparedFrame {
+                        image,
+                        overlays: geometry,
+                    }
                 },
             )
             .expect("start frame renderer"),
@@ -76,7 +98,14 @@ impl Renderer {
 }
 
 impl App {
-    pub(super) fn request_render(&mut self, w: usize, h: usize, aspect: f64, presentation: u64) {
+    pub(super) fn request_render(
+        &mut self,
+        w: usize,
+        h: usize,
+        aspect: f64,
+        presentation: u64,
+        rect: egui::Rect,
+    ) {
         let basis = self.cam.basis(aspect);
         let grid_step = earthcraft_render::grid_step(self.cam.alt, w, h);
         let sun = if self.show_sun {
@@ -106,6 +135,15 @@ impl App {
             basis,
             cfg,
             presentation,
+            overlays: Some(earthcraft_render::overlays::OverlayInput {
+                view: earthcraft_render::overlays::OverlayView {
+                    basis,
+                    rect,
+                    altitude_km: self.cam.alt,
+                    layers: self.overlay_layers(),
+                },
+                data: self.boundaries.clone(),
+            }),
         });
     }
 
@@ -115,7 +153,13 @@ impl App {
         };
         let (w, h, buf) = (frame.request.width, frame.request.height, frame.pixels);
 
-        let img = egui::ColorImage::from_rgba_unmultiplied([w, h], &buf);
+        let PreparedFrame {
+            image: img,
+            overlays,
+        } = frame.prepared;
+        if let Some(geometry) = overlays {
+            self.overlay_cache.accept(geometry);
+        }
         match &mut self.texture {
             Some(t) if t.size() == [w, h] => {
                 t.set_partial([0, 0], img, egui::TextureOptions::LINEAR)
@@ -125,8 +169,10 @@ impl App {
                 self.texture = Some(ctx.load_texture("globe", img, egui::TextureOptions::LINEAR))
             }
         }
-        if let Some((_, _, previous)) = self.image.replace((w, h, buf)) {
-            self.renderer.worker.recycle(previous);
+        if let Some((_, _, previous)) = self.image.replace((w, h, Arc::new(buf))) {
+            if let Ok(previous) = Arc::try_unwrap(previous) {
+                self.renderer.worker.recycle(previous);
+            }
         }
         self.renderer.waiting = frame.waiting;
         self.renderer.required = frame.required;
