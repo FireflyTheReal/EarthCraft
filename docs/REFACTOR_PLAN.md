@@ -320,3 +320,23 @@ realistic tile-memory pressure, GUI conversion/upload, geographic overlays,
 network readiness and eviction. The earlier single-pass result is insufficient
 to establish a general speedup. SIMD geometry remains covered by production
 fixtures; realistic end-to-end measurement is a separate evaluation step.
+
+## CPU scheduling and geographic culling checkpoint
+
+Displayed-frame picking, separate two-thread feature/decode services, relevant
+missing-tile redraws, buffer reuse and texture sub-updates, and current-view tile
+queue priority are implemented in separate commits. Focused regressions cover
+pending-camera picking, saturated feature workers, pending tile tracking,
+complete buffer overwrite/allocation reuse, obsolete admission and queued work
+retirement. Active downloads, retry timing and coarse fallback remain intact.
+
+Static boundary lines now use `geo-index` 0.3.4, with conservative interpolation
+bounds and horizon/frustum rejection before projection. Mutable label occupancy
+remains in rstar. Pole/dateline/horizon tests sample line interiors across headings
+and both altitude extremes; source order and existing overlay fixtures survive.
+On the synthetic 10k 32-point-line workload, one local optimized-dev run measured
+12.612 ms for bounds plus packed-index construction (rstar index-only: 5.387 ms).
+Mean moving-view queries over 360 views were 0.012 ms for geo-index plus planes,
+0.029 ms for a linear plane scan and 0.031 ms for rstar plus planes. Candidate sets
+matched. The packed tree occupied 362,754 bytes, excluding IDs/3D bounds. These
+are synthetic index measurements, not full overlay or application FPS results.

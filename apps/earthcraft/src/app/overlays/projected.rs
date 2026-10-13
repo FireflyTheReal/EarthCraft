@@ -14,11 +14,22 @@ const MAX_VISIBLE_LABELS: usize = 500;
 const LABEL_PADDING_POINTS: f32 = 2.0;
 const LABEL_HIGHLIGHT_OFFSET_POINTS: f32 = -0.5;
 
+#[cfg(test)]
 pub(super) fn build(
     painter: &egui::Painter,
     view: OverlayView,
     boundaries: &BoundaryData,
     style: OverlayStyle,
+) -> Vec<Shape> {
+    build_indexed(painter, view, boundaries, style, None)
+}
+
+pub(super) fn build_indexed(
+    painter: &egui::Painter,
+    view: OverlayView,
+    boundaries: &BoundaryData,
+    style: OverlayStyle,
+    visible: Option<&std::collections::HashSet<usize>>,
 ) -> Vec<Shape> {
     let (basis, rect) = (&view.basis, view.rect);
     let mut shapes = Vec::new();
@@ -40,6 +51,9 @@ pub(super) fn build(
                           max_step_deg: f64| {
         let stroke = Stroke::new(width, color);
         for line in lines {
+            if visible.is_some_and(|set| !set.contains(&(std::sync::Arc::as_ptr(line) as usize))) {
+                continue;
+            }
             let mut anchor: Option<Pos2> = None;
             for pair in line.windows(2) {
                 let (lat1, lon1) = pair[0];

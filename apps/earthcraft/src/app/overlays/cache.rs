@@ -32,11 +32,13 @@ pub(super) struct OverlayView {
 pub(in crate::app) struct OverlayCache {
     key: Option<(OverlayView, OverlayStyle)>,
     shapes: Vec<Shape>,
+    index: Option<super::spatial::BoundaryIndex>,
 }
 
 impl OverlayCache {
     pub(super) fn invalidate(&mut self) {
         self.key = None;
+        self.index = None;
     }
 
     pub(super) fn draw(
@@ -47,7 +49,12 @@ impl OverlayCache {
         style: OverlayStyle,
     ) {
         if self.key != Some((view, style)) {
-            self.shapes = projected::build(painter, view, boundaries, style);
+            let index = self
+                .index
+                .get_or_insert_with(|| super::spatial::BoundaryIndex::new(boundaries));
+            let visible = index.visible(&view.basis, view.rect);
+            self.shapes =
+                projected::build_indexed(painter, view, boundaries, style, Some(&visible));
             self.key = Some((view, style));
         }
         painter.extend(self.shapes.iter().cloned());

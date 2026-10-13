@@ -10,6 +10,7 @@ mod benchmarks;
 mod cache;
 mod labels;
 mod projected;
+mod spatial;
 pub(super) use cache::OverlayCache;
 use cache::{OverlayLayers, OverlayStyle, OverlayView};
 

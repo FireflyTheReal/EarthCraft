@@ -94,6 +94,10 @@ newest one renders; discarding every earlier camera snapshot would starve the
 display. Borders, labels and the scale bar use that frame's camera snapshot to
 stay aligned. The existing interaction/idle resolutions and tile redraw interval
 remain. Overlay cache misses and RGBA-to-egui conversion still run on the UI thread.
+Unavailable tile keys accompany each completed frame; only relevant successful
+arrivals trigger another raster. Overlay-only toggles do not change raster state.
+Previous screenshot buffers return to the worker for reuse. Same-size texture
+updates preserve storage through partial uploads; resizing allocates new storage.
 
 Administrative border and label shapes are cached for one displayed projection.
 The key includes the full camera basis, viewport position/size, altitude, DPI,
@@ -106,14 +110,26 @@ dynamic, so edits appear immediately.
 During rebuild, labels are collected and stably sorted by the existing feature
 priority and rank. A `rstar` R*-tree stores accepted label rectangles; inclusive
 intersection rejects touching edges exactly like egui. Padding, text layout,
-colors, placement order and the 500-label cap are unchanged. The tree only serves
+colors, placement order and the 500-label cap are unchanged. The rstar tree only serves
 screen-space occupancy; it does not approximate geographic visibility, change
 dateline/pole handling, or change which data loads. Internal traversal stops at
 the first intersection without allocating an iterator stack. The index is dropped
 after rebuild. Tiny capped workloads can favor a linear scan; the reproducible
 benchmark reports that tradeoff separately from projection-cache reuse.
 
-The coordinator holds no mailbox lock during rasterization or tile admission.
+A packed `geo-index` tree separately indexes immutable boundary lines by world
+X/Y bounds. Bounds include the full wrapped latitude/longitude interpolation,
+not just endpoints. Horizon-cap queries and conservative 3D horizon/frustum
+plane tests reject whole lines before geographic conversion and projection.
+Surviving lines retain source order and the original segment simplification and
+horizon sampling. Boundary patches rebuild this static index; camera movement
+only queries it. Label priority and occupancy continue to use mutable `rstar`.
+
+The coordinator holds no mailbox lock during rasterization. Short, bounded tile
+admission is synchronized with publication so incompatible frames cannot fetch
+tiles. Current-view requests move ahead of queued work; stale queued detail is
+retired without a failure delay, while active work and coarse overview tiles
+remain. Channel messages wake workers; they take jobs from the current queue.
 It admits visible missing tiles before becoming idle; overview warmup waits for
 that idle state. Shutdown drops pending/completed work and wakes the coordinator
 without waiting on egui; an active job finishes before releasing worker resources.
