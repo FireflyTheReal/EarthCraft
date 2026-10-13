@@ -1172,7 +1172,6 @@ dependencies = [
  "eframe",
  "image 0.25.10",
  "muda",
- "raw-window-handle 0.6.2",
  "rfd",
  "rstar",
  "winresource",

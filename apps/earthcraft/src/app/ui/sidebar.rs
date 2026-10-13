@@ -12,9 +12,10 @@ impl App {
         let mut del: Option<usize> = None;
         let (mut save_now, mut save_as, mut open_dialog, mut open_typed, mut shot) =
             (false, false, false, false, false);
+        self.kml_drop_rect = egui::Rect::NOTHING;
         egui::SidePanel::left("side")
             .default_width(270.0)
-            .show(ctx, |ui| {
+            .show_animated(ctx, self.sidebar_open, |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     egui::CollapsingHeader::new(lg.text("layers-section-title"))
                         .default_open(true)

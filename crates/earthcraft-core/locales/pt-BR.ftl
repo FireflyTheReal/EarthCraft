@@ -288,3 +288,6 @@ menu-kml-save = Salvar KML
 menu-kml-save-as = Salvar KML como…
 menu-screenshot-save = Salvar captura de tela
 menu-quit-action = Sair do EarthCraft
+
+sidebar-hide-tooltip = Ocultar painel lateral
+sidebar-show-tooltip = Mostrar painel lateral

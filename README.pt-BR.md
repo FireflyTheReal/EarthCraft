@@ -34,7 +34,9 @@ Uma conexão com a internet é necessária para baixar os tiles do mapa.
 Arrastar: girar · Botão direito/Shift+arrastar: girar vista · Roda/+/-: zoom ·
 Duplo clique: voar · Setas: mover · N: norte para cima
 
-No Windows e no macOS, o menu nativo **Arquivo** abre/salva KML e salva capturas PNG. Use Ctrl (Windows) ou Cmd (macOS): O para abrir, S para salvar, Shift+S para Salvar como e Shift+E para uma captura. As capturas usam a pasta escolhida nas Configurações. No macOS, Sair fica no menu do aplicativo.
+Use **☰** na barra de ferramentas para ocultar ou reabrir o painel lateral e dar mais espaço ao mapa.
+
+No macOS, o menu nativo **Arquivo** abre/salva KML e salva capturas PNG. Use Cmd+O para abrir, Cmd+S para salvar, Cmd+Shift+S para Salvar como e Cmd+Shift+E para uma captura. As capturas usam a pasta escolhida nas Configurações. Sair fica no menu do aplicativo. Windows e Linux usam os controles de arquivos do painel lateral.
 
 ### Não implementado (exigiria dados/infra proprietários)
 Terreno 3D com relevo real, prédios 3D, Street View, Google Earth Studio,

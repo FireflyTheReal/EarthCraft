@@ -40,7 +40,7 @@ const BOUNDARY_POLL_INTERVAL: Duration = Duration::from_millis(300);
 type SuggestionResponse = (String, Result<Vec<Suggestion>, earthcraft_data::Error>);
 
 pub(crate) struct App {
-    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    #[cfg(target_os = "macos")]
     native_menu: Option<menu::NativeMenu>,
     runtime: earthcraft_data::runtime::ServiceRuntime,
     explorer: explorer::Explorer,
@@ -94,6 +94,7 @@ pub(crate) struct App {
     ruler: bool,
     ruler_pts: Vec<(f64, f64)>,
     cursor: Option<(f64, f64)>,
+    sidebar_open: bool,
     show_help: bool,
 
     settings: Settings,
@@ -153,7 +154,7 @@ impl App {
             move || ctx.request_repaint()
         });
         let app = App {
-            #[cfg(any(target_os = "macos", target_os = "windows"))]
+            #[cfg(target_os = "macos")]
             native_menu: None,
             explorer: explorer::Explorer::default(),
             lang,
@@ -206,6 +207,7 @@ impl App {
             ruler: false,
             ruler_pts: vec![],
             cursor: None,
+            sidebar_open: true,
             show_help: false,
             ui_scale_edit: settings.ui_scale,
             settings: settings.clone(),
@@ -233,11 +235,11 @@ impl App {
             ring_drag: false,
             runtime,
         };
-        #[cfg(any(target_os = "macos", target_os = "windows"))]
+        #[cfg(target_os = "macos")]
         {
             app.with_native_menu(cc)
         }
-        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+        #[cfg(not(target_os = "macos"))]
         {
             app
         }
@@ -264,8 +266,10 @@ impl eframe::App for App {
         if let Some(error) = self.settings_writer.take_error() {
             self.status = format!("Settings persistence failed: {error}");
         }
-        #[cfg(any(target_os = "macos", target_os = "windows"))]
+        #[cfg(target_os = "macos")]
         self.poll_native_menu(ctx);
+        #[cfg(target_os = "windows")]
+        self.file_shortcuts(ctx);
         self.poll_files();
         self.handle_dropped_files(ctx);
         self.ensure_wayback(ctx);
