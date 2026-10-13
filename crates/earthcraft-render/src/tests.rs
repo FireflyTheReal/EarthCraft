@@ -267,3 +267,18 @@ fn tracked_frames_watch_pending_tiles_without_enqueuing_them_again() {
     assert_eq!(keys, waiting.into_iter().collect());
     assert_eq!(keys, absent_waiting.into_iter().collect());
 }
+
+#[test]
+fn reused_buffers_overwrite_all_pixels_and_preserve_allocation() {
+    let case = &batch_references()[0];
+    let cfg = batch_reference_config(case.provider);
+    let basis = case.cam.basis(case.width as f64 / case.height as f64);
+    let lookup = |_| Lookup::Absent;
+    let (expected, _, _) = render_pixels_tracked(case.width, case.height, &basis, &cfg, &lookup);
+    let mut buffer = vec![123; expected.len() + 128];
+    let pointer = buffer.as_ptr();
+    buffer.truncate(expected.len());
+    let (pixels, _, _) = render_pixels_into(case.width, case.height, &basis, &cfg, &lookup, buffer);
+    assert_eq!(pixels.as_ptr(), pointer);
+    assert_eq!(pixels, expected);
+}

@@ -25,6 +25,7 @@ struct Mailbox {
     completed: Option<RenderedFrame>,
     active: bool,
     stopped: bool,
+    spare: Option<Vec<u8>>,
 }
 
 #[derive(Default)]
@@ -39,7 +40,7 @@ pub(super) struct RenderWorker {
 
 impl RenderWorker {
     pub(super) fn new(
-        render: impl Fn(&RenderRequest) -> earthcraft_render::RenderedView + Send + 'static,
+        render: impl Fn(&RenderRequest, Vec<u8>) -> earthcraft_render::RenderedView + Send + 'static,
         repaint: impl Fn() + Send + 'static,
     ) -> std::io::Result<Self> {
         let shared = Arc::new(Shared::default());
@@ -47,7 +48,7 @@ impl RenderWorker {
         std::thread::Builder::new()
             .name("earthcraft-frame".into())
             .spawn(move || loop {
-                let request = {
+                let (request, buffer) = {
                     let mut mailbox = worker.mailbox.lock().unwrap();
                     while !mailbox.stopped && mailbox.pending.is_none() {
                         mailbox = worker.wake.wait(mailbox).unwrap();
@@ -56,10 +57,13 @@ impl RenderWorker {
                         return;
                     }
                     mailbox.active = true;
-                    mailbox.pending.take().unwrap()
+                    (
+                        mailbox.pending.take().unwrap(),
+                        mailbox.spare.take().unwrap_or_default(),
+                    )
                 };
                 // No mailbox lock is held during Rayon rasterization or tile admission.
-                let frame = render(&request);
+                let frame = render(&request, buffer);
                 let mut mailbox = worker.mailbox.lock().unwrap();
                 mailbox.active = false;
                 if mailbox.stopped {
@@ -70,16 +74,25 @@ impl RenderWorker {
                     .as_ref()
                     .is_some_and(|next| next.presentation != request.presentation);
                 if !obsolete {
+                    if let Some(previous) = mailbox.completed.take() {
+                        mailbox.spare = Some(previous.pixels);
+                    }
                     mailbox.completed = Some(RenderedFrame {
                         request,
                         pixels: frame.pixels,
                         waiting: frame.waiting,
                     });
+                } else {
+                    mailbox.spare = Some(frame.pixels);
                 }
                 drop(mailbox);
                 repaint();
             })?;
         Ok(Self { shared })
+    }
+
+    pub(super) fn recycle(&self, buffer: Vec<u8>) {
+        self.shared.mailbox.lock().unwrap().spare = Some(buffer);
     }
 
     pub(super) fn submit(&self, request: RenderRequest) {

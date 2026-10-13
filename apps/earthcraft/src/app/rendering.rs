@@ -22,13 +22,14 @@ impl Renderer {
     pub(super) fn new(cache: Arc<earthcraft_data::tiles::TileCache>, ctx: egui::Context) -> Self {
         Self {
             worker: RenderWorker::new(
-                move |request| {
-                    earthcraft_render::render_view(
+                move |request, buffer| {
+                    earthcraft_render::render_view_into(
                         request.width,
                         request.height,
                         &request.basis,
                         &request.cfg,
                         &cache,
+                        buffer,
                     )
                 },
                 move || ctx.request_repaint(),
@@ -108,12 +109,17 @@ impl App {
 
         let img = egui::ColorImage::from_rgba_unmultiplied([w, h], &buf);
         match &mut self.texture {
+            Some(t) if t.size() == [w, h] => {
+                t.set_partial([0, 0], img, egui::TextureOptions::LINEAR)
+            }
             Some(t) => t.set(img, egui::TextureOptions::LINEAR),
             None => {
                 self.texture = Some(ctx.load_texture("globe", img, egui::TextureOptions::LINEAR))
             }
         }
-        self.image = Some((w, h, buf));
+        if let Some((_, _, previous)) = self.image.replace((w, h, buf)) {
+            self.renderer.worker.recycle(previous);
+        }
         self.renderer.waiting = frame.waiting;
         // Recheck dependencies even if a tile finished before frame publication.
         self.last_gen = u64::MAX;

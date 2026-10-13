@@ -50,14 +50,16 @@ impl ControlledWorker {
         }
         let exit_signal = ExitSignal(exit_tx);
         let worker = RenderWorker::new(
-            move |request| {
+            move |request, mut buffer| {
                 let _keep_alive = &exit_signal;
                 started_tx
                     .send((request.cam.lon, std::thread::current().id()))
                     .unwrap();
                 release_rx.recv_timeout(TEST_TIMEOUT).unwrap();
+                buffer.resize(request.width * request.height * 4, 0);
+                buffer.fill(request.cam.lon as u8);
                 earthcraft_render::RenderedView {
-                    pixels: vec![request.cam.lon as u8; request.width * request.height * 4],
+                    pixels: buffer,
                     waiting: vec![],
                 }
             },
@@ -156,4 +158,21 @@ fn shutdown_drops_pending_views_without_waiting_for_an_active_raster() {
         test.repaint.try_recv(),
         Err(mpsc::TryRecvError::Disconnected)
     ));
+}
+
+#[test]
+fn returned_screenshot_buffer_is_reused_for_the_next_frame() {
+    let test = ControlledWorker::new();
+    test.worker.submit(request(1.0, 7));
+    test.start();
+    test.finish();
+    let frame = test.worker.take_completed(7).unwrap();
+    let pointer = frame.pixels.as_ptr();
+    test.worker.recycle(frame.pixels);
+    test.worker.submit(request(2.0, 7));
+    test.start();
+    test.finish();
+    let next = test.worker.take_completed(7).unwrap();
+    assert_eq!(next.pixels.as_ptr(), pointer);
+    assert!(next.pixels.iter().all(|&value| value == 2));
 }

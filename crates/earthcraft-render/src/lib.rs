@@ -240,8 +240,19 @@ pub fn render_view(
     cfg: &RenderCfg,
     cache: &TileCache,
 ) -> RenderedView {
+    render_view_into(w, h, basis, cfg, cache, Vec::new())
+}
+
+pub fn render_view_into(
+    w: usize,
+    h: usize,
+    basis: &Basis,
+    cfg: &RenderCfg,
+    cache: &TileCache,
+    buffer: Vec<u8>,
+) -> RenderedView {
     let (buf, mut list, waiting) =
-        render_pixels_tracked(w, h, basis, cfg, &|key| cache.lookup(key));
+        render_pixels_into(w, h, basis, cfg, &|key| cache.lookup(key), buffer);
 
     // Request missing tiles: lowest zoom first, then closest to the center.
     list.sort_by(|a, b| {
@@ -273,6 +284,7 @@ fn render_pixels(
     (pixels, misses)
 }
 
+#[cfg(test)]
 fn render_pixels_tracked(
     w: usize,
     h: usize,
@@ -280,7 +292,18 @@ fn render_pixels_tracked(
     cfg: &RenderCfg,
     lookup: &(impl Fn(TileKey) -> Lookup + Sync),
 ) -> (Vec<u8>, Vec<(TileKey, f32)>, Vec<TileKey>) {
-    let mut buf = vec![0u8; w * h * RGBA_CHANNELS];
+    render_pixels_into(w, h, basis, cfg, lookup, Vec::new())
+}
+
+fn render_pixels_into(
+    w: usize,
+    h: usize,
+    basis: &Basis,
+    cfg: &RenderCfg,
+    lookup: &(impl Fn(TileKey) -> Lookup + Sync),
+    mut buf: Vec<u8>,
+) -> (Vec<u8>, Vec<(TileKey, f32)>, Vec<TileKey>) {
+    buf.resize(w * h * RGBA_CHANNELS, 0);
     let row_bytes = w * RGBA_CHANNELS;
     let rays = RayCaster::new(w, h, basis);
     let per_batch: Vec<Vec<(TileKey, Option<f32>)>> = buf
