@@ -16,8 +16,8 @@ impl App {
         let (tx, rx) = mpsc::channel();
         self.wayback_rx = Some(rx);
         let ctx = ctx.clone();
-        std::thread::spawn(move || {
-            let _ = tx.send(load_wayback_releases());
+        self.runtime.spawn(async move {
+            let _ = tx.send(load_wayback_releases().await);
             ctx.request_repaint();
         });
     }

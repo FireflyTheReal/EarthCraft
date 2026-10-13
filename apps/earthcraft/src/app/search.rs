@@ -119,8 +119,8 @@ impl App {
                 let (tx, rx) = mpsc::channel();
                 self.sugg_rx = Some(rx);
                 let (ctx2, lang) = (ctx.clone(), self.lang.code());
-                std::thread::spawn(move || {
-                    let r = photon_suggest(&q, lang);
+                self.runtime.spawn(async move {
+                    let r = photon_suggest(&q, lang).await;
                     let _ = tx.send((q, r));
                     ctx2.request_repaint();
                 });
@@ -184,8 +184,8 @@ impl App {
         self.status = self.lang.pick("Searching…", "Buscando…").into();
         let ctx = ctx.clone();
         let lang_code = self.lang.code();
-        std::thread::spawn(move || {
-            let _ = tx.send(geocode(&q, lang_code));
+        self.runtime.spawn(async move {
+            let _ = tx.send(geocode(&q, lang_code).await);
             ctx.request_repaint();
         });
     }

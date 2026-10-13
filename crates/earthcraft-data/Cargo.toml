@@ -11,8 +11,8 @@ workspace = true
 
 [dependencies]
 earthcraft-core.workspace = true
-rayon.workspace = true
-ureq.workspace = true
+tokio.workspace = true
+reqwest.workspace = true
 serde_json.workspace = true
 image.workspace = true
 bytemuck.workspace = true

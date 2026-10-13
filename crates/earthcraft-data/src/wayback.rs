@@ -1,8 +1,6 @@
 use crate::http::geo_cache_path;
-use std::{io::Read, sync::Mutex, time::Duration};
+use std::sync::Mutex;
 const MAX_WAYBACK_RELEASES: usize = 60_000;
-const WAYBACK_CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
-const WAYBACK_READ_TIMEOUT: Duration = Duration::from_secs(60);
 const MAX_WAYBACK_CONFIG_BYTES: u64 = 64 << 20;
 
 // ───────────────────────────── Wayback (historical imagery) ─────────────────────────────
@@ -67,42 +65,31 @@ fn parse_wayback_config(v: &serde_json::Value) -> Vec<WaybackRelease> {
     out
 }
 /// Fetches the release list (network first so that new releases show up; disk cache as fallback).
-pub fn load_wayback_releases() -> Result<Vec<WaybackRelease>, crate::Error> {
+pub async fn load_wayback_releases() -> Result<Vec<WaybackRelease>, crate::Error> {
     let path = geo_cache_path(WAYBACK_CONFIG);
-    let agent = ureq::AgentBuilder::new()
-        .timeout_connect(WAYBACK_CONNECT_TIMEOUT)
-        .timeout_read(WAYBACK_READ_TIMEOUT)
-        .user_agent("EarthCraft/0.2 (wayback release list)")
-        .build();
-    let net: Result<serde_json::Value, crate::Error> = agent
-        .get(WAYBACK_CONFIG)
-        .call()
-        .map_err(crate::Error::from)
-        .and_then(|r| {
-            let mut buf = Vec::new();
-            r.into_reader()
-                .take(MAX_WAYBACK_CONFIG_BYTES)
-                .read_to_end(&mut buf)
-                .map_err(crate::Error::from)?;
-            serde_json::from_slice::<serde_json::Value>(&buf)
-                .map(|v| (v, buf))
-                .map_err(crate::Error::from)
+    let request = crate::http::client(crate::http::Policy::Wayback)?.get(WAYBACK_CONFIG);
+    let net = async {
+        let bytes = crate::http::body(request, MAX_WAYBACK_CONFIG_BYTES).await?;
+        let parsed = tokio::task::spawn_blocking(move || {
+            serde_json::from_slice::<serde_json::Value>(&bytes).map(|value| (value, bytes))
         })
-        .map(|(v, buf)| {
-            if let Some(d) = path.parent() {
-                let _ = std::fs::create_dir_all(d);
-            }
-            let _ = std::fs::write(&path, buf);
-            v
-        });
+        .await?;
+        let (value, bytes) = parsed?;
+        if let Some(dir) = path.parent() {
+            let _ = tokio::fs::create_dir_all(dir).await;
+        }
+        let _ = tokio::fs::write(&path, bytes).await;
+        Ok::<_, crate::Error>(value)
+    }
+    .await;
     let json = match net {
-        Ok(v) => v,
-        Err(e) => match std::fs::read(&path)
-            .ok()
-            .and_then(|b| serde_json::from_slice(&b).ok())
-        {
-            Some(v) => v,
-            None => return Err(e),
+        Ok(value) => value,
+        Err(error) => match tokio::fs::read(&path).await {
+            Ok(bytes) => match crate::http::parse_json(bytes).await {
+                Ok(value) => value,
+                Err(_) => return Err(error),
+            },
+            Err(_) => return Err(error),
         },
     };
     let list = parse_wayback_config(&json);

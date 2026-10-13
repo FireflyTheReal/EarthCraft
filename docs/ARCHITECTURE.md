@@ -58,7 +58,7 @@ Widgets call existing app commands; camera math is tested in core directly.
 3. The renderer ray-casts rows in parallel with Rayon. It samples cached tiles,
    blends imagery zoom levels, and applies the grid, atmosphere, sunlight and stars.
 4. Missing tiles are queued with the original priority: lower zoom first, then
-   distance to the screen center. The data crate retains six tile workers, the
+   distance to the screen center. The data crate runs six async tile workers, preserving the
    in-flight limit, retry delay, and disk caching behavior.
 5. The app injects a thread-safe repaint callback into `TileCache::new`. Workers
    signal completion through that callback; data does not import egui.
@@ -99,8 +99,8 @@ needed, rather than wrapping every function in a trait.
 ## Deliberately retained implementation constraints
 
 This is an architectural refactor, not a rewrite of the existing subsystems.
-Historical imagery still uses a synchronized process-wide release list. Tile
-workers retain their original application-lifetime ownership. KML still uses the
+Historical imagery still uses a synchronized process-wide release list. The desktop app owns a Tokio runtime for service tasks; workers are stopped
+when it is dropped. KML still uses the
 existing lightweight parser and supports its existing subset. App state is still
 one private owner shared by its child modules. These are future work candidates;
 changing them should be a separate change with its own behavior and lifecycle tests.
@@ -128,3 +128,12 @@ names without changing their values or floating-point evaluation order.
 
 See [library options](LIBRARY_OPTIONS.md) for focused ways to remove handwritten
 parsing, error and vector boilerplate in follow-up changes.
+
+## Network runtime
+
+The desktop app owns `ServiceRuntime`; data receives its handle. Tokio runs tile,
+search, historical imagery and boundary fetching through pooled reqwest clients.
+The app still polls its existing result channels and receives repaint callbacks.
+Network/file I/O is async; image decoding and JSON parsing use blocking tasks so
+large inputs cannot monopolize an async worker. Rasterization continues on Rayon.
+The async transport is tested against local HTTP fixtures, not public services.

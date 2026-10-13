@@ -1,9 +1,7 @@
-use std::time::Duration;
 const SEARCH_KM_PER_DEGREE: f64 = 111.2;
 const SEARCH_VIEW_PADDING_RATIO: f64 = 1.6;
 const MIN_SEARCH_ALTITUDE_KM: f64 = 0.5;
 const MAX_SEARCH_ALTITUDE_KM: f64 = 12_000.0;
-const SUGGESTION_REQUEST_TIMEOUT: Duration = Duration::from_secs(8);
 
 pub const COUNTRY_SEARCH_ALTITUDE_KM: f64 = 6000.0;
 pub const CITY_SEARCH_ALTITUDE_KM: f64 = 40.0;
@@ -36,19 +34,16 @@ pub fn parse_latlon(s: &str) -> Option<(f64, f64)> {
     }
 }
 
-pub fn geocode(q: &str, lang: &str) -> Result<Vec<GeoResult>, crate::Error> {
-    let resp = ureq::get("https://nominatim.openstreetmap.org/search")
-        .set(
-            "User-Agent",
-            "EarthCraft/0.1 (visualizador educacional de globo 3D)",
-        )
-        .query("format", "json")
-        .query("limit", "6")
-        .query("accept-language", lang)
-        .query("q", q)
-        .call()
-        .map_err(crate::Error::from)?;
-    let v: serde_json::Value = resp.into_json().map_err(crate::Error::from)?;
+pub async fn geocode(q: &str, lang: &str) -> Result<Vec<GeoResult>, crate::Error> {
+    let request = crate::http::client(crate::http::Policy::Search)?
+        .get("https://nominatim.openstreetmap.org/search")
+        .query(&[
+            ("format", "json"),
+            ("limit", "6"),
+            ("accept-language", lang),
+            ("q", q),
+        ]);
+    let v = crate::http::parse_json(crate::http::body(request, 1 << 30).await?).await?;
     parse_geocode_response(v)
 }
 
@@ -100,23 +95,14 @@ pub struct Suggestion {
 
 /// Search-as-you-type suggestions. Nominatim forbids autocomplete, so Photon (Komoot, built on
 /// OpenStreetMap data and meant for this use) is used instead.
-pub fn photon_suggest(q: &str, lang: &str) -> Result<Vec<Suggestion>, crate::Error> {
-    let agent = ureq::AgentBuilder::new()
-        .timeout(SUGGESTION_REQUEST_TIMEOUT)
-        .user_agent("EarthCraft/0.2 (search suggestions)")
-        .build();
-    let mut req = agent
+pub async fn photon_suggest(q: &str, lang: &str) -> Result<Vec<Suggestion>, crate::Error> {
+    let mut request = crate::http::client(crate::http::Policy::Suggest)?
         .get("https://photon.komoot.io/api/")
-        .query("q", q)
-        .query("limit", "8");
+        .query(&[("q", q), ("limit", "8")]);
     if lang == "en" {
-        req = req.query("lang", "en"); // Photon only supports en/de/fr/it; others use local names
+        request = request.query(&[("lang", "en")]);
     }
-    let v: serde_json::Value = req
-        .call()
-        .map_err(crate::Error::from)?
-        .into_json()
-        .map_err(crate::Error::from)?;
+    let v = crate::http::parse_json(crate::http::body(request, 1 << 30).await?).await?;
     let mut out: Vec<Suggestion> = Vec::new();
     for f in v["features"].as_array().into_iter().flatten() {
         let (Some(lon), Some(lat)) = (

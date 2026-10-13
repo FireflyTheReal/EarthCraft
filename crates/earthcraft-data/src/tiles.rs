@@ -6,10 +6,9 @@ use earthcraft_core::language::Lang;
 use std::{
     collections::HashMap,
     hash::{BuildHasherDefault, Hasher},
-    io::Read,
     sync::{
         atomic::{AtomicU64, AtomicUsize, Ordering},
-        mpsc, Arc, Mutex,
+        Arc, Mutex,
     },
     time::{Duration, Instant},
 };
@@ -25,7 +24,6 @@ const RELEASE_MASK: u64 = 0xFFFF;
 // Cache/network policy: preserve both the thresholds and the eviction strategy.
 const TILE_WORKER_COUNT: usize = 6;
 const FAILED_TILE_RETRY_DELAY: Duration = Duration::from_secs(15);
-const TILE_REQUEST_TIMEOUT: Duration = Duration::from_secs(15);
 const TILE_CACHE_PRUNE_THRESHOLD: usize = 2500;
 const RETAINED_OVERVIEW_MAX_ZOOM: u8 = 4;
 const PRUNE_KEEP_EVERY_NTH_TILE: usize = 2;
@@ -214,25 +212,28 @@ pub enum Lookup {
 
 pub struct TileCache {
     map: Mutex<HashMap<TileKey, Slot, KeyBuild>>,
-    tx: Mutex<mpsc::Sender<TileKey>>,
+    tx: tokio::sync::mpsc::UnboundedSender<TileKey>,
     gen: AtomicU64,
     inflight: AtomicUsize,
 }
 
 impl TileCache {
-    pub fn new(repaint: impl Fn() + Send + Sync + 'static) -> Arc<Self> {
+    pub fn new(
+        repaint: impl Fn() + Send + Sync + 'static,
+        runtime: &tokio::runtime::Handle,
+    ) -> Arc<Self> {
         let repaint: Arc<dyn Fn() + Send + Sync> = Arc::new(repaint);
-        let (tx, rx) = mpsc::channel();
-        let rx = Arc::new(Mutex::new(rx));
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        let rx = Arc::new(tokio::sync::Mutex::new(rx));
         let cache = Arc::new(TileCache {
             map: Mutex::new(HashMap::default()),
-            tx: Mutex::new(tx),
+            tx,
             gen: AtomicU64::new(0),
             inflight: AtomicUsize::new(0),
         });
         for _ in 0..TILE_WORKER_COUNT {
             let (c, r, x) = (cache.clone(), rx.clone(), repaint.clone());
-            std::thread::spawn(move || worker(c, r, x));
+            runtime.spawn(worker(c, r, x));
         }
         cache
     }
@@ -269,76 +270,73 @@ impl TileCache {
         m.insert(k, Slot::Loading);
         drop(m);
         self.inflight.fetch_add(1, Ordering::Relaxed);
-        let _ = self.tx.lock().unwrap().send(k);
+        let _ = self.tx.send(k);
         true
     }
 }
 
-fn fetch_tile(agent: &ureq::Agent, k: TileKey) -> Result<Tile, crate::Error> {
+async fn fetch_tile(k: TileKey) -> Result<Tile, crate::Error> {
     let (p, z, x, y, rel) = unkey(k);
     let mut base = cache_dir().join(p.dir());
     if p == Provider::Wayback {
-        let r = wayback_release(rel).ok_or("wayback: release not loaded")?;
-        base = base.join(r.id.to_string());
+        base = base.join(
+            wayback_release(rel)
+                .ok_or("wayback: release not loaded")?
+                .id
+                .to_string(),
+        );
     }
     let path = base
         .join(z.to_string())
         .join(x.to_string())
         .join(format!("{y}.tile"));
-    let (bytes, from_disk) = match std::fs::read(&path) {
-        Ok(b) => (b, true),
+    let (bytes, from_disk) = match tokio::fs::read(&path).await {
+        Ok(bytes) => (bytes, true),
         Err(_) => {
             let url = p.url(z, x, y, rel);
             if url.is_empty() {
                 return Err("empty url".into());
             }
-            let resp = agent.get(&url).call().map_err(crate::Error::from)?;
-            let mut buf = Vec::new();
-            resp.into_reader()
-                .take(MAX_TILE_RESPONSE_BYTES)
-                .read_to_end(&mut buf)
-                .map_err(crate::Error::from)?;
-            (buf, false)
+            (
+                crate::http::body(
+                    crate::http::client(crate::http::Policy::Tile)?.get(url),
+                    MAX_TILE_RESPONSE_BYTES,
+                )
+                .await?,
+                false,
+            )
         }
     };
-    let tile = Tile::decode(&bytes)?;
+    let (tile, bytes) =
+        tokio::task::spawn_blocking(move || Tile::decode(&bytes).map(|tile| (tile, bytes)))
+            .await??;
     if !from_disk {
-        if let Some(parent) = path.parent() {
-            let _ = std::fs::create_dir_all(parent);
+        if let Some(dir) = path.parent() {
+            let _ = tokio::fs::create_dir_all(dir).await;
         }
-        let _ = std::fs::write(&path, &bytes);
+        let _ = tokio::fs::write(path, bytes).await;
     }
     Ok(tile)
 }
-
-fn worker(
+async fn worker(
     cache: Arc<TileCache>,
-    rx: Arc<Mutex<mpsc::Receiver<TileKey>>>,
+    rx: Arc<tokio::sync::Mutex<tokio::sync::mpsc::UnboundedReceiver<TileKey>>>,
     repaint: Arc<dyn Fn() + Send + Sync>,
 ) {
-    let agent = ureq::AgentBuilder::new()
-        .user_agent("EarthCraft/0.1 (visualizador educacional de globo 3D)")
-        .timeout(TILE_REQUEST_TIMEOUT)
-        .build();
     loop {
-        let k = {
-            let g = rx.lock().unwrap();
-            match g.recv() {
-                Ok(k) => k,
-                Err(_) => return,
-            }
+        let Some(key) = rx.lock().await.recv().await else {
+            return;
         };
-        let res = fetch_tile(&agent, k);
+        let result = fetch_tile(key).await;
         {
-            let mut m = cache.map.lock().unwrap();
-            match res {
-                Ok(t) => {
-                    m.insert(k, Slot::Ready(Arc::new(t)));
-                }
-                Err(_) => {
-                    m.insert(k, Slot::Failed(Instant::now()));
-                }
-            }
+            let mut map = cache.map.lock().unwrap();
+            map.insert(
+                key,
+                match result {
+                    Ok(tile) => Slot::Ready(Arc::new(tile)),
+                    Err(_) => Slot::Failed(Instant::now()),
+                },
+            );
         }
         cache.inflight.fetch_sub(1, Ordering::Relaxed);
         cache.gen.fetch_add(1, Ordering::Relaxed);

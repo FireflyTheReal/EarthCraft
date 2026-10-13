@@ -42,6 +42,7 @@ struct Fly {
 }
 
 pub(crate) struct App {
+    runtime: earthcraft_data::runtime::ServiceRuntime,
     lang: Lang,
     cam: Cam,
     fly: Option<Fly>,
@@ -111,6 +112,8 @@ impl App {
         let mut vis = egui::Visuals::dark();
         vis.window_rounding = 6.0.into();
         cc.egui_ctx.set_visuals(vis);
+        let runtime =
+            earthcraft_data::runtime::ServiceRuntime::new().expect("start network runtime");
         let lang = load_lang();
         let settings = Settings::load();
         let boundary_log: StatusLog = Arc::new(Mutex::new(Vec::new()));
@@ -118,10 +121,13 @@ impl App {
             lang,
             cam: INITIAL_CAMERA,
             fly: None,
-            cache: TileCache::new({
-                let ctx = cc.egui_ctx.clone();
-                move || ctx.request_repaint()
-            }),
+            cache: TileCache::new(
+                {
+                    let ctx = cc.egui_ctx.clone();
+                    move || ctx.request_repaint()
+                },
+                runtime.handle(),
+            ),
             provider: Provider::Satellite,
             show_grid: false,
             show_country_boundaries: true,
@@ -130,7 +136,10 @@ impl App {
             show_metro_boundaries: false,
             show_place_labels: true,
             boundaries: BoundaryData::default(),
-            boundaries_rx: Some(load_boundaries_async(boundary_log.clone())),
+            boundaries_rx: Some(load_boundaries_async(
+                boundary_log.clone(),
+                runtime.handle(),
+            )),
             boundary_log,
             show_atmo: true,
             show_sun: false,
@@ -177,6 +186,7 @@ impl App {
             sugg_rx: None,
             kml_drop_rect: Rect::NOTHING,
             ring_drag: false,
+            runtime,
         }
     }
 }

@@ -1,7 +1,6 @@
 use super::geojson::{collect_geojson_lines, feature_name, label_center, outer_outline};
 use super::{is_big_country, log_status, LabelKind, Layer, Line, MapLabel, Patch, StatusLog};
 use crate::http::fetch_json;
-use rayon::prelude::*;
 use std::{collections::HashMap, sync::mpsc};
 const NE: &str = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson";
 const IBGE: &str = "https://servicodados.ibge.gov.br/api";
@@ -10,15 +9,15 @@ const BR_UFS: [u32; 27] = [
     51, 52, 53,
 ];
 
-// GeoJSON layers are fetched in background threads, one per layer, and each layer is shown as soon
-// as it is ready. Every layer has fallback sources, results are cached on disk, and every failure is
-// reported in the Layers panel (the old code silently dropped any failure, including downloads
-// larger than ureq's default 10 MB `into_string` limit, which is what broke the world layers).
-pub fn load_boundaries_async(log: StatusLog) -> mpsc::Receiver<Patch> {
+// Background async tasks deliver each completed layer through the application channel.
+pub fn load_boundaries_async(
+    log: StatusLog,
+    runtime: &tokio::runtime::Handle,
+) -> mpsc::Receiver<Patch> {
     let (tx, rx) = mpsc::channel();
 
     let (t, l) = (tx.clone(), log.clone());
-    std::thread::spawn(move || {
+    runtime.spawn(async move {
         let urls = [
             format!("{NE}/ne_50m_admin_0_countries.geojson"),
             "https://raw.githubusercontent.com/datasets/geo-countries/main/data/countries.geojson"
@@ -36,13 +35,15 @@ pub fn load_boundaries_async(log: StatusLog) -> mpsc::Receiver<Patch> {
                 pt_keys: &["NAME_PT", "name_pt", "NAME", "ADMIN"],
                 rank: 0,
             },
-        ) {
+        )
+        .await
+        {
             let _ = t.send(p);
         }
     });
 
     let (t, l) = (tx.clone(), log.clone());
-    std::thread::spawn(move || {
+    runtime.spawn(async move {
         let urls = [
             format!("{NE}/ne_10m_admin_1_states_provinces.geojson"),
             format!("{NE}/ne_50m_admin_1_states_provinces.geojson"),
@@ -58,32 +59,36 @@ pub fn load_boundaries_async(log: StatusLog) -> mpsc::Receiver<Patch> {
                 pt_keys: &["name_pt", "name", "name_en", "NAME_1"],
                 rank: 0,
             },
-        ) {
+        )
+        .await
+        {
             let _ = t.send(p);
         }
     });
 
     let (t, l) = (tx.clone(), log.clone());
-    std::thread::spawn(move || {
+    runtime.spawn(async move {
         let urls = [
             format!("{NE}/ne_10m_populated_places.geojson"),
             format!("{NE}/ne_50m_populated_places.geojson"),
         ];
-        if let Some(p) = load_places(&l, &urls) {
+        if let Some(p) = load_places(&l, &urls).await {
             let _ = t.send(p);
         }
     });
 
     let t = tx.clone();
-    std::thread::spawn(move || load_brazil(&log, &t));
+    runtime.spawn(async move {
+        load_brazil(&log, &t).await;
+    });
 
     rx
 }
 
-fn first_json(log: &StatusLog, what: &str, urls: &[String]) -> Option<serde_json::Value> {
+async fn first_json(log: &StatusLog, what: &str, urls: &[String]) -> Option<serde_json::Value> {
     let mut last = String::new();
     for url in urls {
-        match fetch_json(url) {
+        match fetch_json(url).await {
             Ok(v) => return Some(v),
             Err(e) => last = format!("{url}: {e}"),
         }
@@ -101,7 +106,7 @@ struct PolygonLayer<'a> {
     rank: u8,
 }
 
-fn load_polygon_layer(
+async fn load_polygon_layer(
     log: &StatusLog,
     urls: &[String],
     options: PolygonLayer<'_>,
@@ -114,7 +119,7 @@ fn load_polygon_layer(
         pt_keys,
         rank,
     } = options;
-    let json = first_json(log, what, urls)?;
+    let json = first_json(log, what, urls).await?;
     let features = json.get("features").and_then(|v| v.as_array());
     let Some(features) = features else {
         log_status(log, format!("✖ {what}: arquivo sem 'features'"));
@@ -158,8 +163,8 @@ fn load_polygon_layer(
     })
 }
 
-fn load_places(log: &StatusLog, urls: &[String]) -> Option<Patch> {
-    let json = first_json(log, "Cidades/Cities", urls)?;
+async fn load_places(log: &StatusLog, urls: &[String]) -> Option<Patch> {
+    let json = first_json(log, "Cidades/Cities", urls).await?;
     let mut labels = Vec::new();
     for f in json
         .get("features")
@@ -219,9 +224,9 @@ fn json_code(v: Option<&serde_json::Value>) -> Option<u32> {
         .or_else(|| v.as_str().and_then(|s| s.trim().parse().ok()))
 }
 
-fn load_brazil_state(uf: u32) -> Result<Vec<Muni>, crate::Error> {
+async fn load_brazil_state(uf: u32) -> Result<Vec<Muni>, crate::Error> {
     let mut names: HashMap<u32, String> = HashMap::new();
-    if let Ok(v) = fetch_json(&format!("{IBGE}/v1/localidades/estados/{uf}/municipios")) {
+    if let Ok(v) = fetch_json(&format!("{IBGE}/v1/localidades/estados/{uf}/municipios")).await {
         for m in v.as_array().into_iter().flatten() {
             if let (Some(id), Some(n)) = (
                 json_code(m.get("id")),
@@ -238,7 +243,7 @@ fn load_brazil_state(uf: u32) -> Result<Vec<Muni>, crate::Error> {
     ];
     let mut last = String::new();
     for url in &urls {
-        let json = match fetch_json(url) {
+        let json = match fetch_json(url).await {
             Ok(j) => j,
             Err(e) => {
                 last = e.to_string();
@@ -290,9 +295,18 @@ fn load_brazil_state(uf: u32) -> Result<Vec<Muni>, crate::Error> {
 
 // Brazil: municipality outlines/names from IBGE (official API, GitHub mirror as fallback), and
 // metropolitan regions built from IBGE's list of member municipalities (outer outline only).
-fn load_brazil(log: &StatusLog, tx: &mpsc::Sender<Patch>) {
-    let results: Vec<Result<Vec<Muni>, crate::Error>> =
-        BR_UFS.par_iter().map(|&uf| load_brazil_state(uf)).collect();
+async fn load_brazil(log: &StatusLog, tx: &mpsc::Sender<Patch>) {
+    let jobs: Vec<_> = BR_UFS
+        .into_iter()
+        .map(|uf| tokio::spawn(load_brazil_state(uf)))
+        .collect();
+    let mut results = Vec::new();
+    for job in jobs {
+        results.push(match job.await {
+            Ok(result) => result,
+            Err(error) => Err(error.into()),
+        });
+    }
     let mut munis: Vec<Muni> = Vec::new();
     let mut errs = Vec::new();
     for r in results {
@@ -333,7 +347,7 @@ fn load_brazil(log: &StatusLog, tx: &mpsc::Sender<Patch>) {
     });
 
     let url = format!("{IBGE}/v1/localidades/regioes-metropolitanas");
-    let json = match fetch_json(&url) {
+    let json = match fetch_json(&url).await {
         Ok(j) => j,
         Err(e) => {
             log_status(log, format!("✖ Regiões metropolitanas: {url}: {e}"));

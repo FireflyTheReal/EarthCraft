@@ -8,16 +8,13 @@ pub enum Error {
     #[error(transparent)]
     Image(#[from] image::ImageError),
     #[error(transparent)]
-    Http(Box<ureq::Error>),
+    Http(#[from] reqwest::Error),
     #[error(transparent)]
     Xml(#[from] quick_xml::Error),
+    #[error(transparent)]
+    Task(#[from] tokio::task::JoinError),
     #[error("{0}")]
     Message(String),
-}
-impl From<ureq::Error> for Error {
-    fn from(error: ureq::Error) -> Self {
-        Self::Http(Box::new(error))
-    }
 }
 impl From<String> for Error {
     fn from(message: String) -> Self {
