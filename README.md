@@ -2,6 +2,8 @@
 
 # EarthCraft 🌍
 
+[![Listed on Remade](https://remade.wiki/badges/listed-on-remade.svg)](https://remade.wiki/projects/earthcraft/)
+
 A 3D globe in the style of Google Earth, written in pure Rust (egui + CPU ray-casting). Runs on Windows, macOS and Linux with no system dependencies beyond a graphics driver.
 
 ### Build and run
