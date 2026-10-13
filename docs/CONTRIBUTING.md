@@ -159,7 +159,7 @@ CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_DEV_INCREMENTAL=false RAYON_NUM_THREADS=
 Run this benchmark alone: it temporarily selects a private cache directory before
 creating worker threads, then restores the process environment and removes that
 directory. It renders 512×384 frames with grid, sunlight and atmosphere, using 341
-warm 2×2-pixel fixture tiles. Startup warming uses production admission and disk
+warm 256×256-pixel fixture tiles (85.25 MiB decoded). Startup warming uses production admission and disk
 workers, and rotations across hemispheres, the dateline and poles assert that
 overview frames request no new tiles. Five rounds of two hundred frames include production ray
 casting, sampling, allocation and tile lookup; they exclude GUI upload, overlays,
@@ -167,9 +167,9 @@ network and eviction pressure. Neither benchmark is a substitute for live-app
 frame-time and memory measurements.
 
 For a SIMD comparison, alternate baseline and current executables with the same
-compiler/profile and Rayon thread count, without concurrent builds. The tiny
-fixture textures isolate CPU work; they do not establish performance with realistic
-256×256 tile working sets. Ray-batch regression fixtures separately cover partial
+compiler/profile and Rayon thread count, without concurrent builds. The generated
+textures exercise a larger tile working set, but exclude eviction pressure and
+real imagery variation. Ray-batch regression fixtures separately cover partial
 rows, altitude extremes, poles/dateline and every provider, including exact
 missing-tile keys and nearest-pixel priorities.
 

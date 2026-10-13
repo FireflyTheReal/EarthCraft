@@ -11,6 +11,7 @@ const FRAME_WIDTH_PX: usize = 512;
 const FRAME_HEIGHT_PX: usize = 384;
 const BENCH_FRAMES: usize = 200;
 const BENCH_ROUNDS: usize = 5;
+const FIXTURE_TILE_SIZE_PX: u32 = 256;
 
 struct FixtureCache {
     root: PathBuf,
@@ -30,6 +31,16 @@ impl FixtureCache {
     }
     fn prepare(&self) -> Vec<TileKey> {
         let mut keys = Vec::new();
+        let image =
+            image::RgbaImage::from_fn(FIXTURE_TILE_SIZE_PX, FIXTURE_TILE_SIZE_PX, |x, y| {
+                let value =
+                    (x.wrapping_mul(1664525) ^ y.wrapping_mul(1013904223)).wrapping_mul(2246822519);
+                image::Rgba([value as u8, (value >> 8) as u8, (value >> 16) as u8, 255])
+            });
+        let mut encoded = std::io::Cursor::new(Vec::new());
+        image::DynamicImage::ImageRgba8(image)
+            .write_to(&mut encoded, image::ImageFormat::Png)
+            .unwrap();
         for z in 0..=4 {
             for x in 0..1u32 << z {
                 for y in 0..1u32 << z {
@@ -40,7 +51,7 @@ impl FixtureCache {
                         .join(x.to_string())
                         .join(format!("{y}.tile"));
                     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-                    std::fs::write(path, include_bytes!("../tests/fixtures/tile.png")).unwrap();
+                    std::fs::write(path, encoded.get_ref()).unwrap();
                     keys.push(make_key(Provider::Satellite, z, x, y, 0));
                 }
             }
@@ -156,7 +167,7 @@ fn warm_cpu_frame_time() {
         rayon::current_num_threads()
     );
     println!(
-        "Warm 512x384 CPU frame: median {:.3} ms; 341 fixture tiles, 5 rounds",
+        "Warm 512x384 CPU frame: median {:.3} ms; 341 256x256 RGBA fixture tiles (85.25 MiB decoded), 5 rounds",
         samples[BENCH_ROUNDS / 2]
     );
 }

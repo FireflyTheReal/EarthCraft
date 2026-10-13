@@ -108,3 +108,32 @@ The synthetic index comparison is recorded in REFACTOR_PLAN.md. Geozero and MVT
 remain evaluation options without runtime dependencies.
 The existing optimization sequence remains wide ray batching, buffer reuse,
 decoding isolation and Unicode normalization before imagery MBTiles and wgpu.
+
+## Current SQLite and vector-source decision
+
+Imagery persistence now uses standard MBTiles with core SQLite tables, through
+one tokio-rusqlite worker. Bundled SQLite's R-tree and FTS5 modules are available
+and tested. Use them for a separate persistent geometry/place catalog when a
+query workload needs them: R-tree for bounding-box candidates, FTS5 for token,
+phrase and richer text search. Exact imagery keys already use the MBTiles B-tree;
+per-frame visibility uses the packed in-memory geo-index tree, and loaded-name
+prefix lookup uses an immutable FST. Duplicating these indexes would add memory
+and maintenance without changing the existing prefix-only search feature.
+`serde_rusqlite` remains a useful option for that future typed catalog; current
+small key/BLOB queries use explicit mappings and do not need it.
+
+[OpenFreeMap](https://openfreemap.org/quick_start/) is a concrete vector-source
+candidate. Its [OpenMapTiles schema](https://openmaptiles.org/docs/schema/)
+supports tiled administrative lines and named places. This establishes format
+feasibility, not feature parity with our current Natural Earth/global-label and
+IBGE municipal/metropolitan datasets. In particular, tiled generalization and
+clipped geometry, name/rank mappings, seam deduplication, and global autocomplete
+coverage need validation; metropolitan membership still comes from IBGE.
+Keep those layers until an adapter proves equivalent coverage and semantics.
+
+Geozero is a good processor/decoder candidate for that future MVT adapter. The
+existing feature-at-a-time GeoJSON visitor is already streaming file input, so
+adding another reader today is not an established optimization. A vector switch
+needs a tiled data planner independent of raster sampling; it does not replace
+satellite PNG/JPEG imagery. No MVT source or geozero runtime dependency was added
+in the imagery-cache/CPU review series. GPU work and the 0.1.0 bump remain later.

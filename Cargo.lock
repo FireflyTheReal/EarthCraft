@@ -1201,6 +1201,7 @@ dependencies = [
  "emath",
  "geo-index",
  "glam",
+ "image 0.25.10",
  "rayon",
  "rstar",
  "wide",

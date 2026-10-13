@@ -19,3 +19,6 @@ wide.workspace = true
 emath.workspace = true
 geo-index.workspace = true
 rstar.workspace = true
+
+[dev-dependencies]
+image.workspace = true

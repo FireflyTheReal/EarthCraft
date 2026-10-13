@@ -428,3 +428,26 @@ only overlay shapes rather than forcing another globe raster. Metropolitan
 outline construction now runs on the bounded feature CPU service after its async
 fetch, rather than blocking an async runtime worker. Focused tests cover bounded
 retirement, duplicate priorities, failed retry deadlines and metropolitan output.
+
+## Larger warm-frame benchmark checkpoint
+
+The manual frame benchmark now uses 341 generated 256×256 RGBA tiles, totaling
+85.25 MiB decoded, instead of the earlier 2×2 fixtures. Original regression
+fixtures remain unchanged. Global overview rotations, including poles and the
+dateline, still request no additional tiles after warming.
+
+Two comparisons used Rust 1.99, optimized-dev builds without debug information
+or incremental compilation, eight Rayon threads, 512×384 frames and five rounds
+of 200 frames. The pre-wide scalar renderer at `c31bfa8` was built in an isolated
+target directory with the same benchmark fixture. Run order was reversed:
+
+| Order | Scalar baseline median | Current median |
+| --- | ---: | ---: |
+| Scalar, then current | 3.192 ms | 2.803 ms |
+| Current, then scalar | 2.674 ms | 2.406 ms |
+
+These runs favor the current cumulative CPU pipeline, but timings fluctuate and
+do not isolate wide alone. They exclude GUI upload, overlays, network and cache
+eviction pressure; no end-to-end FPS improvement is established by this test.
+The complete workspace has 87 passing tests and five ignored manual benchmarks.
+Rust 1.89 all-target checks also pass with the larger benchmark fixture.
