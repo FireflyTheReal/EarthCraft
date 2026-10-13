@@ -1,6 +1,9 @@
+mod writer;
 use crate::paths::{cache_dir, default_out_dir};
 use earthcraft_core::language::Lang;
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+pub use writer::SettingsWriter;
 pub const MIN_UI_SCALE: f32 = 0.7;
 pub const MAX_UI_SCALE: f32 = 2.5;
 pub const MIN_MAP_SCALE: f32 = 0.6;
@@ -19,17 +22,13 @@ pub fn load_lang() -> Lang {
         _ => Lang::En, // English is the default
     }
 }
-pub fn save_lang(l: Lang) {
-    let _ = std::fs::create_dir_all(cache_dir());
-    let _ = std::fs::write(lang_file(), l.code());
-}
-
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Serialize)]
 pub struct Settings {
     pub screenshot_dir: String,
     pub kml_dir: String,
     pub ui_scale: f32,  // text size of buttons/panels
     pub map_scale: f32, // text size of map labels
+    pub uncap_fps: bool,
 }
 impl Default for Settings {
     fn default() -> Self {
@@ -38,42 +37,88 @@ impl Default for Settings {
             kml_dir: default_out_dir("Documents"),
             ui_scale: 1.0,
             map_scale: 1.0,
+            uncap_fps: false,
         }
     }
 }
 fn settings_file() -> PathBuf {
     cache_dir().join("settings.json")
 }
+#[derive(Default, Deserialize)]
+struct SettingsInput {
+    #[serde(default, deserialize_with = "crate::json_fields::string")]
+    screenshot_dir: Option<String>,
+    #[serde(default, deserialize_with = "crate::json_fields::string")]
+    kml_dir: Option<String>,
+    #[serde(default, deserialize_with = "crate::json_fields::number")]
+    ui_scale: Option<f64>,
+    #[serde(default, deserialize_with = "crate::json_fields::number")]
+    map_scale: Option<f64>,
+    #[serde(default, deserialize_with = "crate::json_fields::boolean")]
+    uncap_fps: Option<bool>,
+}
 impl Settings {
-    pub fn load() -> Self {
-        let mut st = Settings::default();
-        if let Some(v) = std::fs::read(settings_file())
-            .ok()
-            .and_then(|b| serde_json::from_slice::<serde_json::Value>(&b).ok())
-        {
-            if let Some(x) = v["screenshot_dir"].as_str().filter(|x| !x.is_empty()) {
-                st.screenshot_dir = x.into();
-            }
-            if let Some(x) = v["kml_dir"].as_str().filter(|x| !x.is_empty()) {
-                st.kml_dir = x.into();
-            }
-            if let Some(x) = v["ui_scale"].as_f64() {
-                st.ui_scale = (x as f32).clamp(MIN_UI_SCALE, MAX_UI_SCALE);
-            }
-            if let Some(x) = v["map_scale"].as_f64() {
-                st.map_scale = (x as f32).clamp(MIN_MAP_SCALE, MAX_MAP_SCALE);
-            }
+    fn apply_json(&mut self, bytes: &[u8]) -> Result<(), crate::Error> {
+        let input: SettingsInput = serde_json::from_slice(bytes)?;
+        if let Some(path) = input.screenshot_dir.filter(|s| !s.is_empty()) {
+            self.screenshot_dir = path;
         }
-        st
+        if let Some(path) = input.kml_dir.filter(|s| !s.is_empty()) {
+            self.kml_dir = path;
+        }
+        if let Some(scale) = input.ui_scale {
+            self.ui_scale = (scale as f32).clamp(MIN_UI_SCALE, MAX_UI_SCALE);
+        }
+        if let Some(scale) = input.map_scale {
+            self.map_scale = (scale as f32).clamp(MIN_MAP_SCALE, MAX_MAP_SCALE);
+        }
+        if let Some(uncap) = input.uncap_fps {
+            self.uncap_fps = uncap;
+        }
+        Ok(())
     }
-    pub fn save(&self) {
-        let _ = std::fs::create_dir_all(cache_dir());
-        let v = serde_json::json!({
-            "screenshot_dir": self.screenshot_dir,
-            "kml_dir": self.kml_dir,
-            "ui_scale": self.ui_scale,
-            "map_scale": self.map_scale,
-        });
-        let _ = std::fs::write(settings_file(), v.to_string());
+    pub fn load() -> Self {
+        let mut settings = Self::default();
+        if let Ok(bytes) = std::fs::read(settings_file()) {
+            let _ = settings.apply_json(&bytes);
+        }
+        settings
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn partial_invalid_settings_preserve_valid_fields_and_clamping() {
+        let mut settings = Settings {
+            screenshot_dir: "pictures".into(),
+            kml_dir: "documents".into(),
+            ui_scale: 1.0,
+            map_scale: 1.0,
+            uncap_fps: false,
+        };
+        settings
+            .apply_json(
+                br#"{"screenshot_dir":123,"kml_dir":"custom","ui_scale":9,"map_scale":"wrong","uncap_fps":"wrong"}"#,
+            )
+            .unwrap();
+        assert_eq!(settings.screenshot_dir, "pictures");
+        assert_eq!(settings.kml_dir, "custom");
+        assert_eq!(settings.ui_scale, MAX_UI_SCALE);
+        assert_eq!(settings.map_scale, 1.0);
+        assert!(!settings.uncap_fps);
+        settings
+            .apply_json(br#"{"kml_dir":"","ui_scale":-5,"map_scale":9,"uncap_fps":true}"#)
+            .unwrap();
+        assert_eq!(settings.kml_dir, "custom");
+        assert_eq!(settings.ui_scale, MIN_UI_SCALE);
+        assert_eq!(settings.map_scale, MAX_MAP_SCALE);
+        assert!(settings.uncap_fps);
+        settings.apply_json(br#"{}"#).unwrap();
+        assert!(settings.uncap_fps);
+        let json: serde_json::Value =
+            serde_json::from_slice(&serde_json::to_vec(&settings).unwrap()).unwrap();
+        assert_eq!(json["kml_dir"], "custom");
+        assert_eq!(json["uncap_fps"], true);
     }
 }

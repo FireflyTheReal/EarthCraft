@@ -9,9 +9,23 @@ publish = false
 [lints]
 workspace = true
 
+[features]
+profiling = []
+
 [dependencies]
 earthcraft-core.workspace = true
-rayon.workspace = true
-ureq.workspace = true
+tokio.workspace = true
+reqwest.workspace = true
 serde_json.workspace = true
 image.workspace = true
+bytemuck.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+glam.workspace = true
+quick-xml.workspace = true
+kml.workspace = true
+moka.workspace = true
+rayon.workspace = true
+rusqlite.workspace = true
+tokio-rusqlite.workspace = true
+fst.workspace = true

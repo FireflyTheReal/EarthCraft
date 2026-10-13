@@ -33,10 +33,7 @@ impl App {
 
                 let r = ui.add(
                     egui::TextEdit::singleline(&mut self.query)
-                        .hint_text(lg.pick(
-                            "Search a place, address or “lat, lon”",
-                            "Buscar lugar, endereço ou “lat, lon”",
-                        ))
+                        .hint_text(lg.text("search-input-placeholder"))
                         .desired_width(340.0 * self.settings.ui_scale.max(1.0)),
                 );
                 field_rect = r.rect;
@@ -57,7 +54,7 @@ impl App {
                         }
                     }
                 }
-                if ui.button(lg.pick("🔍 Search", "🔍 Buscar")).clicked() {
+                if ui.button(lg.text("search-submit-action")).clicked() {
                     self.sugg_open = false;
                     self.start_search(ctx);
                 }
@@ -66,7 +63,7 @@ impl App {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if ui
                         .button("⚙")
-                        .on_hover_text(lg.pick("Settings", "Configurações"))
+                        .on_hover_text(lg.text("settings-open-tooltip"))
                         .clicked()
                     {
                         self.show_settings = !self.show_settings;
@@ -88,38 +85,51 @@ impl App {
         self.suggestion_popup(ctx, field_rect);
     }
 
-    /// Google-style dropdown with suggestions under the search field.
+    /// Status and presented-frame rate below the map.
     pub(in crate::app) fn bottom_bar(&mut self, ctx: &egui::Context) {
         let lg = self.lang;
         egui::TopBottomPanel::bottom("bottom").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                match self.cursor {
-                    Some((la, lo)) => ui.monospace(format!("Cursor: {la:>10.5}°, {lo:>11.5}°")),
-                    None => ui.monospace("Cursor: —"),
-                };
-                ui.separator();
-                ui.monospace(format!(
-                    "{}: {:.4}°, {:.4}°",
-                    lg.pick("Center", "Centro"),
-                    self.cam.lat,
-                    self.cam.lon
-                ));
-                ui.separator();
-                ui.monospace(format!(
-                    "{}: {}",
-                    lg.pick("Camera altitude", "Altitude da câmera"),
-                    fmt_alt(self.cam.alt)
-                ));
-                ui.separator();
-                let n = self.cache.inflight();
-                if n > 0 {
-                    ui.monospace(format!("⏳ {} {n} tiles", lg.pick("loading", "carregando")));
-                } else {
-                    ui.monospace("✔ tiles ok");
-                }
+            self.frame_rate.refresh(ctx);
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                let rate = self
+                    .frame_rate
+                    .value()
+                    .map_or_else(|| "—".to_string(), |rate| format!("{rate:.1}"));
+                ui.monospace(lg.format("statusbar-render-fps", &[("rate", rate.into())]))
+                    .on_hover_text(lg.text("statusbar-render-fps-help"));
+                ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                    ui.set_clip_rect(ui.max_rect().intersect(ui.clip_rect()));
+                    match self.cursor {
+                        Some((la, lo)) => ui.monospace(format!("Cursor: {la:>10.5}°, {lo:>11.5}°")),
+                        None => ui.monospace("Cursor: —"),
+                    };
+                    ui.separator();
+                    ui.monospace(lg.format(
+                        "statusbar-camera-center",
+                        &[
+                            ("latitude", format!("{:.4}", self.cam.lat).into()),
+                            ("longitude", format!("{:.4}", self.cam.lon).into()),
+                        ],
+                    ));
+                    ui.separator();
+                    ui.monospace(lg.format(
+                        "statusbar-camera-altitude",
+                        &[("distance", fmt_alt(self.cam.alt).into())],
+                    ));
+                    ui.separator();
+                    let n = self.cache.inflight();
+                    if n > 0 {
+                        ui.monospace(lg.format(
+                            "statusbar-tiles-loading",
+                            &[("count", n.to_string().into())],
+                        ));
+                    } else {
+                        ui.monospace("✔ tiles ok");
+                    }
+                });
             });
         });
     }
 
-    // ───────── Globo ─────────
+    // ───────── Globe / Globo ─────────
 }

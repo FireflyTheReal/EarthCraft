@@ -1,10 +1,10 @@
 //! Desktop state and orchestration; widgets live in focused child modules.
 use earthcraft_core::{camera::Cam, language::Lang, placemark::Placemark};
 use earthcraft_data::{
-    boundaries::{load_boundaries_async, BoundaryData, Patch, StatusLog},
+    boundaries::{load_boundaries_async, BoundaryData, BoundaryUpdates, StatusLog},
     search::{GeoResult, Suggestion},
     settings::{load_lang, Settings},
-    tiles::{Provider, TileCache},
+    tiles::{Provider, TileCache, TileWarmup},
     wayback::WaybackRelease,
 };
 use eframe::egui::{self, Rect};
@@ -12,6 +12,7 @@ use std::{
     sync::{mpsc, Arc, Mutex},
     time::{Duration, Instant},
 };
+mod cache;
 mod files;
 mod globe;
 mod navigation;
@@ -26,26 +27,22 @@ const INITIAL_CAMERA: Cam = Cam {
     heading: 0.0,
     alt: 14_000.0,
 };
-// Clamp animation/input integration after slow frames without changing original speeds.
+// Bound animation steps after slow frames to prevent sudden camera jumps.
 const MAX_FRAME_DELTA_SECS: f32 = 0.1;
 const PAN_SPEED_POINTS_PER_SECOND: f64 = 350.0;
 const BOUNDARY_POLL_INTERVAL: Duration = Duration::from_millis(300);
 
-type SuggestionResponse = (String, Result<Vec<Suggestion>, String>);
-
-struct Fly {
-    a: Cam,
-    b: Cam,
-    t: f64,
-    dur: f64,
-    bump: f64,
-}
+type SuggestionResponse = (String, Result<Vec<Suggestion>, earthcraft_data::Error>);
 
 pub(crate) struct App {
+    runtime: earthcraft_data::runtime::ServiceRuntime,
+    boundary_loader: earthcraft_data::boundaries::BoundaryLoader,
     lang: Lang,
     cam: Cam,
-    fly: Option<Fly>,
+    fly: Option<earthcraft_core::flight::Flight>,
     cache: Arc<TileCache>,
+    cache_controls: cache::CacheControls,
+    tile_warmup: TileWarmup,
     provider: Provider,
     show_grid: bool,
     show_country_boundaries: bool,
@@ -53,25 +50,31 @@ pub(crate) struct App {
     show_city_boundaries: bool,
     show_metro_boundaries: bool,
     show_place_labels: bool,
-    boundaries: BoundaryData,
-    boundaries_rx: Option<mpsc::Receiver<Patch>>,
+    boundaries: Arc<BoundaryData>,
+    overlay_cache: overlays::OverlayCache,
+    boundaries_rx: BoundaryUpdates,
     boundary_log: StatusLog,
     show_atmo: bool,
     show_sun: bool,
     auto_rotate: bool,
 
+    renderer: rendering::Renderer,
+    frame_rate: ui::FrameRate,
     texture: Option<egui::TextureHandle>,
-    image: Option<(usize, usize, Vec<u8>)>,
+    image: Option<(usize, usize, Arc<Vec<u8>>)>,
     last_state: u64,
     last_gen: u64,
     last_render: Instant,
     last_interact: Instant,
 
+    local_search: earthcraft_data::search::LocalSearch,
     query: String,
     results: Vec<GeoResult>,
-    search_rx: Option<mpsc::Receiver<Result<Vec<GeoResult>, String>>>,
+    search_rx: Option<mpsc::Receiver<Result<Vec<GeoResult>, earthcraft_data::Error>>>,
     status: String,
 
+    file_jobs: earthcraft_data::files::FileJobs,
+    file_results: mpsc::Receiver<earthcraft_data::files::FileCompletion>,
     placemarks: Vec<Placemark>,
     new_name: String,
     kml_path: String,
@@ -84,13 +87,14 @@ pub(crate) struct App {
 
     settings: Settings,
     saved_settings: Settings,
+    settings_writer: earthcraft_data::settings::SettingsWriter,
     applied_ui_scale: f32,
     ui_scale_edit: f32, // slider value while dragging (committed on release)
     show_settings: bool,
 
     wayback_list: Vec<WaybackRelease>,
     wayback_idx: usize,
-    wayback_rx: Option<mpsc::Receiver<Result<Vec<WaybackRelease>, String>>>,
+    wayback_rx: Option<mpsc::Receiver<Result<Vec<WaybackRelease>, earthcraft_data::Error>>>,
     wayback_started: bool,
     wayback_err: Option<String>,
 
@@ -111,26 +115,56 @@ impl App {
         let mut vis = egui::Visuals::dark();
         vis.window_rounding = 6.0.into();
         cc.egui_ctx.set_visuals(vis);
+        let runtime =
+            earthcraft_data::runtime::ServiceRuntime::new().expect("start network runtime");
         let lang = load_lang();
         let settings = Settings::load();
         let boundary_log: StatusLog = Arc::new(Mutex::new(Vec::new()));
+        let (boundaries_rx, boundary_loader) =
+            load_boundaries_async(boundary_log.clone(), runtime.handle(), {
+                let ctx = cc.egui_ctx.clone();
+                move || ctx.request_repaint()
+            });
+        let cache = TileCache::new(
+            {
+                let ctx = cc.egui_ctx.clone();
+                move || ctx.request_repaint()
+            },
+            runtime.handle(),
+        );
+        let renderer = rendering::Renderer::new(cache.clone(), cc.egui_ctx.clone());
+        let (file_jobs, file_results) = earthcraft_data::files::FileJobs::new(runtime.handle(), {
+            let ctx = cc.egui_ctx.clone();
+            move || ctx.request_repaint()
+        });
+        let local_search = earthcraft_data::search::LocalSearch::new(runtime.handle(), {
+            let ctx = cc.egui_ctx.clone();
+            move || ctx.request_repaint()
+        });
         App {
             lang,
             cam: INITIAL_CAMERA,
             fly: None,
-            cache: TileCache::new({
-                let ctx = cc.egui_ctx.clone();
-                move || ctx.request_repaint()
-            }),
+            cache,
+            renderer,
+            frame_rate: ui::FrameRate::default(),
             provider: Provider::Satellite,
+            tile_warmup: TileWarmup::startup_satellite(),
+            cache_controls: cache::CacheControls::default(),
             show_grid: false,
             show_country_boundaries: true,
             show_state_boundaries: true,
             show_city_boundaries: false,
             show_metro_boundaries: false,
             show_place_labels: true,
-            boundaries: BoundaryData::default(),
-            boundaries_rx: Some(load_boundaries_async(boundary_log.clone())),
+            boundaries: Arc::new(BoundaryData::default()),
+            overlay_cache: overlays::OverlayCache::new(cc.egui_ctx.clone()),
+            boundaries_rx: BoundaryUpdates::new(boundaries_rx, {
+                let ctx = cc.egui_ctx.clone();
+                move || ctx.request_repaint()
+            })
+            .expect("start boundary preparation"),
+            boundary_loader,
             boundary_log,
             show_atmo: true,
             show_sun: false,
@@ -141,16 +175,14 @@ impl App {
             last_gen: u64::MAX,
             last_render: Instant::now(),
             last_interact: Instant::now(),
+            local_search,
             query: String::new(),
             results: vec![],
             search_rx: None,
-            status: lang
-                .pick(
-                    "Ready. Drag to rotate, scroll to zoom.",
-                    "Pronto. Arraste para girar, role para aproximar.",
-                )
-                .into(),
+            status: lang.text("app-ready-status").into(),
             placemarks: vec![],
+            file_jobs,
+            file_results,
             new_name: String::new(),
             kml_path: "placemarks.kml".into(),
             menu_pick: None,
@@ -161,6 +193,11 @@ impl App {
             ui_scale_edit: settings.ui_scale,
             settings: settings.clone(),
             saved_settings: settings,
+            settings_writer: earthcraft_data::settings::SettingsWriter::new({
+                let ctx = cc.egui_ctx.clone();
+                move || ctx.request_repaint()
+            })
+            .expect("start settings writer"),
             applied_ui_scale: 0.0,
             show_settings: false,
             wayback_list: vec![],
@@ -177,11 +214,18 @@ impl App {
             sugg_rx: None,
             kml_drop_rect: Rect::NOTHING,
             ring_drag: false,
+            runtime,
         }
     }
 }
 impl eframe::App for App {
+    #[cfg(feature = "profiling")]
+    fn on_exit(&mut self, _: Option<&eframe::glow::Context>) {
+        earthcraft_data::profiling::flush();
+    }
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        #[cfg(feature = "profiling")]
+        let mut profile = earthcraft_data::profiling::Span::new("ui.update");
         let dt = ctx.input(|i| i.unstable_dt).min(MAX_FRAME_DELTA_SECS) as f64;
         if (self.settings.ui_scale - self.applied_ui_scale).abs() > 1e-4 {
             ui::apply_ui_scale(ctx, self.settings.ui_scale);
@@ -189,30 +233,27 @@ impl eframe::App for App {
         }
         // persist settings once a slider is released
         if self.settings != self.saved_settings && !ctx.input(|i| i.pointer.any_down()) {
-            self.settings.save();
+            self.settings_writer.settings(&self.settings);
             self.saved_settings = self.settings.clone();
         }
+        if let Some(error) = self.settings_writer.take_error() {
+            self.status = format!("Settings persistence failed: {error}");
+        }
+        self.poll_files();
         self.handle_dropped_files(ctx);
         self.ensure_wayback(ctx);
         self.poll_wayback();
         self.poll_suggestions(ctx);
+        if let Some(error) = self.local_search.take_error() {
+            self.status = format!("Local prefix index failed: {error}");
+        }
         self.poll_search();
-        if let Some(rx) = self.boundaries_rx.take() {
-            let mut finished = false;
-            loop {
-                match rx.try_recv() {
-                    Ok(patch) => self.merge_patch(patch),
-                    Err(mpsc::TryRecvError::Empty) => break,
-                    Err(mpsc::TryRecvError::Disconnected) => {
-                        finished = true;
-                        break;
-                    }
-                }
-            }
-            if !finished {
-                self.boundaries_rx = Some(rx);
-                ctx.request_repaint_after(BOUNDARY_POLL_INTERVAL); // keep polling while layers load
-            }
+        self.poll_cache_clear();
+        if let Some(snapshot) = self.boundaries_rx.take_latest() {
+            self.merge_snapshot(snapshot);
+        }
+        if self.boundary_loader.is_loading() {
+            ctx.request_repaint_after(BOUNDARY_POLL_INTERVAL);
         }
         self.step_fly(dt);
         if self.fly.is_some() {
@@ -222,8 +263,22 @@ impl eframe::App for App {
         self.bottom_bar(ctx);
         self.side_panel(ctx);
         self.settings_window(ctx);
+        self.boundary_loader.request_visible_layers(
+            self.show_city_boundaries,
+            self.show_metro_boundaries,
+            self.show_place_labels,
+            self.cam.alt,
+        );
+        if self.boundary_loader.is_loading() {
+            ctx.request_repaint_after(BOUNDARY_POLL_INTERVAL);
+        }
         egui::CentralPanel::default()
             .frame(egui::Frame::none())
             .show(ctx, |ui| self.globe_view(ui, ctx));
+        #[cfg(feature = "profiling")]
+        {
+            profile.values.inflight = self.cache.inflight();
+            profile.values.resident_bytes = self.cache.resident_bytes();
+        }
     }
 }

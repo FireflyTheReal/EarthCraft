@@ -1,9 +1,7 @@
-use std::time::Duration;
 const SEARCH_KM_PER_DEGREE: f64 = 111.2;
 const SEARCH_VIEW_PADDING_RATIO: f64 = 1.6;
 const MIN_SEARCH_ALTITUDE_KM: f64 = 0.5;
 const MAX_SEARCH_ALTITUDE_KM: f64 = 12_000.0;
-const SUGGESTION_REQUEST_TIMEOUT: Duration = Duration::from_secs(8);
 
 pub const COUNTRY_SEARCH_ALTITUDE_KM: f64 = 6000.0;
 pub const CITY_SEARCH_ALTITUDE_KM: f64 = 40.0;
@@ -36,29 +34,40 @@ pub fn parse_latlon(s: &str) -> Option<(f64, f64)> {
     }
 }
 
-pub fn geocode(q: &str, lang: &str) -> Result<Vec<GeoResult>, String> {
-    let resp = ureq::get("https://nominatim.openstreetmap.org/search")
-        .set(
-            "User-Agent",
-            "EarthCraft/0.1 (visualizador educacional de globo 3D)",
-        )
-        .query("format", "json")
-        .query("limit", "6")
-        .query("accept-language", lang)
-        .query("q", q)
-        .call()
-        .map_err(|e| e.to_string())?;
-    let v: serde_json::Value = resp.into_json().map_err(|e| e.to_string())?;
+pub async fn geocode(q: &str, lang: &str) -> Result<Vec<GeoResult>, crate::Error> {
+    let request = crate::http::client(crate::http::Policy::Search)?
+        .get("https://nominatim.openstreetmap.org/search")
+        .query(&[
+            ("format", "json"),
+            ("limit", "6"),
+            ("accept-language", lang),
+            ("q", q),
+        ]);
+    let v = crate::http::parse_json(crate::http::body(request, 1 << 30).await?).await?;
+    parse_geocode_response(v)
+}
+
+#[derive(serde::Deserialize)]
+struct NominatimResult {
+    #[serde(default, deserialize_with = "crate::json_fields::string_number")]
+    lat: Option<f64>,
+    #[serde(default, deserialize_with = "crate::json_fields::string_number")]
+    lon: Option<f64>,
+    #[serde(default, deserialize_with = "crate::json_fields::string_numbers")]
+    boundingbox: Vec<f64>,
+    #[serde(default, deserialize_with = "crate::json_fields::string")]
+    display_name: Option<String>,
+}
+fn parse_geocode_response(value: serde_json::Value) -> Result<Vec<GeoResult>, crate::Error> {
     let mut out = Vec::new();
-    for it in v.as_array().ok_or("resposta inválida")? {
-        let f = |k: &str| it[k].as_str().and_then(|s| s.parse::<f64>().ok());
-        let (Some(lat), Some(lon)) = (f("lat"), f("lon")) else {
+    for item in value.as_array().ok_or("invalid search response")? {
+        let Ok(row) = serde_json::from_value::<NominatimResult>(item.clone()) else {
             continue;
         };
-        let bb: Vec<f64> = it["boundingbox"]
-            .as_array()
-            .map(|a| a.iter().filter_map(|x| x.as_str()?.parse().ok()).collect())
-            .unwrap_or_default();
+        let (Some(lat), Some(lon)) = (row.lat, row.lon) else {
+            continue;
+        };
+        let bb = row.boundingbox;
         let alt = if bb.len() == 4 {
             let span = (bb[1] - bb[0]).max((bb[3] - bb[2]) * lat.to_radians().cos().abs());
             (span * SEARCH_KM_PER_DEGREE * SEARCH_VIEW_PADDING_RATIO)
@@ -67,7 +76,7 @@ pub fn geocode(q: &str, lang: &str) -> Result<Vec<GeoResult>, String> {
             DEFAULT_SEARCH_ALTITUDE_KM
         };
         out.push(GeoResult {
-            name: it["display_name"].as_str().unwrap_or("?").to_string(),
+            name: row.display_name.unwrap_or_else(|| "?".into()),
             lat,
             lon,
             alt,
@@ -86,23 +95,14 @@ pub struct Suggestion {
 
 /// Search-as-you-type suggestions. Nominatim forbids autocomplete, so Photon (Komoot, built on
 /// OpenStreetMap data and meant for this use) is used instead.
-pub fn photon_suggest(q: &str, lang: &str) -> Result<Vec<Suggestion>, String> {
-    let agent = ureq::AgentBuilder::new()
-        .timeout(SUGGESTION_REQUEST_TIMEOUT)
-        .user_agent("EarthCraft/0.2 (search suggestions)")
-        .build();
-    let mut req = agent
+pub async fn photon_suggest(q: &str, lang: &str) -> Result<Vec<Suggestion>, crate::Error> {
+    let mut request = crate::http::client(crate::http::Policy::Suggest)?
         .get("https://photon.komoot.io/api/")
-        .query("q", q)
-        .query("limit", "8");
+        .query(&[("q", q), ("limit", "8")]);
     if lang == "en" {
-        req = req.query("lang", "en"); // Photon only supports en/de/fr/it; others use local names
+        request = request.query(&[("lang", "en")]);
     }
-    let v: serde_json::Value = req
-        .call()
-        .map_err(|e| e.to_string())?
-        .into_json()
-        .map_err(|e| e.to_string())?;
+    let v = crate::http::parse_json(crate::http::body(request, 1 << 30).await?).await?;
     let mut out: Vec<Suggestion> = Vec::new();
     for f in v["features"].as_array().into_iter().flatten() {
         let (Some(lon), Some(lat)) = (
@@ -176,7 +176,20 @@ pub fn photon_suggest(q: &str, lang: &str) -> Result<Vec<Suggestion>, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_latlon;
+    use super::*;
+    #[test]
+    fn typed_search_skips_invalid_rows_and_retains_defaults() {
+        let rows = parse_geocode_response(serde_json::json!([
+            {"lat":"-15","lon":"-50","display_name":"Brasília"},
+            {"lat":"invalid","lon":"10"},
+            {"lat":"1","lon":"2","display_name":42,"boundingbox":["bad"]}
+        ]))
+        .unwrap();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].name, "Brasília");
+        assert_eq!(rows[1].name, "?");
+        assert_eq!(rows[1].alt, DEFAULT_SEARCH_ALTITUDE_KM);
+    }
 
     #[test]
     fn coordinates_accept_existing_separators_and_bounds() {
@@ -189,3 +202,9 @@ mod tests {
         }
     }
 }
+
+mod local;
+pub use local::merge_suggestions;
+
+mod prefix;
+pub use prefix::LocalSearch;

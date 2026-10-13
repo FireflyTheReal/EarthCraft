@@ -2,8 +2,7 @@
 
 [English](ARCHITECTURE.md) | [Português (Brasil)](ARCHITECTURE.pt-BR.md)
 
-EarthCraft is a Cargo workspace with one desktop application and three libraries.
-The split preserves the existing globe, services, controls, and UI.
+EarthCraft 0.1.0 is a Cargo workspace with one desktop application and three libraries.
 
 ```mermaid
 flowchart TD
@@ -15,116 +14,112 @@ flowchart TD
     Data --> Core
 ```
 
-Arrows mean Cargo dependencies. Libraries never depend on the application.
+Libraries never depend on the application. The workspace manifest owns versions,
+package metadata and build profiles; `Cargo.lock` pins resolved dependencies.
+`apps/earthcraft` is the default member, so `cargo run --release` starts the app.
 
-| Package | Responsibility | Main entry points |
+| Package | Responsibility | Entry points |
 | --- | --- | --- |
-| `earthcraft` | Native window, input, UI state and orchestration | `apps/earthcraft/src/main.rs`, `app/mod.rs` |
-| `earthcraft-core` | Globe math, camera, language, placemark values | `camera`, `math`, `language`, `placemark` |
-| `earthcraft-data` | Network services, tile cache, boundary data, settings and KML | `tiles`, `wayback`, `boundaries`, `search`, `settings`, `kml` |
-| `earthcraft-render` | Parallel CPU ray casting and missing-tile prioritization | `RenderCfg`, `render_frame` |
+| `earthcraft` | Native startup, input, UI state, font layout, styled shapes and texture upload | `main.rs`, `app/mod.rs`, `app/ui`, `app/rendering.rs`, `app/overlays` |
+| `earthcraft-core` | Double-precision math, camera/picking/flight, Unicode name normalization, language, Fluent catalogs and placemarks | `camera`, `flight`, `math`, `language`, `localization`, `placemark` |
+| `earthcraft-data` | Async HTTP, tiles, boundaries, local search, KML, settings and persistence | `runtime`, `http`, `tiles`, `boundaries`, `search`, `kml`, `files`, `settings` |
+| `earthcraft-render` | CPU/GPU rasterization, frame scheduling, geographic overlay preparation and tile priorities | `backend`, `gpu`, `worker`, `overlays` |
 
-The workspace root owns dependency versions, shared package metadata, build
-profiles, and the lockfile. `apps/earthcraft` is the default member, so
-`cargo run --release` still starts the desktop app from the root. Use
-`--workspace` for checks that must cover all libraries and their tests.
-Root `assets/` stays shared; the embedded icon path is relative to the moved
-launcher. Application packaging metadata stays in its own manifest.
+## Rendering and UI
 
-## Desktop modules
+The app captures immutable camera/style/layer inputs. A render-owned coordinator
+holds one active job, one replaceable pending request and one completed frame.
+Provider, release, size and style changes reject incompatible results; compatible
+completed camera snapshots remain presentable during motion. Picking, borders,
+labels and scale use the displayed camera, keeping input and overlays aligned.
 
-`app/mod.rs` contains private application state, construction, and the eframe
-update loop. Child modules extend that state through focused `impl App` blocks:
+`backend::FrameRenderer` selects optional wgpu overview rendering or CPU rendering.
+GPU initialization, uploads, dispatch and readback run on the coordinator. Shader
+files live under `crates/earthcraft-render/src/gpu/shaders`. Close views and exact
+grid rendering use the double-precision CPU path; GPU sky, horizon and tile seams
+use shared precise CPU repair. Automatic mode retains CPU rendering for small
+rasters. Adapter/device errors and device loss fall back to CPU. See
+[GPU rendering](GPU_RENDERER.md) for limits, environment options and measurements.
 
-- `navigation`: camera commands, language changes, and fly-to animation.
-- `search`: asynchronous search, suggestion polling, and selection.
-- `wayback`: historical imagery loading and selected release state.
-- `files`: native dialogs, KML commands, dropped files, and screenshots.
-- `globe`: viewport interaction, redraw decisions, and image presentation.
-- `rendering`: builds renderer inputs and uploads returned pixels to egui.
-- `overlays`: merges boundary patches and draws borders, labels and ruler marks.
-- `ui/`: bars, sidebar, suggestions, settings, and navigation controls.
+CPU rasterization uses the shared Rayon pool, eight-row tile batches and `wide`
+four-lane f64 rays. Geographic conversion and LOD stay in f64; glam handles camera
+matrices/quaternions and SIMD colors. Batch-local tile handles avoid repeated cache
+reads and are released after the batch. Safe bytemuck casts describe byte pixels
+and GPU uniform layouts; workspace code forbids unsafe Rust.
 
-Keeping state in the parent lets child modules access it without exporting it to
-other crates. Methods used by sibling modules have restricted app visibility.
-Widgets call existing app commands; camera math is tested in core directly.
+The coordinator prepares CPU image data and matching overlay geometry before
+publication. Egui uploads textures and builds styled shapes on its own thread.
+RGBA buffers are reused when uniquely owned; screenshots retain immutable `Arc`
+snapshots, so an export never reads a recycled frame. PNG encoding runs on the
+bounded file worker. GPU readback preserves this presentation/export contract.
 
-## Data and rendering flow
+## Overlays and spatial indexes
 
-1. The app handles input and updates its camera and visible-layer state.
-2. Core calculates camera basis vectors, projection and cursor picking. It uses
-   `emath`'s lightweight `Pos2`/`Rect` types, also re-exported by egui, without
-   depending on widgets or a windowing backend.
-3. The renderer ray-casts rows in parallel with Rayon. It samples cached tiles,
-   blends imagery zoom levels, and applies the grid, atmosphere, sunlight and stars.
-4. Missing tiles are queued with the original priority: lower zoom first, then
-   distance to the screen center. The data crate retains six tile workers, the
-   in-flight limit, retry delay, and disk caching behavior.
-5. The app injects a thread-safe repaint callback into `TileCache::new`. Workers
-   signal completion through that callback; data does not import egui.
-6. The app uploads RGBA output to a texture and draws geographic overlays.
-7. Boundary, search and historical-imagery workers return results through channels.
-   The UI update loop polls and applies them. Network calls stay off the UI thread.
+Render owns geographic visibility, border projection and ordered label candidates.
+A packed `geo-index` R-tree indexes immutable boundary-line bounds, with conservative
+3D horizon/frustum tests and dateline/pole handling. Dataset changes rebuild the
+index; camera changes query it. Source order and visible line interiors are preserved.
 
-Cache generation and in-flight counts are exposed through read-only methods.
-Tile maps, queues and atomics stay private. HTTP cache helpers and persistence
-paths stay private to data. Search and boundary deduplication reuse core's
-existing name-normalization function.
+The app caches one displayed set of egui shapes/galleys. Camera, viewport, DPI,
+altitude, dataset, layers, language and text scale invalidate it. Tile arrivals and
+unrelated UI updates reuse unchanged projections. Stationary changes use a coalesced
+overlay worker; moving frames carry their matching geometry. Font measurement,
+final label occupancy and styled shapes remain on egui. Mutable `rstar` indexes
+accepted screen rectangles in priority order, including touching-edge rejection,
+padding and the 500-label limit. Placemarks and ruler edits remain immediate.
 
-## Preserved contracts
+## Async services and files
 
-- Latitude/longitude values remain degrees; camera altitude and globe distances
-  remain kilometers; rasterization uses the existing meter conversion.
-- KML/GeoJSON coordinate arrays remain longitude first; internal geographic
-  points remain `(latitude, longitude)`.
-- Cache locations remain `LOCALAPPDATA`, then `XDG_CACHE_HOME`, then
-  `HOME/.cache`, then the temporary directory, under `earthcraft_tiles`.
-- Existing `lang.txt`, `settings.json`, tile directories and output-folder
-  defaults remain unchanged. No data migration is necessary.
-- Provider URLs, attribution, imagery release order, label zoom thresholds,
-  control bindings, UI wording and request behavior are retained.
+The app owns one Tokio `ServiceRuntime` and injects handles/repaint callbacks.
+Pooled reqwest clients enforce response limits, timeouts and retry policies.
+Network I/O runs asynchronously; bounded feature, tile-decoding and file workers
+separate CPU-heavy parsing from interactive imagery. Six async tile workers use
+48-job admission, current-view priority and delayed retries; stale queued detail
+is retired while active work and coarse overview jobs remain.
 
-## Extending the project
+Boundary processors stream GeoJSON feature collections, share immutable coordinate
+lines, merge/deduplicate patches, and publish immutable geometry/name snapshots.
+Municipal geometry loads when its layers are enabled; labels can load independently.
+Loaded-name prefix search uses background-built Unicode-normalized FST indexes,
+with scanning during rebuilds. Ranking and remote-result merging remain explicit.
 
-A camera operation belongs in core with a geometry test. A new service or file
-format belongs in data, with parsing tests using local inputs. Pixel shading or
-sampling belongs in render; panel layout and event wiring belong in the app.
-Keep feature-specific state near its commands; extract a state object when it
-owns meaningful behavior, rather than creating a crate for every panel.
+GeoRust `kml` owns XML reading/writing. A bounded quick-xml preparation pass skips
+empty Points, balances incomplete containers and wraps bare-coordinate fragments.
+KML I/O and screenshot encoding use an ordered bounded file service. Native dialogs
+and result application belong to the app. Settings/language writes coalesce on a
+filesystem worker and flush at shutdown; startup reads the small preference files.
 
-Avoid making the renderer responsible for egui textures or adding callbacks
-from core into the UI. Introduce interfaces at actual service boundaries when
-needed, rather than wrapping every function in a trait.
+## Cache ownership
 
-## Deliberately retained implementation constraints
+| Storage | Policy |
+| --- | --- |
+| Decoded tiles | Moka `sync`, weighted LRU, 256 MiB best-effort target; temporary overshoot and frame references are separate |
+| GPU atlas | Up to 128 MiB, reduced by adapter limits; current-view residency, weak CPU references and bounded upload passes |
+| Encoded imagery | MBTiles 1.3 through one tokio-rusqlite worker; 128 MiB managed-file target, including SQLite overhead |
 
-This is an architectural refactor, not a rewrite of the existing subsystems.
-Historical imagery still uses a synchronized process-wide release list. Tile
-workers retain their original application-lifetime ownership. KML still uses the
-existing lightweight parser and supports its existing subset. App state is still
-one private owner shared by its child modules. These are future work candidates;
-changing them should be a separate change with its own behavior and lifecycle tests.
+MBTiles separates providers, stable Wayback releases and encoded formats, converts
+XYZ rows to TMS, and lazily imports legacy tile files. Eviction favors coarse
+imagery and reclaims pages. Tiles publish before optional persistence. Clearing
+removes only owned imagery files, rejects old-epoch writeback, preserves decoded
+memory/settings/boundaries, and refreshes actual usage. SQLite R-tree/FTS5 support
+is available for auxiliary catalogs; it is not duplicated in the tile hot path.
 
-Packaging metadata previously referenced `icon.icns` and
-`packaging/earthcraft.desktop`, which are absent from this repository. Paths now
-point to their original root locations, but packaging remains unverified until
-those assets are supplied. The executable's existing PNG icon is present.
+Satellite overview warming covers zooms 0–4 globally: 341 tiles, 85.25 MiB decoded.
+It runs while idle at 14,000 km or farther away, after visible work, with bounded
+admission. Other providers stay on demand. Cache roots resolve `LOCALAPPDATA`,
+`XDG_CACHE_HOME`, `HOME/.cache`, then the temporary directory, under
+`earthcraft_tiles`. Preferences remain `settings.json` and `lang.txt`.
 
-## Constants and dependency choices
+## Units, localization and diagnostics
 
-Shared physical units and camera bounds are named in `earthcraft-core/src/lib.rs`.
-Numerical tolerances and solar coefficients stay with their mathematical model.
-Renderer shading/LOD parameters live in its private `tuning` module. Cache policy,
-packed tile-key fields, request limits and timeouts belong to data. UI geometry,
-colors, animation durations and redraw/debounce thresholds belong to the app.
+Coordinates use degrees, altitude/distances use kilometers, and raster footprints
+use meters. KML/GeoJSON arrays are longitude-first; domain pairs are latitude-first.
+UI strings live in embedded `locales/{en,pt-BR}.ftl`, with matching semantic keys
+and named whole-message arguments. Errors/logs are English; normal UI messages
+follow the selected language. See [localization](LOCALIZATION.md).
 
-Names include units where applicable. Egui points and raster pixels are different
-units. Values that happen to coincide are shared only when they have the same
-meaning: search's 111.2 km/degree approximation remains distinct from the
-renderer/camera's 111,195 meters/degree. The UI slider's maximum of 2.0 also
-remains distinct from the persisted setting's supported maximum of 2.5.
-Obvious algebraic numbers stay in the formulas; policy and model parameters get
-names without changing their values or floating-point evaluation order.
-
-See [library options](LIBRARY_OPTIONS.md) for focused ways to remove handwritten
-parsing, error and vector boilerplate in follow-up changes.
+Opt-in profiling records pipeline and queue timings through a bounded background
+recorder. Normal builds compile it out. Component results and native measurements
+are documented separately; neither raster timing nor app-side texture submission
+is an application FPS guarantee. See [contributing](CONTRIBUTING.md),
+[CPU baseline](PERFORMANCE_BASELINE.md), and [GPU rendering](GPU_RENDERER.md).

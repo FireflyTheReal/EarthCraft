@@ -4,10 +4,10 @@
 
 [![Listed on Remade](https://remade.wiki/badges/listed-on-remade.svg)](https://remade.wiki/projects/earthcraft/)
 
-A 3D globe in the style of Google Earth, written in pure Rust (egui + CPU ray-casting). Runs on Windows, macOS and Linux with no system dependencies beyond a graphics driver.
+A 3D globe in the style of Google Earth, written in pure Rust (egui + GPU/CPU ray-casting globe rendering). Runs on Windows, macOS and Linux with no system dependencies beyond a graphics driver.
 
 ### Build and run
-Requires Rust 1.88+ (https://rustup.rs):
+Requires Rust 1.89+ (https://rustup.rs):
 
     cargo run --release
 
@@ -19,12 +19,16 @@ An internet connection is required to download map tiles.
 
 - 3D globe with orbit, zoom, view rotation (heading) and a compass
 - Satellite imagery (Esri), streets (OSM) and topography (OpenTopoMap), with multi-level tile zoom and on-disk caching
+- Background satellite overview loading for the whole globe at the initial distance; detailed tiles load as you zoom in
+- Clear downloaded map tiles from disk through Settings
 - Place and address search (Nominatim), plus direct "lat, lon" coordinate input
 - Animated fly-to (double-click, search or list)
 - Placemarks with KML import/export
 - Geodesic distance ruler (great-circle)
 - Lat/lon grid, atmosphere, stars, real-time sunlight (day/night)
 - Scale bar, cursor coordinates, PNG screenshot, context menu
+- Background GPU overview rendering with automatic CPU fallback for close views and unsupported devices
+- Force CPU rendering with `EARTHCRAFT_RENDERER=cpu`; see [GPU rendering](docs/GPU_RENDERER.md) for supported views and resource limits
 
 ### Controls
 Drag: rotate globe · Right-drag / Shift+drag: rotate view · Wheel / +/-: zoom · Double-click: fly to point · Arrow keys: move · N: north up

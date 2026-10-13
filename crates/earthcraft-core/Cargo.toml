@@ -11,3 +11,11 @@ workspace = true
 
 [dependencies]
 emath.workspace = true
+glam.workspace = true
+fluent-bundle.workspace = true
+fluent-syntax.workspace = true
+unic-langid.workspace = true
+unicode-normalization.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

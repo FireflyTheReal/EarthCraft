@@ -1,10 +1,11 @@
 use crate::EARTH_RADIUS_KM;
 use crate::METERS_PER_KM;
+use glam::DVec3;
 use std::time::{SystemTime, UNIX_EPOCH};
 const GREAT_CIRCLE_ANGLE_EPSILON_RAD: f64 = 1e-9;
 const SECONDS_PER_DAY: f64 = 86400.0;
 const UNIX_EPOCH_TO_J2000_DAYS: f64 = 10957.5;
-// Coefficients of the existing approximate solar-position model, in degrees and days.
+// Coefficients of the approximate solar-position model, in degrees and days.
 const MEAN_LONGITUDE_AT_J2000_DEG: f64 = 280.460;
 const MEAN_LONGITUDE_RATE_DEG_PER_DAY: f64 = 0.9856474;
 const MEAN_ANOMALY_AT_J2000_DEG: f64 = 357.528;
@@ -18,55 +19,11 @@ const SIDEREAL_RATE_DEG_PER_DAY: f64 = 360.98564736629;
 
 // ───────────────────────────── Math ─────────────────────────────
 
-#[derive(Clone, Copy, Debug)]
-pub struct V3 {
-    pub x: f64,
-    pub y: f64,
-    pub z: f64,
-}
-impl V3 {
-    pub fn new(x: f64, y: f64, z: f64) -> Self {
-        Self { x, y, z }
-    }
-    pub fn dot(self, o: V3) -> f64 {
-        self.x * o.x + self.y * o.y + self.z * o.z
-    }
-    pub fn cross(self, o: V3) -> V3 {
-        V3::new(
-            self.y * o.z - self.z * o.y,
-            self.z * o.x - self.x * o.z,
-            self.x * o.y - self.y * o.x,
-        )
-    }
-    pub fn norm(self) -> V3 {
-        let l = self.dot(self).sqrt();
-        self * (1.0 / l)
-    }
-}
-impl std::ops::Add for V3 {
-    type Output = V3;
-    fn add(self, o: V3) -> V3 {
-        V3::new(self.x + o.x, self.y + o.y, self.z + o.z)
-    }
-}
-impl std::ops::Sub for V3 {
-    type Output = V3;
-    fn sub(self, o: V3) -> V3 {
-        V3::new(self.x - o.x, self.y - o.y, self.z - o.z)
-    }
-}
-impl std::ops::Mul<f64> for V3 {
-    type Output = V3;
-    fn mul(self, k: f64) -> V3 {
-        V3::new(self.x * k, self.y * k, self.z * k)
-    }
-}
-
-pub fn ll_to_v3(lat: f64, lon: f64) -> V3 {
+pub fn ll_to_v3(lat: f64, lon: f64) -> DVec3 {
     let (la, lo) = (lat.to_radians(), lon.to_radians());
-    V3::new(la.cos() * lo.cos(), la.cos() * lo.sin(), la.sin())
+    DVec3::new(la.cos() * lo.cos(), la.cos() * lo.sin(), la.sin())
 }
-pub fn v3_to_ll(p: V3) -> (f64, f64) {
+pub fn v3_to_ll(p: DVec3) -> (f64, f64) {
     (
         p.z.clamp(-1.0, 1.0).asin().to_degrees(),
         p.y.atan2(p.x).to_degrees(),
@@ -82,7 +39,7 @@ pub fn haversine_km(a: (f64, f64), b: (f64, f64)) -> f64 {
     let h = (dlat / 2.0).sin().powi(2) + la1.cos() * la2.cos() * (dlon / 2.0).sin().powi(2);
     2.0 * EARTH_RADIUS_KM * h.sqrt().min(1.0).asin()
 }
-pub fn great_circle(a: (f64, f64), b: (f64, f64), n: usize) -> Vec<V3> {
+pub fn great_circle(a: (f64, f64), b: (f64, f64), n: usize) -> Vec<DVec3> {
     let (pa, pb) = (ll_to_v3(a.0, a.1), ll_to_v3(b.0, b.1));
     let om = pa.dot(pb).clamp(-1.0, 1.0).acos();
     if om < GREAT_CIRCLE_ANGLE_EPSILON_RAD {

@@ -1,29 +1,50 @@
-//! Parallel CPU globe rendering. No filesystem or UI lifecycle ownership.
+//! Globe rasterization, optional GPU acceleration and background frame coordination.
+use glam::{DVec3, Vec2, Vec4};
+pub mod backend;
+#[cfg(feature = "gpu")]
+mod gpu;
+pub mod overlays;
+mod pixel;
+mod rays;
+use pixel::{sky, surface, Surface};
 mod tuning;
-use earthcraft_core::METERS_PER_LATITUDE_DEGREE;
-use earthcraft_core::{
-    camera::Basis,
-    math::{v3_to_ll, V3},
-    EARTH_RADIUS_M, VERTICAL_FOV_HALF_TAN,
-};
+pub mod worker;
+use earthcraft_core::{camera::Basis, math::v3_to_ll, EARTH_RADIUS_M, VERTICAL_FOV_HALF_TAN};
+use earthcraft_core::{METERS_PER_KM, METERS_PER_LATITUDE_DEGREE};
 use earthcraft_data::tiles::{
-    make_key, unkey, KeyBuild, Lookup, Provider, Tile, TileCache, TileKey, MAX_INFLIGHT,
+    make_key, unkey, KeyBuild, Lookup, Provider, Tile, TileCache, TileKey,
 };
 use rayon::prelude::*;
-use std::{
-    collections::{HashMap, HashSet},
-    f64::consts::PI,
-    sync::Arc,
-};
+use rays::{RayCaster, RAY_LANES};
+use std::{collections::HashMap, f64::consts::PI, sync::Arc};
 use tuning::{
     ATMOSPHERE_BLEND, ATMOSPHERE_COLOR, ATMOSPHERE_HEIGHT_RATIO, ATMOSPHERE_RADIUS_RATIO,
     COLOR_CHANNEL_MAX, DAY_BRIGHTNESS_RANGE, GRID_BLEND, GRID_COLOR, GRID_LINE_WIDTH_PX,
     LOD_SHARPNESS_BIAS, MIN_LOD_INCIDENCE_COSINE, MIN_LOD_LATITUDE_COSINE, MIN_ZOOM_BLEND_FRACTION,
     MISSING_TILE_COLOR, NIGHT_BLUE_TINT, NIGHT_BRIGHTNESS, OPAQUE_ALPHA, RGBA_CHANNELS, RIM_BLEND,
-    RIM_COLOR, RIM_FALLOFF_POWER, SPACE_COLOR, STAR_BRIGHTNESS_DIVISOR, STAR_BRIGHTNESS_MASK,
-    STAR_BRIGHTNESS_SHIFT, STAR_GRID_RESOLUTION, STAR_MIN_BRIGHTNESS, STAR_OCCURRENCE_MODULUS,
-    TILE_SIZE_PX, TWILIGHT_OFFSET, TWILIGHT_WIDTH, WEB_MERCATOR_MAX_LATITUDE_DEG,
+    RIM_COLOR, RIM_FALLOFF_POWER, ROWS_PER_TILE_BATCH, SPACE_COLOR, STAR_BRIGHTNESS_DIVISOR,
+    STAR_BRIGHTNESS_MASK, STAR_BRIGHTNESS_SHIFT, STAR_GRID_RESOLUTION, STAR_MIN_BRIGHTNESS,
+    STAR_OCCURRENCE_MODULUS, TILE_SIZE_PX, TWILIGHT_OFFSET, TWILIGHT_WIDTH,
+    WEB_MERCATOR_MAX_LATITUDE_DEG,
 };
+const GRID_STEPS_DEG: [f64; 12] = [
+    30.0, 10.0, 5.0, 2.0, 1.0, 0.5, 0.2, 0.1, 0.05, 0.01, 0.005, 0.001,
+];
+const TARGET_GRID_DIVISIONS: f64 = 5.0;
+const MIN_GRID_STEP_DEG: f64 = 0.001;
+
+/// Geographic grid spacing for the raster's projected pixel footprint.
+pub fn grid_step(altitude_km: f64, width: usize, height: usize) -> f64 {
+    let mpp = altitude_km * METERS_PER_KM * 2.0 * VERTICAL_FOV_HALF_TAN / height as f64;
+    let span = (mpp * width as f64 / METERS_PER_LATITUDE_DEGREE).min(180.0);
+
+    GRID_STEPS_DEG
+        .iter()
+        .copied()
+        .find(|s| *s <= span / TARGET_GRID_DIVISIONS)
+        .unwrap_or(MIN_GRID_STEP_DEG)
+}
+
 // ───────────────────────────── Rendering ─────────────────────────────
 
 pub struct RenderCfg {
@@ -32,48 +53,40 @@ pub struct RenderCfg {
     pub grid: bool,
     pub grid_step: f64,
     pub atmo: bool,
-    pub sun: Option<V3>,
+    pub sun: Option<DVec3>,
 }
 
 struct Local<'a, F> {
     lookup: &'a F,
-    map: HashMap<TileKey, Option<Arc<Tile>>, KeyBuild>,
-    misses: Vec<(TileKey, f32)>,
+    map: HashMap<TileKey, LocalTile, KeyBuild>,
+}
+enum LocalTile {
+    Ready(Arc<Tile>),
+    Pending,
+    Absent(f32),
 }
 impl<F: Fn(TileKey) -> Lookup> Local<'_, F> {
-    fn tile_color(&mut self, k: TileKey, dist: f32, u: f64, v: f64) -> Option<[f32; 3]> {
-        if !self.map.contains_key(&k) {
-            let val = match (self.lookup)(k) {
-                Lookup::Ready(t) => Some(t),
-                Lookup::Pending => None,
-                Lookup::Absent => {
-                    self.misses.push((k, dist));
-                    None
-                }
-            };
-            self.map.insert(k, val);
+    fn tile_color(&mut self, k: TileKey, dist: f32, u: f64, v: f64) -> Option<Vec4> {
+        match self.map.entry(k).or_insert_with(|| match (self.lookup)(k) {
+            Lookup::Ready(tile) => LocalTile::Ready(tile),
+            Lookup::Pending => LocalTile::Pending,
+            Lookup::Absent => LocalTile::Absent(dist),
+        }) {
+            LocalTile::Ready(tile) => Some(tile.sample(u, v)),
+            LocalTile::Pending => None,
+            LocalTile::Absent(nearest) => {
+                *nearest = nearest.min(dist);
+                None
+            }
         }
-        self.map
-            .get(&k)
-            .and_then(|o| o.as_ref())
-            .map(|t| t.sample(u, v))
     }
-}
-
-fn hash3(a: i64, b: i64, c: i64) -> u64 {
-    let mut h = (a as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15)
-        ^ (b as u64).wrapping_mul(0xC2B2_AE3D_27D4_EB4F)
-        ^ (c as u64).wrapping_mul(0x1656_67B1_9E37_79F9);
-    h ^= h >> 33;
-    h = h.wrapping_mul(0xFF51_AFD7_ED55_8CCD);
-    h ^ (h >> 33)
-}
-fn mix(a: [f32; 3], b: [f32; 3], t: f32) -> [f32; 3] {
-    [
-        a[0] + (b[0] - a[0]) * t,
-        a[1] + (b[1] - a[1]) * t,
-        a[2] + (b[2] - a[2]) * t,
-    ]
+    #[cfg(test)]
+    fn misses(self) -> impl Iterator<Item = (TileKey, f32)> {
+        self.map.into_iter().filter_map(|(key, tile)| match tile {
+            LocalTile::Absent(dist) => Some((key, dist)),
+            _ => None,
+        })
+    }
 }
 
 /// Samples the tile at level `z`; if it has not loaded yet, falls back to coarser (parent) levels.
@@ -85,7 +98,7 @@ fn sample_chain(
     u: f64,
     v: f64,
     dist: f32,
-) -> [f32; 3] {
+) -> Vec4 {
     let mut zz = z;
     while zz >= 0 {
         let n = (1u64 << zz) as f64;
@@ -100,128 +113,73 @@ fn sample_chain(
     MISSING_TILE_COLOR
 }
 
+fn shade_surface(
+    surface: Surface,
+    cfg: &RenderCfg,
+    loc: &mut Local<impl Fn(TileKey) -> Lookup>,
+) -> Vec4 {
+    let mut col;
+    col = sample_chain(
+        loc,
+        cfg.provider,
+        cfg.rel,
+        surface.z0,
+        surface.u,
+        surface.v,
+        surface.dist,
+    );
+    if surface.frac > MIN_ZOOM_BLEND_FRACTION {
+        let c2 = sample_chain(
+            loc,
+            cfg.provider,
+            cfg.rel,
+            surface.z0 + 1,
+            surface.u,
+            surface.v,
+            surface.dist,
+        );
+        col = col.lerp_monotonic(c2, surface.frac);
+    }
+    if surface.grid {
+        col = col.lerp_monotonic(GRID_COLOR, GRID_BLEND);
+    }
+    col = col * surface.shade + Vec4::new(0.0, 0.0, surface.night, 0.0);
+    col = col.lerp_monotonic(RIM_COLOR, surface.rim);
+    col
+}
+
 fn render_row(
     y: usize,
     w: usize,
     h: usize,
-    b: &Basis,
+    rays: &RayCaster,
     cfg: &RenderCfg,
-    lookup: &impl Fn(TileKey) -> Lookup,
+    loc: &mut Local<impl Fn(TileKey) -> Lookup>,
     row: &mut [u8],
-) -> Vec<(TileKey, f32)> {
-    let mut loc = Local {
-        lookup,
-        map: HashMap::default(),
-        misses: Vec::new(),
-    };
-    let ny = 1.0 - (y as f64 + 0.5) / h as f64 * 2.0;
-    let pa = 2.0 * VERTICAL_FOV_HALF_TAN / h as f64; // angle per pixel
-    let cc = b.c.dot(b.c);
-    let maxz = cfg.provider.max_zoom() as f64;
-
-    for x in 0..w {
-        let nx = (x as f64 + 0.5) / w as f64 * 2.0 - 1.0;
-        let d = b.dir(nx, ny);
-        let bb = b.c.dot(d);
-        let disc = bb * bb - (cc - 1.0);
-        let mut col: [f32; 3];
-
-        if disc >= 0.0 && bb < 0.0 {
-            let t = -bb - disc.sqrt();
-            let p = b.c + d * t;
-            let cosinc = (-d.dot(p)).max(0.0);
-            let (lat, lon) = v3_to_ll(p);
-            let coslat = lat.to_radians().cos().max(MIN_LOD_LATITUDE_COSINE);
-            // Level of detail (LOD): softer grazing-angle limit and a sharpness bias,
-            // which greatly enlarges the high-resolution area.
-            let mpp = t * EARTH_RADIUS_M * pa / cosinc.max(MIN_LOD_INCIDENCE_COSINE).sqrt();
-            let zf = ((2.0 * PI * EARTH_RADIUS_M * coslat) / (TILE_SIZE_PX * mpp)).log2();
-            let lod = zf + LOD_SHARPNESS_BIAS;
-            // Satellite: smooth blend between two levels (no visible circles).
-            // Text maps: single, slightly sharper level so labels are not duplicated.
-            let (zl, frac) = if cfg.provider.is_imagery() {
-                let f = lod.floor();
-                (f, lod - f)
+) {
+    let cc = rays.camera_len_squared;
+    let pixels: &mut [[u8; RGBA_CHANNELS]] = bytemuck::cast_slice_mut(row);
+    for (pack, pixels) in pixels.chunks_mut(RAY_LANES).enumerate() {
+        let first_x = pack * RAY_LANES;
+        let samples = rays.cast(first_x, y);
+        // A short final pack only shades real pixels; padded lanes make no lookups.
+        for (lane, (pixel, ray)) in pixels.iter_mut().zip(samples).enumerate() {
+            let x = first_x + lane;
+            let bb = ray.camera_dot;
+            let disc = ray.discriminant;
+            let col = if disc >= 0.0 && bb < 0.0 {
+                let surface = surface(x, y, w, h, &ray, cfg);
+                shade_surface(surface, cfg, loc)
             } else {
-                (lod.ceil(), 0.0)
+                sky(&ray, cc, cfg)
             };
-            let z0 = zl.clamp(0.0, maxz) as i32;
-            let frac = if (z0 as f64) >= maxz {
-                0.0
-            } else {
-                frac as f32
-            };
-
-            let latc = lat.clamp(
-                -WEB_MERCATOR_MAX_LATITUDE_DEG,
-                WEB_MERCATOR_MAX_LATITUDE_DEG,
-            );
-            let u = ((lon + 180.0) / 360.0).rem_euclid(1.0);
-            let s = latc.to_radians().sin();
-            let v = 0.5 - ((1.0 + s) / (1.0 - s)).ln() / (4.0 * PI);
-            let dist = (x as f32 - w as f32 / 2.0).powi(2) + (y as f32 - h as f32 / 2.0).powi(2);
-
-            col = sample_chain(&mut loc, cfg.provider, cfg.rel, z0, u, v, dist);
-            if frac > MIN_ZOOM_BLEND_FRACTION {
-                let c2 = sample_chain(&mut loc, cfg.provider, cfg.rel, z0 + 1, u, v, dist);
-                col = mix(col, c2, frac);
-            }
-
-            if cfg.grid {
-                let st = cfg.grid_step;
-                let px_deg = mpp / METERS_PER_LATITUDE_DEGREE;
-                let thr = px_deg * GRID_LINE_WIDTH_PX;
-                let dlat = (lat / st - (lat / st).round()).abs() * st;
-                let dlon =
-                    (lon / st - (lon / st).round()).abs() * st * lat.to_radians().cos().abs();
-                if dlat < thr || dlon < thr {
-                    col = mix(col, GRID_COLOR, GRID_BLEND);
-                }
-            }
-            if let Some(sun) = cfg.sun {
-                let l = p.dot(sun);
-                let k = ((l + TWILIGHT_OFFSET) / TWILIGHT_WIDTH).clamp(0.0, 1.0) as f32;
-                let k = k * k * (3.0 - 2.0 * k);
-                let shade = NIGHT_BRIGHTNESS + DAY_BRIGHTNESS_RANGE * k;
-                col = [
-                    col[0] * shade,
-                    col[1] * shade,
-                    col[2] * shade + NIGHT_BLUE_TINT * (1.0 - k),
-                ];
-            }
-            if cfg.atmo {
-                let rim = (1.0 - cosinc as f32).powi(RIM_FALLOFF_POWER) * RIM_BLEND;
-                col = mix(col, RIM_COLOR, rim);
-            }
-        } else {
-            col = SPACE_COLOR;
-            let cell = (
-                (d.x * STAR_GRID_RESOLUTION).floor() as i64,
-                (d.y * STAR_GRID_RESOLUTION).floor() as i64,
-                (d.z * STAR_GRID_RESOLUTION).floor() as i64,
-            );
-            let hs = hash3(cell.0, cell.1, cell.2);
-            if hs.is_multiple_of(STAR_OCCURRENCE_MODULUS) {
-                let br = STAR_MIN_BRIGHTNESS
-                    + ((hs >> STAR_BRIGHTNESS_SHIFT) & STAR_BRIGHTNESS_MASK) as f32
-                        / STAR_BRIGHTNESS_DIVISOR;
-                col = [br, br, br];
-            }
-            if cfg.atmo && bb < 0.0 {
-                let rho = (cc - bb * bb).max(0.0).sqrt();
-                if (1.0..ATMOSPHERE_RADIUS_RATIO).contains(&rho) {
-                    let g = (1.0 - (rho - 1.0) / ATMOSPHERE_HEIGHT_RATIO).powi(2) as f32;
-                    col = mix(col, ATMOSPHERE_COLOR, g * ATMOSPHERE_BLEND);
-                }
-            }
+            let channels = col.clamp(Vec4::ZERO, Vec4::ONE) * COLOR_CHANNEL_MAX;
+            pixel[0] = channels.x as u8;
+            pixel[1] = channels.y as u8;
+            pixel[2] = channels.z as u8;
+            pixel[3] = OPAQUE_ALPHA;
         }
-        let o = x * RGBA_CHANNELS;
-        row[o] = (col[0].clamp(0.0, 1.0) * COLOR_CHANNEL_MAX) as u8;
-        row[o + 1] = (col[1].clamp(0.0, 1.0) * COLOR_CHANNEL_MAX) as u8;
-        row[o + 2] = (col[2].clamp(0.0, 1.0) * COLOR_CHANNEL_MAX) as u8;
-        row[o + 3] = OPAQUE_ALPHA;
     }
-    loc.misses
 }
 
 /// Renders an RGBA frame and queues missing tiles, coarse zoom levels first.
@@ -232,35 +190,154 @@ pub fn render_frame(
     cfg: &RenderCfg,
     cache: &TileCache,
 ) -> Vec<u8> {
-    let mut buf = vec![0u8; w * h * RGBA_CHANNELS];
-    let per_row: Vec<Vec<(TileKey, f32)>> = buf
-        .par_chunks_mut(w * RGBA_CHANNELS)
-        .enumerate()
-        .map(|(y, row)| render_row(y, w, h, basis, cfg, &|key| cache.lookup(key), row))
-        .collect();
+    let frame = render_view(w, h, basis, cfg, cache);
+    cache.prioritize_view(&frame.required_tiles());
+    frame.pixels
+}
 
-    // request missing tiles: lowest zoom first, then closest to the center
-    let mut misses: HashMap<TileKey, f32> = HashMap::new();
-    for (k, d) in per_row.into_iter().flatten() {
-        let e = misses.entry(k).or_insert(f32::MAX);
-        *e = e.min(d);
+pub struct RenderedView {
+    pub pixels: Vec<u8>,
+    /// Tiles that were unavailable when sampled, including work already pending.
+    pub waiting: Vec<TileKey>,
+    pub requests: Vec<TileKey>,
+}
+
+impl RenderedView {
+    /// New misses and already-pending dependencies, in coarse-first order.
+    pub fn required_tiles(&self) -> Vec<TileKey> {
+        let mut keys = self.requests.clone();
+        let admitted: std::collections::HashSet<_> = keys.iter().copied().collect();
+        keys.extend(
+            self.waiting
+                .iter()
+                .copied()
+                .filter(|key| !admitted.contains(key)),
+        );
+        keys.sort_by_key(|&key| unkey(key).1);
+        keys
     }
-    let mut list: Vec<(TileKey, f32)> = misses.into_iter().collect();
+}
+
+pub fn render_view(
+    w: usize,
+    h: usize,
+    basis: &Basis,
+    cfg: &RenderCfg,
+    cache: &TileCache,
+) -> RenderedView {
+    render_view_into(w, h, basis, cfg, cache, Vec::new())
+}
+
+pub fn render_view_into(
+    w: usize,
+    h: usize,
+    basis: &Basis,
+    cfg: &RenderCfg,
+    cache: &TileCache,
+    buffer: Vec<u8>,
+) -> RenderedView {
+    let (buf, mut list, waiting) =
+        render_pixels_into(w, h, basis, cfg, &|key| cache.lookup(key), buffer);
+
+    // Request missing tiles: lowest zoom first, then closest to the center.
     list.sort_by(|a, b| {
         unkey(a.0)
             .1
             .cmp(&unkey(b.0).1)
             .then(a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
     });
-    let mut seen = HashSet::new();
-    for (k, _) in list {
-        if seen.insert(k) && !cache.request(k) && cache.inflight() >= MAX_INFLIGHT {
-            break;
+    let requests = list.into_iter().map(|(key, _)| key).collect();
+    RenderedView {
+        pixels: buf,
+        waiting,
+        requests,
+    }
+}
+
+#[cfg(test)]
+fn render_pixels(
+    w: usize,
+    h: usize,
+    basis: &Basis,
+    cfg: &RenderCfg,
+    lookup: &(impl Fn(TileKey) -> Lookup + Sync),
+) -> (Vec<u8>, Vec<(TileKey, f32)>) {
+    let (pixels, misses, _) = render_pixels_tracked(w, h, basis, cfg, lookup);
+    (pixels, misses)
+}
+
+#[cfg(test)]
+fn render_pixels_tracked(
+    w: usize,
+    h: usize,
+    basis: &Basis,
+    cfg: &RenderCfg,
+    lookup: &(impl Fn(TileKey) -> Lookup + Sync),
+) -> (Vec<u8>, Vec<(TileKey, f32)>, Vec<TileKey>) {
+    render_pixels_into(w, h, basis, cfg, lookup, Vec::new())
+}
+
+fn render_pixels_into(
+    w: usize,
+    h: usize,
+    basis: &Basis,
+    cfg: &RenderCfg,
+    lookup: &(impl Fn(TileKey) -> Lookup + Sync),
+    mut buf: Vec<u8>,
+) -> (Vec<u8>, Vec<(TileKey, f32)>, Vec<TileKey>) {
+    buf.resize(w * h * RGBA_CHANNELS, 0);
+    let row_bytes = w * RGBA_CHANNELS;
+    let rays = RayCaster::new(w, h, basis);
+    let per_batch: Vec<Vec<(TileKey, Option<f32>)>> = buf
+        .par_chunks_mut(row_bytes * ROWS_PER_TILE_BATCH)
+        .enumerate()
+        .map(|(batch, rows)| {
+            // Neighboring rows share tiles. Keep handles only for this small batch,
+            // avoiding repeated Moka reads without retaining tiles between frames.
+            let mut loc = Local {
+                lookup,
+                map: HashMap::default(),
+            };
+            for (offset, row) in rows.chunks_mut(row_bytes).enumerate() {
+                render_row(
+                    batch * ROWS_PER_TILE_BATCH + offset,
+                    w,
+                    h,
+                    &rays,
+                    cfg,
+                    &mut loc,
+                    row,
+                );
+            }
+            loc.map
+                .into_iter()
+                .filter_map(|(key, tile)| match tile {
+                    LocalTile::Ready(_) => None,
+                    LocalTile::Pending => Some((key, None)),
+                    LocalTile::Absent(distance) => Some((key, Some(distance))),
+                })
+                .collect()
+        })
+        .collect();
+
+    let mut misses: HashMap<TileKey, f32> = HashMap::new();
+    let mut waiting = std::collections::HashSet::new();
+    for (k, distance) in per_batch.into_iter().flatten() {
+        waiting.insert(k);
+        if let Some(d) = distance {
+            let e = misses.entry(k).or_insert(f32::MAX);
+            *e = e.min(d);
         }
     }
-
-    buf
+    (
+        buf,
+        misses.into_iter().collect(),
+        waiting.into_iter().collect(),
+    )
 }
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod benchmarks;

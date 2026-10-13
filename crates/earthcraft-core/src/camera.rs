@@ -1,13 +1,16 @@
-use crate::math::{ll_to_v3, v3_to_ll, wrap_lon, V3};
+use crate::math::{ll_to_v3, v3_to_ll, wrap_lon};
 use crate::{
     EARTH_RADIUS_KM, MAX_CAMERA_ALTITUDE_KM, MIN_CAMERA_ALTITUDE_KM, VERTICAL_FOV_HALF_TAN,
 };
 use crate::{MAX_CAMERA_LATITUDE_DEG, METERS_PER_KM, METERS_PER_LATITUDE_DEGREE};
 use emath::{Pos2, Rect};
-// Numerical tolerances and pole protection retain the original camera behavior.
+use glam::{dcamera::rh, DMat2, DMat3, DMat4, DQuat, DVec2, DVec3};
+// Reject near-zero projection depths and rotation axes; bound pan amplification near poles.
 const PROJECTION_DEPTH_EPSILON: f64 = 1e-9;
 const ROTATION_AXIS_EPSILON: f64 = 1e-13;
 const MIN_PAN_LATITUDE_COSINE: f64 = 0.05;
+// The CPU renderer uses Earth radii. Projection depth is not used for clipping.
+const PROJECTION_NEAR_EARTH_RADII: f64 = MIN_CAMERA_ALTITUDE_KM / EARTH_RADIUS_KM;
 
 // ───────────────────────────── Camera ─────────────────────────────
 
@@ -19,12 +22,12 @@ pub struct Cam {
     pub alt: f64,     // km above the surface
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Basis {
-    pub c: V3, // camera position (Earth radii)
-    f: V3,
-    r: V3,
-    u: V3,
+    pub c: DVec3, // camera position (Earth radii)
+    view_from_world: DMat3,
+    world_from_view: DMat3,
+    projection: DMat4,
     aspect: f64,
 }
 
@@ -32,43 +35,58 @@ impl Cam {
     pub fn basis(&self, aspect: f64) -> Basis {
         let n = ll_to_v3(self.lat, self.lon);
         let (la, lo) = (self.lat.to_radians(), self.lon.to_radians());
-        let east = V3::new(-lo.sin(), lo.cos(), 0.0);
-        let north = V3::new(-la.sin() * lo.cos(), -la.sin() * lo.sin(), la.cos());
+        let east = DVec3::new(-lo.sin(), lo.cos(), 0.0);
+        let north = DVec3::new(-la.sin() * lo.cos(), -la.sin() * lo.sin(), la.cos());
         let h = self.heading.to_radians();
         let u = north * h.cos() + east * h.sin();
         let f = n * -1.0;
-        let r = f.cross(u);
+        // Geographic world axes are right-handed. View space is X-right/Y-up/-Z-forward.
+        let view_from_world = rh::view::look_to_mat3(f, u);
         Basis {
             c: n * (1.0 + self.alt / EARTH_RADIUS_KM),
-            f,
-            r,
-            u,
+            view_from_world,
+            world_from_view: view_from_world.transpose(),
+            // Y-up NDC matches our screen conversion. No far plane clips the globe.
+            projection: rh::proj::directx::perspective_infinite(
+                2.0 * VERTICAL_FOV_HALF_TAN.atan(),
+                aspect,
+                PROJECTION_NEAR_EARTH_RADII,
+            ),
             aspect,
         }
     }
 }
 
 impl Basis {
-    pub fn dir(&self, nx: f64, ny: f64) -> V3 {
-        (self.f
-            + self.r * (nx * self.aspect * VERTICAL_FOV_HALF_TAN)
-            + self.u * (ny * VERTICAL_FOV_HALF_TAN))
-            .norm()
+    /// Cached view-to-world rotation for batched CPU ray construction.
+    pub fn rotation_from_view(&self) -> DMat3 {
+        self.world_from_view
     }
-    pub fn project(&self, p: V3, rect: Rect) -> Option<Pos2> {
+    pub fn aspect_ratio(&self) -> f64 {
+        self.aspect
+    }
+    pub fn dir(&self, nx: f64, ny: f64) -> DVec3 {
+        let view_ray = DVec3::new(
+            nx * self.aspect * VERTICAL_FOV_HALF_TAN,
+            ny * VERTICAL_FOV_HALF_TAN,
+            -1.0,
+        );
+        (self.world_from_view * view_ray).normalize()
+    }
+    pub fn project(&self, p: DVec3, rect: Rect) -> Option<Pos2> {
         if p.dot(self.c) < 1.0 {
             return None; // behind the horizon
         }
         let v = p - self.c;
-        let z = v.dot(self.f);
+        let local = self.view_from_world * v;
+        let z = -local.z;
         if z <= PROJECTION_DEPTH_EPSILON {
             return None;
         }
-        let nx = v.dot(self.r) / (z * self.aspect * VERTICAL_FOV_HALF_TAN);
-        let ny = v.dot(self.u) / (z * VERTICAL_FOV_HALF_TAN);
+        let ndc = self.projection.project_point3(local);
         Some(Pos2::new(
-            rect.center().x + nx as f32 * rect.width() * 0.5,
-            rect.center().y - ny as f32 * rect.height() * 0.5,
+            rect.center().x + ndc.x as f32 * rect.width() * 0.5,
+            rect.center().y - ndc.y as f32 * rect.height() * 0.5,
         ))
     }
     pub fn pick(&self, rect: Rect, pos: Pos2) -> Option<(f64, f64)> {
@@ -76,7 +94,7 @@ impl Basis {
         let ny = 1.0 - ((pos.y - rect.min.y) / rect.height()) as f64 * 2.0;
         let d = self.dir(nx, ny);
         let b = self.c.dot(d);
-        let disc = b * b - (self.c.dot(self.c) - 1.0);
+        let disc = b * b - (self.c.length_squared() - 1.0);
         if disc < 0.0 || b > 0.0 {
             return None;
         }
@@ -95,8 +113,8 @@ impl Cam {
     pub fn pan(&mut self, dx: f64, dy: f64, height_pts: f32) {
         let k = self.deg_per_pt(height_pts);
         let h = self.heading.to_radians();
-        let de = -dx * k * h.cos() + dy * k * h.sin();
-        let dn = dx * k * h.sin() + dy * k * h.cos();
+        let movement = DMat2::from_angle(-h) * DVec2::new(-dx * k, dy * k);
+        let (de, dn) = (movement.x, movement.y);
         self.lat = (self.lat + dn).clamp(-MAX_CAMERA_LATITUDE_DEG, MAX_CAMERA_LATITUDE_DEG);
         self.lon =
             wrap_lon(self.lon + de / self.lat.to_radians().cos().max(MIN_PAN_LATITUDE_COSINE));
@@ -107,27 +125,26 @@ impl Cam {
     }
 
     /// Rigidly rotates the camera (centre and "up" direction) by the rotation that takes `from` to `to`.
-    fn rotate(&mut self, from: V3, to: V3) {
+    fn rotate(&mut self, from: DVec3, to: DVec3) {
         let axis = from.cross(to);
-        let sn = axis.dot(axis).sqrt();
+        let sn = axis.length();
         if sn < ROTATION_AXIS_EPSILON {
             return;
         }
         let ang = sn.atan2(from.dot(to));
         let k = axis * (1.0 / sn);
-        let rot =
-            |v: V3| v * ang.cos() + k.cross(v) * ang.sin() + k * (k.dot(v) * (1.0 - ang.cos()));
+        let rotation = DQuat::from_axis_angle(k, ang);
         let n = ll_to_v3(self.lat, self.lon);
         let (la, lo) = (self.lat.to_radians(), self.lon.to_radians());
-        let east = V3::new(-lo.sin(), lo.cos(), 0.0);
-        let north = V3::new(-la.sin() * lo.cos(), -la.sin() * lo.sin(), la.cos());
+        let east = DVec3::new(-lo.sin(), lo.cos(), 0.0);
+        let north = DVec3::new(-la.sin() * lo.cos(), -la.sin() * lo.sin(), la.cos());
         let h = self.heading.to_radians();
         let up = north * h.cos() + east * h.sin();
-        let (n2, u2) = (rot(n).norm(), rot(up));
+        let (n2, u2) = ((rotation * n).normalize(), rotation * up);
         let (lat2, lon2) = v3_to_ll(n2);
         let (la2, lo2) = (lat2.to_radians(), lon2.to_radians());
-        let east2 = V3::new(-lo2.sin(), lo2.cos(), 0.0);
-        let north2 = V3::new(-la2.sin() * lo2.cos(), -la2.sin() * lo2.sin(), la2.cos());
+        let east2 = DVec3::new(-lo2.sin(), lo2.cos(), 0.0);
+        let north2 = DVec3::new(-la2.sin() * lo2.cos(), -la2.sin() * lo2.sin(), la2.cos());
         self.lat = lat2.clamp(-MAX_CAMERA_LATITUDE_DEG, MAX_CAMERA_LATITUDE_DEG);
         self.lon = wrap_lon(lon2);
         self.heading = wrap_lon(u2.dot(east2).atan2(u2.dot(north2)).to_degrees());
@@ -239,5 +256,92 @@ mod bounds_tests {
         };
         let point = cam.basis(4.0 / 3.0).pick(rect, rect.center()).unwrap();
         assert!(crate::math::haversine_km(point, (cam.lat, cam.lon)) < 1e-6);
+    }
+}
+
+#[cfg(test)]
+mod projection_tests {
+    use super::*;
+    use emath::Vec2;
+
+    #[test]
+    fn picking_and_projection_agree_across_headings_poles_and_viewports() {
+        for (lat, lon, heading, alt) in [
+            (0.0, 0.0, 0.0, MIN_CAMERA_ALTITUDE_KM),
+            (-23.55, -46.63, 25.0, 1000.0),
+            (89.9, 179.9, -130.0, 3000.0),
+            (-89.9, -179.9, 180.0, MAX_CAMERA_ALTITUDE_KM),
+        ] {
+            for aspect in [0.75, 16.0 / 9.0, 3.0] {
+                let rect = Rect::from_min_size(
+                    Pos2::new(37.0, 19.0),
+                    Vec2::new(800.0 * aspect as f32, 800.0),
+                );
+                let basis = Cam {
+                    lat,
+                    lon,
+                    heading,
+                    alt,
+                }
+                .basis(aspect);
+                for fraction in [0.45, 0.5, 0.55] {
+                    let cursor = Pos2::new(
+                        rect.min.x + rect.width() * fraction,
+                        rect.min.y + rect.height() * fraction,
+                    );
+                    let (latitude, longitude) =
+                        basis.pick(rect, cursor).expect("point on visible globe");
+                    let projected = basis
+                        .project(ll_to_v3(latitude, longitude), rect)
+                        .expect("picked point remains visible");
+                    assert!(projected.distance(cursor) < 0.01, "{lat}, {lon}, heading {heading}, alt {alt}, aspect {aspect}: {projected:?} != {cursor:?}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn projection_preserves_north_east_and_heading_without_mirroring() {
+        let rect = Rect::from_min_size(Pos2::ZERO, Vec2::new(800.0, 600.0));
+        for heading in [0.0, 90.0] {
+            let basis = Cam {
+                lat: 0.0,
+                lon: 0.0,
+                heading,
+                alt: 1000.0,
+            }
+            .basis(4.0 / 3.0);
+            let center = basis.project(ll_to_v3(0.0, 0.0), rect).unwrap();
+            let north = basis.project(ll_to_v3(1.0, 0.0), rect).unwrap();
+            let east = basis.project(ll_to_v3(0.0, 1.0), rect).unwrap();
+            if heading == 0.0 {
+                assert!(north.y < center.y);
+                assert!(east.x > center.x);
+            } else {
+                assert!(north.x < center.x);
+                assert!(east.y < center.y);
+            }
+        }
+    }
+
+    #[test]
+    fn horizon_visibility_and_ray_directions_hold_at_altitude_limits() {
+        let rect = Rect::from_min_size(Pos2::ZERO, Vec2::new(800.0, 600.0));
+        for alt in [MIN_CAMERA_ALTITUDE_KM, MAX_CAMERA_ALTITUDE_KM] {
+            let basis = Cam {
+                lat: 40.0,
+                lon: 170.0,
+                heading: 75.0,
+                alt,
+            }
+            .basis(4.0 / 3.0);
+            let center = ll_to_v3(40.0, 170.0);
+            assert!(basis.project(center, rect).is_some());
+            assert!(basis.project(-center, rect).is_none());
+            assert!(basis.dir(0.0, 0.0).abs_diff_eq(-center, 1e-12));
+            for (x, y) in [(-1.0, -1.0), (0.0, 0.0), (1.0, 1.0)] {
+                assert!((basis.dir(x, y).length_squared() - 1.0).abs() < 1e-12);
+            }
+        }
     }
 }

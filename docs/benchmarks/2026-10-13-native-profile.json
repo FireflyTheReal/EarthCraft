@@ -1,0 +1,514 @@
+{
+  "profile": "macOS ARM64, optimized dev, eight Rayon threads, profiling enabled",
+  "phases": [
+    {
+      "phase": "warm_rotation",
+      "start_us": 1791904857946195,
+      "end_us": 1791904900972873
+    },
+    {
+      "phase": "close_zoom_loading",
+      "start_us": 1791904905417947,
+      "end_us": 1791904958418761
+    },
+    {
+      "phase": "boundary_loading_close_zoom",
+      "start_us": 1791904958880210,
+      "end_us": 1791905038359949
+    },
+    {
+      "phase": "boundary_heavy_rotation",
+      "start_us": 1791905038458039,
+      "end_us": 1791905121984120
+    }
+  ],
+  "results": {
+    "warm_rotation": {
+      "timings": [
+        {
+          "operation": "decode.queue",
+          "width": 0,
+          "height": 0,
+          "samples": 77,
+          "median_ms": 0.02,
+          "p95_ms": 2.253,
+          "max_ms": 8.611
+        },
+        {
+          "operation": "decode.work",
+          "width": 0,
+          "height": 0,
+          "samples": 77,
+          "median_ms": 0.418,
+          "p95_ms": 4.804,
+          "max_ms": 22.665
+        },
+        {
+          "operation": "frame.convert",
+          "width": 0,
+          "height": 0,
+          "samples": 1628,
+          "median_ms": 0.631,
+          "p95_ms": 1.409,
+          "max_ms": 285.199
+        },
+        {
+          "operation": "frame.delivery",
+          "width": 808,
+          "height": 601,
+          "samples": 1505,
+          "median_ms": 24.798,
+          "p95_ms": 64.656,
+          "max_ms": 754.329
+        },
+        {
+          "operation": "frame.queue",
+          "width": 0,
+          "height": 0,
+          "samples": 1628,
+          "median_ms": 3.963,
+          "p95_ms": 12.817,
+          "max_ms": 535.056
+        },
+        {
+          "operation": "frame.raster",
+          "width": 808,
+          "height": 601,
+          "samples": 1619,
+          "median_ms": 5.812,
+          "p95_ms": 20.064,
+          "max_ms": 196.155
+        },
+        {
+          "operation": "frame.raster",
+          "width": 2000,
+          "height": 1488,
+          "samples": 9,
+          "median_ms": 66.121,
+          "p95_ms": 150.924,
+          "max_ms": 150.924
+        },
+        {
+          "operation": "overlay.prepare",
+          "width": 0,
+          "height": 0,
+          "samples": 1628,
+          "median_ms": 7.572,
+          "p95_ms": 13.92,
+          "max_ms": 696.396
+        },
+        {
+          "operation": "tiles.admission",
+          "width": 0,
+          "height": 0,
+          "samples": 1627,
+          "median_ms": 0.002,
+          "p95_ms": 0.003,
+          "max_ms": 0.709
+        },
+        {
+          "operation": "tiles.admission_lock",
+          "width": 0,
+          "height": 0,
+          "samples": 1627,
+          "median_ms": 0.0,
+          "p95_ms": 0.0,
+          "max_ms": 0.046
+        },
+        {
+          "operation": "ui.overlay_shapes",
+          "width": 0,
+          "height": 0,
+          "samples": 1505,
+          "median_ms": 0.626,
+          "p95_ms": 1.131,
+          "max_ms": 45.279
+        },
+        {
+          "operation": "ui.texture_submit",
+          "width": 0,
+          "height": 0,
+          "samples": 1505,
+          "median_ms": 0.003,
+          "p95_ms": 0.242,
+          "max_ms": 6.412
+        },
+        {
+          "operation": "ui.update",
+          "width": 0,
+          "height": 0,
+          "samples": 2836,
+          "median_ms": 0.605,
+          "p95_ms": 1.339,
+          "max_ms": 49.721
+        }
+      ],
+      "max_inflight": 48,
+      "max_decoded_estimate_mib": 118.25,
+      "dropped_events_counter": 0
+    },
+    "close_zoom_loading": {
+      "timings": [
+        {
+          "operation": "decode.queue",
+          "width": 0,
+          "height": 0,
+          "samples": 442,
+          "median_ms": 0.024,
+          "p95_ms": 3.639,
+          "max_ms": 8.487
+        },
+        {
+          "operation": "decode.work",
+          "width": 0,
+          "height": 0,
+          "samples": 442,
+          "median_ms": 0.443,
+          "p95_ms": 1.516,
+          "max_ms": 18.166
+        },
+        {
+          "operation": "features.queue",
+          "width": 0,
+          "height": 0,
+          "samples": 28,
+          "median_ms": 0.024,
+          "p95_ms": 5.843,
+          "max_ms": 13.72
+        },
+        {
+          "operation": "features.work",
+          "width": 0,
+          "height": 0,
+          "samples": 28,
+          "median_ms": 4.595,
+          "p95_ms": 18.107,
+          "max_ms": 36.183
+        },
+        {
+          "operation": "frame.convert",
+          "width": 0,
+          "height": 0,
+          "samples": 231,
+          "median_ms": 0.617,
+          "p95_ms": 3.012,
+          "max_ms": 4.289
+        },
+        {
+          "operation": "frame.delivery",
+          "width": 808,
+          "height": 601,
+          "samples": 180,
+          "median_ms": 23.956,
+          "p95_ms": 66.234,
+          "max_ms": 302.793
+        },
+        {
+          "operation": "frame.delivery",
+          "width": 2000,
+          "height": 1488,
+          "samples": 36,
+          "median_ms": 72.445,
+          "p95_ms": 287.057,
+          "max_ms": 348.658
+        },
+        {
+          "operation": "frame.queue",
+          "width": 0,
+          "height": 0,
+          "samples": 231,
+          "median_ms": 3.283,
+          "p95_ms": 14.579,
+          "max_ms": 187.877
+        },
+        {
+          "operation": "frame.raster",
+          "width": 808,
+          "height": 601,
+          "samples": 195,
+          "median_ms": 12.897,
+          "p95_ms": 22.399,
+          "max_ms": 146.25
+        },
+        {
+          "operation": "frame.raster",
+          "width": 2000,
+          "height": 1488,
+          "samples": 36,
+          "median_ms": 64.282,
+          "p95_ms": 133.633,
+          "max_ms": 281.383
+        },
+        {
+          "operation": "overlay.index",
+          "width": 0,
+          "height": 0,
+          "samples": 2,
+          "median_ms": 108.203,
+          "p95_ms": 125.26,
+          "max_ms": 125.26
+        },
+        {
+          "operation": "overlay.prepare",
+          "width": 0,
+          "height": 0,
+          "samples": 233,
+          "median_ms": 0.494,
+          "p95_ms": 2.727,
+          "max_ms": 125.499
+        },
+        {
+          "operation": "tiles.admission",
+          "width": 0,
+          "height": 0,
+          "samples": 241,
+          "median_ms": 0.013,
+          "p95_ms": 0.022,
+          "max_ms": 0.112
+        },
+        {
+          "operation": "tiles.admission_lock",
+          "width": 0,
+          "height": 0,
+          "samples": 241,
+          "median_ms": 0.0,
+          "p95_ms": 0.0,
+          "max_ms": 0.004
+        },
+        {
+          "operation": "ui.overlay_shapes",
+          "width": 0,
+          "height": 0,
+          "samples": 176,
+          "median_ms": 0.021,
+          "p95_ms": 0.25,
+          "max_ms": 0.397
+        },
+        {
+          "operation": "ui.texture_submit",
+          "width": 0,
+          "height": 0,
+          "samples": 216,
+          "median_ms": 0.003,
+          "p95_ms": 0.083,
+          "max_ms": 1.721
+        },
+        {
+          "operation": "ui.update",
+          "width": 0,
+          "height": 0,
+          "samples": 588,
+          "median_ms": 0.189,
+          "p95_ms": 0.489,
+          "max_ms": 1.91
+        }
+      ],
+      "max_inflight": 48,
+      "max_decoded_estimate_mib": 239.75,
+      "dropped_events_counter": 0
+    },
+    "boundary_loading_close_zoom": {
+      "timings": [
+        {
+          "operation": "features.queue",
+          "width": 0,
+          "height": 0,
+          "samples": 29,
+          "median_ms": 0.026,
+          "p95_ms": 16.055,
+          "max_ms": 16.109
+        },
+        {
+          "operation": "features.work",
+          "width": 0,
+          "height": 0,
+          "samples": 29,
+          "median_ms": 58.357,
+          "p95_ms": 256.61,
+          "max_ms": 270.001
+        },
+        {
+          "operation": "overlay.index",
+          "width": 0,
+          "height": 0,
+          "samples": 2,
+          "median_ms": 584.466,
+          "p95_ms": 633.301,
+          "max_ms": 633.301
+        },
+        {
+          "operation": "overlay.prepare",
+          "width": 0,
+          "height": 0,
+          "samples": 2,
+          "median_ms": 593.619,
+          "p95_ms": 648.418,
+          "max_ms": 648.418
+        },
+        {
+          "operation": "ui.overlay_shapes",
+          "width": 0,
+          "height": 0,
+          "samples": 2,
+          "median_ms": 0.065,
+          "p95_ms": 0.077,
+          "max_ms": 0.077
+        },
+        {
+          "operation": "ui.update",
+          "width": 0,
+          "height": 0,
+          "samples": 67,
+          "median_ms": 0.414,
+          "p95_ms": 2.944,
+          "max_ms": 18.414
+        }
+      ],
+      "max_inflight": 0,
+      "max_decoded_estimate_mib": 239.75,
+      "dropped_events_counter": 0
+    },
+    "boundary_heavy_rotation": {
+      "timings": [
+        {
+          "operation": "decode.queue",
+          "width": 0,
+          "height": 0,
+          "samples": 4027,
+          "median_ms": 0.186,
+          "p95_ms": 10.46,
+          "max_ms": 113.988
+        },
+        {
+          "operation": "decode.work",
+          "width": 0,
+          "height": 0,
+          "samples": 4027,
+          "median_ms": 0.427,
+          "p95_ms": 4.444,
+          "max_ms": 273.401
+        },
+        {
+          "operation": "frame.convert",
+          "width": 0,
+          "height": 0,
+          "samples": 1302,
+          "median_ms": 0.515,
+          "p95_ms": 2.234,
+          "max_ms": 85.193
+        },
+        {
+          "operation": "frame.delivery",
+          "width": 808,
+          "height": 601,
+          "samples": 1158,
+          "median_ms": 30.784,
+          "p95_ms": 186.275,
+          "max_ms": 1379.312
+        },
+        {
+          "operation": "frame.delivery",
+          "width": 2000,
+          "height": 1488,
+          "samples": 1,
+          "median_ms": 337.341,
+          "p95_ms": 337.341,
+          "max_ms": 337.341
+        },
+        {
+          "operation": "frame.queue",
+          "width": 0,
+          "height": 0,
+          "samples": 1302,
+          "median_ms": 5.178,
+          "p95_ms": 21.56,
+          "max_ms": 231.666
+        },
+        {
+          "operation": "frame.raster",
+          "width": 808,
+          "height": 601,
+          "samples": 1277,
+          "median_ms": 16.18,
+          "p95_ms": 187.076,
+          "max_ms": 1267.484
+        },
+        {
+          "operation": "frame.raster",
+          "width": 2000,
+          "height": 1488,
+          "samples": 25,
+          "median_ms": 171.597,
+          "p95_ms": 2978.254,
+          "max_ms": 4281.795
+        },
+        {
+          "operation": "overlay.index",
+          "width": 0,
+          "height": 0,
+          "samples": 1,
+          "median_ms": 78.834,
+          "p95_ms": 78.834,
+          "max_ms": 78.834
+        },
+        {
+          "operation": "overlay.prepare",
+          "width": 0,
+          "height": 0,
+          "samples": 1302,
+          "median_ms": 0.286,
+          "p95_ms": 1.586,
+          "max_ms": 81.854
+        },
+        {
+          "operation": "tiles.admission",
+          "width": 0,
+          "height": 0,
+          "samples": 1278,
+          "median_ms": 0.017,
+          "p95_ms": 0.039,
+          "max_ms": 0.997
+        },
+        {
+          "operation": "tiles.admission_lock",
+          "width": 0,
+          "height": 0,
+          "samples": 1278,
+          "median_ms": 0.0,
+          "p95_ms": 0.0,
+          "max_ms": 0.004
+        },
+        {
+          "operation": "ui.overlay_shapes",
+          "width": 0,
+          "height": 0,
+          "samples": 1159,
+          "median_ms": 0.0,
+          "p95_ms": 0.017,
+          "max_ms": 8.686
+        },
+        {
+          "operation": "ui.texture_submit",
+          "width": 0,
+          "height": 0,
+          "samples": 1159,
+          "median_ms": 0.002,
+          "p95_ms": 0.005,
+          "max_ms": 11.067
+        },
+        {
+          "operation": "ui.update",
+          "width": 0,
+          "height": 0,
+          "samples": 3218,
+          "median_ms": 0.215,
+          "p95_ms": 0.922,
+          "max_ms": 497.123
+        }
+      ],
+      "max_inflight": 48,
+      "max_decoded_estimate_mib": 256.0,
+      "dropped_events_counter": 0
+    }
+  }
+}

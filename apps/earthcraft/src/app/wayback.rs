@@ -16,8 +16,8 @@ impl App {
         let (tx, rx) = mpsc::channel();
         self.wayback_rx = Some(rx);
         let ctx = ctx.clone();
-        std::thread::spawn(move || {
-            let _ = tx.send(load_wayback_releases());
+        self.runtime.spawn(async move {
+            let _ = tx.send(load_wayback_releases().await);
             ctx.request_repaint();
         });
     }
@@ -39,7 +39,7 @@ impl App {
             Ok(Err(e)) => {
                 self.wayback_rx = None;
                 self.wayback_started = false;
-                self.wayback_err = Some(e);
+                self.wayback_err = Some(e.to_string());
                 self.provider = Provider::Satellite;
             }
             Err(mpsc::TryRecvError::Disconnected) => self.wayback_rx = None,

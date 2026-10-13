@@ -22,7 +22,7 @@ jobs:
         rust: [stable]
         include:
           - os: ubuntu-latest
-            rust: '1.88'
+            rust: '1.89'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f
@@ -38,5 +38,7 @@ jobs:
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: Test
         run: cargo test --workspace --locked
+      - name: Check CPU-only desktop
+        run: cargo clippy -p earthcraft --all-targets --no-default-features --locked -- -D warnings
       - name: Build desktop application
         run: cargo build --workspace --locked
