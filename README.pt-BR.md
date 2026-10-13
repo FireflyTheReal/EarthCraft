@@ -2,6 +2,8 @@
 
 # EarthCraft 🌍
 
+[![Listed on Remade](https://remade.wiki/badges/listed-on-remade.svg)](https://remade.wiki/projects/earthcraft/)
+
 Globo 3D estilo Google Earth em Rust puro (egui + renderização por ray-casting em CPU).
 Roda em Windows, macOS e Linux sem dependências de sistema além do driver gráfico.
 

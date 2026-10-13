@@ -106,7 +106,7 @@ layers-state-borders-toggle = States / provinces (worldwide)
 
 layers-place-labels-toggle = Country, state and city names
 
-layers-municipal-borders-toggle = City / municipality borders (Brazil dataset)
+layers-municipal-borders-toggle = City / municipality borders (Brazil only)
 
 layers-metro-borders-toggle = Metropolitan regions (Brazil only)
 

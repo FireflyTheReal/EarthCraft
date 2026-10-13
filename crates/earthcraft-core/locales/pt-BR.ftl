@@ -106,7 +106,7 @@ layers-state-borders-toggle = Estados / províncias (mundo todo)
 
 layers-place-labels-toggle = Nomes de países, estados e cidades
 
-layers-municipal-borders-toggle = Limites de cidades / municípios (base do Brasil)
+layers-municipal-borders-toggle = Limites de cidades / municípios (disponível apenas para o Brasil)
 
 layers-metro-borders-toggle = Regiões metropolitanas (disponível apenas para o Brasil)
 

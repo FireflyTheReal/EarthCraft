@@ -87,7 +87,17 @@ fn all_original_labels_keep_exact_wording_and_help_newlines() {
     .unwrap();
     for (id, values) in fixture.as_object().unwrap() {
         for lang in Lang::ALL {
-            assert_eq!(lang.text(id), values[lang.code()].as_str().unwrap(), "{id}");
+            // Upstream 0c75953 intentionally clarified this label after the fixture.
+            let expected = match (id.as_str(), lang) {
+                ("layers-municipal-borders-toggle", Lang::En) => {
+                    "City / municipality borders (Brazil only)"
+                }
+                ("layers-municipal-borders-toggle", Lang::PtBr) => {
+                    "Limites de cidades / municípios (disponível apenas para o Brasil)"
+                }
+                _ => values[lang.code()].as_str().unwrap(),
+            };
+            assert_eq!(lang.text(id), expected, "{id}");
         }
     }
 }
