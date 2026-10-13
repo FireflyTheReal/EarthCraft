@@ -283,9 +283,11 @@ for hardware limits, performance and CPU-only build instructions.
 ## Native desktop File menu
 
 Windows and macOS use native menu adapters in `apps/earthcraft/src/app/menu`.
-macOS uses muda 0.19 (compatible with Rust 1.89); Windows uses the menu-only
-native-windows-gui API to attach commands and bind its existing HWND without
-workspace unsafe code. `raw-window-handle` obtains that borrowed HWND. All menu
+Both use muda 0.19 (compatible with Rust 1.89), with `raw-window-handle` on
+Windows. Libraries forbid unsafe code. The app denies it everywhere except the
+single Windows attachment function: a scoped allowance documents why the HWND
+borrowed from CreationContext is live on the event-loop thread. Do not broaden
+this allowance or add raw-handle teardown outside muda. All menu
 objects and handlers stay on the window thread and outlive native callbacks.
 Linux retains the sidebar's file controls.
 

@@ -1,4 +1,4 @@
-//! AppKit menus, kept on the native event-loop thread for their full lifetime.
+//! Native menu ownership stays on the event-loop thread for its full lifetime.
 use super::Action;
 use earthcraft_core::language::Lang;
 use muda::{
@@ -7,7 +7,7 @@ use muda::{
 };
 use std::sync::mpsc;
 pub(in crate::app) struct NativeMenu {
-    menu: Menu,
+    _menu: Menu,
     file: Submenu,
     items: Vec<(Action, MenuItem)>,
     lang: Lang,
@@ -17,7 +17,7 @@ pub(in crate::app) struct NativeMenu {
 impl NativeMenu {
     pub(super) fn new(cc: &eframe::CreationContext<'_>, lang: Lang) -> Result<Self, String> {
         let menu = Menu::new();
-        let file = Submenu::new(lang.text("menu-file-title"), true);
+        let file = Submenu::new(file_title(lang), true);
         let mut items = Vec::new();
         for action in Action::ALL {
             let key = match action {
@@ -26,17 +26,21 @@ impl NativeMenu {
                 Action::Screenshot => Code::KeyE,
                 Action::Quit => Code::KeyQ,
             };
+            #[cfg(target_os = "macos")]
+            let command = Modifiers::SUPER;
+            #[cfg(target_os = "windows")]
+            let command = Modifiers::CONTROL;
             let modifiers = if matches!(action, Action::SaveAs | Action::Screenshot) {
-                Modifiers::SUPER | Modifiers::SHIFT
+                command | Modifiers::SHIFT
             } else {
-                Modifiers::SUPER
+                command
             };
             let item = MenuItem::new(
                 action.label(lang),
                 action != Action::Screenshot,
                 Some(Accelerator::new(Some(modifiers), key)),
             );
-            if action != Action::Quit {
+            if cfg!(target_os = "windows") || action != Action::Quit {
                 if action == Action::Screenshot {
                     file.append(&PredefinedMenuItem::separator())
                         .map_err(|e| e.to_string())?;
@@ -45,19 +49,26 @@ impl NativeMenu {
             }
             items.push((action, item));
         }
-        // AppKit requires the application submenu before File. Retain standard
-        // application hiding actions and place Quit in its conventional location.
-        let app = Submenu::new("EarthCraft", true);
-        app.append_items(&[
-            &PredefinedMenuItem::hide(None),
-            &PredefinedMenuItem::hide_others(None),
-            &PredefinedMenuItem::show_all(None),
-            &PredefinedMenuItem::separator(),
-            &items.last().unwrap().1,
-        ])
-        .map_err(|e| e.to_string())?;
-        menu.append_items(&[&app, &file])
+        #[cfg(target_os = "macos")]
+        {
+            let app = Submenu::new("EarthCraft", true);
+            app.append_items(&[
+                &PredefinedMenuItem::hide(None),
+                &PredefinedMenuItem::hide_others(None),
+                &PredefinedMenuItem::show_all(None),
+                &PredefinedMenuItem::separator(),
+                &items.last().unwrap().1,
+            ])
             .map_err(|e| e.to_string())?;
+            menu.append(&app).map_err(|e| e.to_string())?;
+        }
+        menu.append(&file).map_err(|e| e.to_string())?;
+        // Attach before installing the process-wide event callback so initialization
+        // failures leave no callback pointing at an unusable menu.
+        #[cfg(target_os = "macos")]
+        menu.init_for_nsapp();
+        #[cfg(target_os = "windows")]
+        super::windows::attach(&menu, cc)?;
         let ids: Vec<_> = items
             .iter()
             .map(|(action, item)| (item.id().clone(), *action))
@@ -71,9 +82,8 @@ impl NativeMenu {
                 }
             }
         }));
-        menu.init_for_nsapp();
         Ok(Self {
-            menu,
+            _menu: menu,
             file,
             items,
             lang,
@@ -81,9 +91,9 @@ impl NativeMenu {
             events,
         })
     }
-    pub(super) fn update(&mut self, lang: Lang, has_image: bool) -> Result<(), String> {
+    pub(super) fn update(&mut self, lang: Lang, has_image: bool) {
         if lang != self.lang {
-            self.file.set_text(lang.text("menu-file-title"));
+            self.file.set_text(file_title(lang));
             for (action, item) in &self.items {
                 item.set_text(action.label(lang));
             }
@@ -97,12 +107,23 @@ impl NativeMenu {
             }
             self.screenshot_enabled = has_image;
         }
-        Ok(())
     }
 }
 impl Drop for NativeMenu {
     fn drop(&mut self) {
         MenuEvent::set_event_handler(None::<fn(MenuEvent)>);
-        self.menu.remove_for_nsapp();
+        #[cfg(target_os = "macos")]
+        self._menu.remove_for_nsapp();
+    }
+}
+
+fn file_title(lang: Lang) -> String {
+    #[cfg(target_os = "windows")]
+    {
+        format!("&{}", lang.text("menu-file-title"))
+    }
+    #[cfg(target_os = "macos")]
+    {
+        lang.text("menu-file-title").into()
     }
 }

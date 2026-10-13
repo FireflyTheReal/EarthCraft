@@ -2,14 +2,10 @@
 use super::App;
 use earthcraft_core::language::Lang;
 use eframe::egui;
-#[cfg(target_os = "macos")]
-mod macos;
-#[cfg(target_os = "macos")]
-pub(super) use macos::NativeMenu;
+mod native;
+pub(super) use native::NativeMenu;
 #[cfg(target_os = "windows")]
 mod windows;
-#[cfg(target_os = "windows")]
-pub(super) use windows::NativeMenu;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum Action {
@@ -66,9 +62,7 @@ impl App {
         let Some(menu) = &mut self.native_menu else {
             return;
         };
-        if let Err(error) = menu.update(self.lang, self.image.is_some()) {
-            self.status = format!("Native File menu update failed: {error}");
-        }
+        menu.update(self.lang, self.image.is_some());
         let mut actions = Vec::new();
         while let Ok(action) = menu.events.try_recv() {
             actions.push(action);
