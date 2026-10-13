@@ -49,16 +49,30 @@ pub fn geocode(q: &str, lang: &str) -> Result<Vec<GeoResult>, crate::Error> {
         .call()
         .map_err(crate::Error::from)?;
     let v: serde_json::Value = resp.into_json().map_err(crate::Error::from)?;
+    parse_geocode_response(v)
+}
+
+#[derive(serde::Deserialize)]
+struct NominatimResult {
+    #[serde(default, deserialize_with = "crate::json_fields::string_number")]
+    lat: Option<f64>,
+    #[serde(default, deserialize_with = "crate::json_fields::string_number")]
+    lon: Option<f64>,
+    #[serde(default, deserialize_with = "crate::json_fields::string_numbers")]
+    boundingbox: Vec<f64>,
+    #[serde(default, deserialize_with = "crate::json_fields::string")]
+    display_name: Option<String>,
+}
+fn parse_geocode_response(value: serde_json::Value) -> Result<Vec<GeoResult>, crate::Error> {
     let mut out = Vec::new();
-    for it in v.as_array().ok_or("resposta inválida")? {
-        let f = |k: &str| it[k].as_str().and_then(|s| s.parse::<f64>().ok());
-        let (Some(lat), Some(lon)) = (f("lat"), f("lon")) else {
+    for item in value.as_array().ok_or("resposta inválida")? {
+        let Ok(row) = serde_json::from_value::<NominatimResult>(item.clone()) else {
             continue;
         };
-        let bb: Vec<f64> = it["boundingbox"]
-            .as_array()
-            .map(|a| a.iter().filter_map(|x| x.as_str()?.parse().ok()).collect())
-            .unwrap_or_default();
+        let (Some(lat), Some(lon)) = (row.lat, row.lon) else {
+            continue;
+        };
+        let bb = row.boundingbox;
         let alt = if bb.len() == 4 {
             let span = (bb[1] - bb[0]).max((bb[3] - bb[2]) * lat.to_radians().cos().abs());
             (span * SEARCH_KM_PER_DEGREE * SEARCH_VIEW_PADDING_RATIO)
@@ -67,7 +81,7 @@ pub fn geocode(q: &str, lang: &str) -> Result<Vec<GeoResult>, crate::Error> {
             DEFAULT_SEARCH_ALTITUDE_KM
         };
         out.push(GeoResult {
-            name: it["display_name"].as_str().unwrap_or("?").to_string(),
+            name: row.display_name.unwrap_or_else(|| "?".into()),
             lat,
             lon,
             alt,
@@ -176,7 +190,20 @@ pub fn photon_suggest(q: &str, lang: &str) -> Result<Vec<Suggestion>, crate::Err
 
 #[cfg(test)]
 mod tests {
-    use super::parse_latlon;
+    use super::*;
+    #[test]
+    fn typed_search_skips_invalid_rows_and_retains_defaults() {
+        let rows = parse_geocode_response(serde_json::json!([
+            {"lat":"-15","lon":"-50","display_name":"Brasília"},
+            {"lat":"invalid","lon":"10"},
+            {"lat":"1","lon":"2","display_name":42,"boundingbox":["bad"]}
+        ]))
+        .unwrap();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].name, "Brasília");
+        assert_eq!(rows[1].name, "?");
+        assert_eq!(rows[1].alt, DEFAULT_SEARCH_ALTITUDE_KM);
+    }
 
     #[test]
     fn coordinates_accept_existing_separators_and_bounds() {

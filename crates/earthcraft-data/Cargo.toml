@@ -17,3 +17,4 @@ serde_json.workspace = true
 image.workspace = true
 bytemuck.workspace = true
 thiserror.workspace = true
+serde.workspace = true
