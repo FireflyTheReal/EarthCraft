@@ -9,6 +9,8 @@ pub enum Error {
     Image(#[from] image::ImageError),
     #[error(transparent)]
     Http(Box<ureq::Error>),
+    #[error(transparent)]
+    Xml(#[from] quick_xml::Error),
     #[error("{0}")]
     Message(String),
 }

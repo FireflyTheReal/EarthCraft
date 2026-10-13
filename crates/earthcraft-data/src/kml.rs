@@ -1,79 +1,133 @@
 use earthcraft_core::{language::Lang, placemark::Placemark};
-fn xml_escape(s: &str) -> String {
-    s.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-}
-fn xml_unescape(s: &str) -> String {
-    let s = s.trim();
-    let s = s
-        .strip_prefix("<![CDATA[")
-        .and_then(|x| x.strip_suffix("]]>"))
-        .unwrap_or(s);
-    s.replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&quot;", "\"")
-        .replace("&amp;", "&")
-}
-fn between<'a>(s: &'a str, a: &str, b: &str) -> Option<&'a str> {
-    let i = s.find(a)? + a.len();
-    let j = s[i..].find(b)? + i;
-    Some(&s[i..j])
-}
+use quick_xml::{
+    events::{BytesDecl, BytesEnd, BytesStart, BytesText, Event},
+    Reader, Writer,
+};
+
 pub fn save_kml(path: &str, pms: &[Placemark]) -> std::io::Result<()> {
-    let mut s = String::from(
-        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n<Document>\n<name>EarthCraft</name>\n",
-    );
-    for p in pms {
-        s += &format!(
-            "<Placemark><name>{}</name><description>{}</description><Point><coordinates>{},{},0</coordinates></Point></Placemark>\n",
-            xml_escape(&p.name),
-            xml_escape(&p.desc),
-            p.lon,
-            p.lat
-        );
+    let mut writer = Writer::new(Vec::new());
+    writer.write_event(Event::Decl(BytesDecl::new("1.0", Some("UTF-8"), None)))?;
+    let mut kml = BytesStart::new("kml");
+    kml.push_attribute(("xmlns", "http://www.opengis.net/kml/2.2"));
+    writer.write_event(Event::Start(kml))?;
+    writer.write_event(Event::Start(BytesStart::new("Document")))?;
+    writer
+        .create_element("name")
+        .write_text_content(BytesText::new("EarthCraft"))?;
+    for pm in pms {
+        writer.write_event(Event::Start(BytesStart::new("Placemark")))?;
+        writer
+            .create_element("name")
+            .write_text_content(BytesText::new(&pm.name))?;
+        writer
+            .create_element("description")
+            .write_text_content(BytesText::new(&pm.desc))?;
+        writer.write_event(Event::Start(BytesStart::new("Point")))?;
+        writer
+            .create_element("coordinates")
+            .write_text_content(BytesText::new(&format!("{},{},0", pm.lon, pm.lat)))?;
+        writer.write_event(Event::End(BytesEnd::new("Point")))?;
+        writer.write_event(Event::End(BytesEnd::new("Placemark")))?;
     }
-    s += "</Document>\n</kml>\n";
-    std::fs::write(path, s)
+    writer.write_event(Event::End(BytesEnd::new("Document")))?;
+    writer.write_event(Event::End(BytesEnd::new("kml")))?;
+    std::fs::write(path, writer.into_inner())
 }
-pub fn load_kml(path: &str, lg: Lang) -> Result<Vec<Placemark>, crate::Error> {
-    let txt = std::fs::read_to_string(path).map_err(crate::Error::from)?;
+#[derive(Default)]
+struct Draft {
+    name: Option<String>,
+    desc: String,
+    coordinates: Option<String>,
+}
+impl Draft {
+    fn finish(self, lg: Lang) -> Option<Placemark> {
+        let nums: Vec<f64> = self
+            .coordinates?
+            .trim()
+            .split(',')
+            .filter_map(|s| s.trim().parse().ok())
+            .collect();
+        (nums.len() >= 2).then(|| Placemark {
+            name: self
+                .name
+                .unwrap_or_else(|| lg.pick("Unnamed", "Sem nome").into()),
+            desc: self.desc,
+            lat: nums[1],
+            lon: nums[0],
+        })
+    }
+}
+fn parse_kml(txt: &str, lg: Lang) -> Result<Vec<Placemark>, crate::Error> {
+    let mut reader = Reader::from_str(txt);
+    // The legacy parser accepted documents whose enclosing tags were incomplete.
+    reader.config_mut().check_end_names = false;
     let mut out = Vec::new();
-    let mut rest = txt.as_str();
-    while let Some(i) = rest.find("<Placemark") {
-        let after = &rest[i..];
-        let end = after
-            .find("</Placemark>")
-            .map(|e| e + 12)
-            .unwrap_or(after.len());
-        let block = &after[..end];
-        if let Some(c) = between(block, "<coordinates>", "</coordinates>") {
-            let nums: Vec<f64> = c
-                .trim()
-                .split(',')
-                .filter_map(|x| x.trim().parse().ok())
-                .collect();
-            if nums.len() >= 2 {
-                out.push(Placemark {
-                    name: between(block, "<name>", "</name>")
-                        .map(xml_unescape)
-                        .unwrap_or_else(|| lg.pick("Unnamed", "Sem nome").into()),
-                    desc: between(block, "<description>", "</description>")
-                        .map(xml_unescape)
-                        .unwrap_or_default(),
-                    lat: nums[1],
-                    lon: nums[0],
-                });
+    let mut draft: Option<Draft> = None;
+    loop {
+        match reader.read_event()? {
+            Event::Start(tag) if tag.local_name().as_ref() == b"Placemark" => {
+                draft = Some(Draft::default())
             }
+            Event::Start(tag)
+                if draft.is_some()
+                    && matches!(
+                        tag.local_name().as_ref(),
+                        b"name" | b"description" | b"coordinates"
+                    ) =>
+            {
+                let raw = reader.read_text(tag.name())?;
+                let raw = raw.trim();
+                let raw = raw
+                    .strip_prefix("<![CDATA[")
+                    .and_then(|s| s.strip_suffix("]]>"))
+                    .unwrap_or(raw);
+                let text = quick_xml::escape::unescape(raw)
+                    .unwrap_or_else(|_| raw.into())
+                    .into_owned();
+                let d = draft.as_mut().expect("checked placemark state");
+                match tag.local_name().as_ref() {
+                    b"name" if d.name.is_none() => d.name = Some(text),
+                    b"description" if d.desc.is_empty() => d.desc = text,
+                    b"coordinates" if d.coordinates.is_none() => d.coordinates = Some(text),
+                    _ => {}
+                }
+            }
+            Event::End(tag) if tag.local_name().as_ref() == b"Placemark" => {
+                if let Some(pm) = draft.take().and_then(|d| d.finish(lg)) {
+                    out.push(pm);
+                }
+            }
+            Event::Eof => {
+                if let Some(pm) = draft.take().and_then(|d| d.finish(lg)) {
+                    out.push(pm);
+                }
+                break;
+            }
+            _ => {}
         }
-        rest = &after[end..];
     }
     Ok(out)
+}
+pub fn load_kml(path: &str, lg: Lang) -> Result<Vec<Placemark>, crate::Error> {
+    parse_kml(&std::fs::read_to_string(path)?, lg)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn cdata_entities_fallback_names_and_incomplete_envelope() {
+        let marks = parse_kml("<Placemark><description><![CDATA[A & B]]></description><Point><coordinates>-50,-15,0</coordinates></Point>", Lang::PtBr).unwrap();
+        assert_eq!(marks.len(), 1);
+        assert_eq!(marks[0].name, "Sem nome");
+        assert_eq!(marks[0].desc, "A & B");
+        let marks = parse_kml(
+            "<Placemark><name>A &amp; B</name><coordinates>1,2</coordinates></Placemark>",
+            Lang::En,
+        )
+        .unwrap();
+        assert_eq!(marks[0].name, "A & B");
+    }
 
     #[test]
     fn kml_roundtrip_preserves_names_descriptions_and_coordinate_order() {

@@ -19,3 +19,4 @@ bytemuck.workspace = true
 thiserror.workspace = true
 serde.workspace = true
 glam.workspace = true
+quick-xml.workspace = true
