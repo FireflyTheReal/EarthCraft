@@ -1,0 +1,125 @@
+use super::super::App;
+use earthcraft_core::{language::Lang, math::fmt_alt};
+use eframe::egui::{self, Key, Rect};
+impl App {
+    pub(in crate::app) fn top_bar(&mut self, ctx: &egui::Context) {
+        let lg = self.lang;
+        let mut field_rect = Rect::NOTHING;
+        egui::TopBottomPanel::top("top").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                ui.strong("🌍 EarthCraft");
+                ui.separator();
+
+                // Keys for the suggestion list must be consumed before the TextEdit sees them.
+                let popup = self.sugg_open && !self.suggestions.is_empty();
+                let (mut down, mut up, mut esc) = (false, false, false);
+                if popup {
+                    ctx.input_mut(|i| {
+                        down = i.consume_key(egui::Modifiers::NONE, Key::ArrowDown);
+                        up = i.consume_key(egui::Modifiers::NONE, Key::ArrowUp);
+                        esc = i.consume_key(egui::Modifiers::NONE, Key::Escape);
+                    });
+                    let n = self.suggestions.len();
+                    if down {
+                        self.sugg_sel = Some(self.sugg_sel.map_or(0, |i| (i + 1) % n));
+                    }
+                    if up {
+                        self.sugg_sel = Some(self.sugg_sel.map_or(n - 1, |i| (i + n - 1) % n));
+                    }
+                    if esc {
+                        self.sugg_open = false;
+                    }
+                }
+
+                let r = ui.add(
+                    egui::TextEdit::singleline(&mut self.query)
+                        .hint_text(lg.pick(
+                            "Search a place, address or “lat, lon”",
+                            "Buscar lugar, endereço ou “lat, lon”",
+                        ))
+                        .desired_width(340.0 * self.settings.ui_scale.max(1.0)),
+                );
+                field_rect = r.rect;
+                if r.changed() {
+                    self.on_query_changed();
+                }
+                if r.gained_focus() && !self.query.trim().is_empty() && !self.suggestions.is_empty()
+                {
+                    self.sugg_open = true;
+                }
+                let enter = r.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter));
+                if enter {
+                    match (self.sugg_open, self.sugg_sel) {
+                        (true, Some(i)) => self.choose_suggestion(i),
+                        _ => {
+                            self.sugg_open = false;
+                            self.start_search(ctx);
+                        }
+                    }
+                }
+                if ui.button(lg.pick("🔍 Search", "🔍 Buscar")).clicked() {
+                    self.sugg_open = false;
+                    self.start_search(ctx);
+                }
+                ui.separator();
+                ui.label(&self.status);
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui
+                        .button("⚙")
+                        .on_hover_text(lg.pick("Settings", "Configurações"))
+                        .clicked()
+                    {
+                        self.show_settings = !self.show_settings;
+                    }
+                    let mut chosen = self.lang;
+                    egui::ComboBox::from_id_source("lang_select")
+                        .selected_text(format!("🌐 {}", chosen.label()))
+                        .show_ui(ui, |ui| {
+                            for l in Lang::ALL {
+                                ui.selectable_value(&mut chosen, l, l.label());
+                            }
+                        });
+                    if chosen != self.lang {
+                        self.set_lang(chosen);
+                    }
+                });
+            });
+        });
+        self.suggestion_popup(ctx, field_rect);
+    }
+
+    /// Google-style dropdown with suggestions under the search field.
+    pub(in crate::app) fn bottom_bar(&mut self, ctx: &egui::Context) {
+        let lg = self.lang;
+        egui::TopBottomPanel::bottom("bottom").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                match self.cursor {
+                    Some((la, lo)) => ui.monospace(format!("Cursor: {la:>10.5}°, {lo:>11.5}°")),
+                    None => ui.monospace("Cursor: —"),
+                };
+                ui.separator();
+                ui.monospace(format!(
+                    "{}: {:.4}°, {:.4}°",
+                    lg.pick("Center", "Centro"),
+                    self.cam.lat,
+                    self.cam.lon
+                ));
+                ui.separator();
+                ui.monospace(format!(
+                    "{}: {}",
+                    lg.pick("Camera altitude", "Altitude da câmera"),
+                    fmt_alt(self.cam.alt)
+                ));
+                ui.separator();
+                let n = self.cache.inflight();
+                if n > 0 {
+                    ui.monospace(format!("⏳ {} {n} tiles", lg.pick("loading", "carregando")));
+                } else {
+                    ui.monospace("✔ tiles ok");
+                }
+            });
+        });
+    }
+
+    // ───────── Globo ─────────
+}
