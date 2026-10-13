@@ -117,6 +117,14 @@ User instructions and the requested scope take precedence over these defaults.
   and disk fallback. Stream large GeoJSON feature collections; share immutable
   coordinate lines and request municipal data only when its layers are visible.
   Account for temporary references and GPU textures separately when measuring.
+- Persist imagery through MBTiles and the single tokio-rusqlite worker. Keep
+  provider/release/encoded-format identities separate, convert XYZ rows to TMS,
+  retain legacy-file fallback/migration and respect the disk epoch on writeback.
+  The 128 MiB disk target counts managed file bytes, including SQLite overhead;
+  reclaim pages when evicting and prefer coarse overview retention. Publish tiles
+  before optional persistence. Keep SQLite out of UI/pixel loops. Clear only owned
+  tile directories, preserve other data and report actual usage. R-tree/FTS5
+  belong to a separate auxiliary catalog, not imagery's exact-key hot path.
 - Keep startup overview warming bounded and subordinate to visible requests. Use
   the existing cache budget and disk loader; avoid pinning a second unaccounted
   tile set. Respect provider prefetch policies; the public OSM service stays on

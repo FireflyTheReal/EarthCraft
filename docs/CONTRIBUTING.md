@@ -78,7 +78,8 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
   progress/completion, retained imagery in memory, preservation of settings and
   boundary caches, and that old queued downloads do not restore deleted files.
   Check the usage readout beside the button before clearing and its refreshed
-  value afterward; it counts encoded tile files, excluding filesystem overhead.
+  value afterward; it counts managed MBTiles/legacy file lengths, including SQLite overhead
+  but excluding filesystem allocation overhead.
   Verify that fresh visible misses and a later startup can cache tiles again.
 - Switch satellite/streets/topography/historical imagery; verify loading,
   release selection, fallback and attribution.

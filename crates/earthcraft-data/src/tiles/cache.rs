@@ -204,36 +204,46 @@ impl TileCache {
     }
 }
 
-async fn fetch_tile(k: TileKey, disk: &DiskCache, epoch: u64) -> Result<Tile, crate::Error> {
-    let (p, z, x, y, rel) = unkey(k);
-    let path = disk.path(k)?;
-    let (bytes, from_disk) = match disk.read(&path).await {
-        Some(bytes) => (bytes, true),
-        None => {
-            let url = p.url(z, x, y, rel);
-            if url.is_empty() {
-                return Err("empty url".into());
-            }
-            (
-                crate::http::body(
-                    crate::http::client(crate::http::Policy::Tile)?.get(url),
-                    MAX_TILE_RESPONSE_BYTES,
-                )
-                .await?,
-                false,
-            )
-        }
-    };
-    let (tile, bytes) = crate::cpu::run(crate::cpu::Service::Tiles, move || {
+struct FetchedTile {
+    tile: Tile,
+    persistence: Option<(std::path::PathBuf, Vec<u8>)>,
+}
+async fn decode(bytes: Vec<u8>) -> Result<(Tile, Vec<u8>), crate::Error> {
+    crate::cpu::run(crate::cpu::Service::Tiles, move || {
         Tile::decode(&bytes).map(|tile| (tile, bytes))
     })
-    .await?;
-    if !from_disk {
-        // Optional persistence stays best-effort; a writable disk cache is not
-        // required to display successfully downloaded imagery.
-        let _ = disk.write(&path, &bytes, epoch).await;
+    .await
+}
+async fn fetch_tile(k: TileKey, disk: &DiskCache) -> Result<FetchedTile, crate::Error> {
+    let (provider, zoom, x, y, release) = unkey(k);
+    let path = disk.path(k)?;
+    if let Some(bytes) = disk.read(&path).await {
+        match decode(bytes).await {
+            Ok((tile, _)) => {
+                return Ok(FetchedTile {
+                    tile,
+                    persistence: None,
+                })
+            }
+            Err(_) => {
+                let _ = disk.invalidate(&path).await;
+            }
+        }
     }
-    Ok(tile)
+    let url = provider.url(zoom, x, y, release);
+    if url.is_empty() {
+        return Err("empty tile URL".into());
+    }
+    let bytes = crate::http::body(
+        crate::http::client(crate::http::Policy::Tile)?.get(url),
+        MAX_TILE_RESPONSE_BYTES,
+    )
+    .await?;
+    let (tile, bytes) = decode(bytes).await?;
+    Ok(FetchedTile {
+        tile,
+        persistence: Some((path, bytes)),
+    })
 }
 async fn worker(
     cache: std::sync::Weak<TileCache>,
@@ -250,9 +260,21 @@ async fn worker(
         let Some((key, epoch)) = cache.next_job() else {
             continue;
         };
-        let result = fetch_tile(key, &cache.disk, epoch).await;
-        cache.complete(key, result);
-        repaint();
+        match fetch_tile(key, &cache.disk).await {
+            Ok(FetchedTile { tile, persistence }) => {
+                // Publish before optional SQLite persistence, so writes/eviction do
+                // not delay imagery readiness. Persistence keeps its original epoch.
+                cache.complete(key, Ok(tile));
+                repaint();
+                if let Some((path, bytes)) = persistence {
+                    let _ = cache.disk.write_owned(&path, bytes, epoch).await;
+                }
+            }
+            Err(error) => {
+                cache.complete(key, Err(error));
+                repaint();
+            }
+        }
     }
 }
 

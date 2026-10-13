@@ -214,3 +214,14 @@ O coordenador de frames fica em render e recebe callbacks de repaint/admissão.
 A interpolação de voo da câmera fica em `earthcraft-core::flight`; ranking,
 deduplicação e combinação das sugestões ficam em `earthcraft-data::search`.
 Temporização dos eventos, entrada, texturas e diálogos nativos continuam no app.
+
+## Cache persistente MBTiles
+
+Tiles persistidos usam MBTiles 1.3, separados por provedor, release Wayback e
+formato PNG/JPEG. As linhas XYZ são convertidas para TMS. Um único worker de
+tokio-rusqlite atende os arquivos; arquivos `.tile` antigos migram sob demanda.
+O alvo de 128 MiB inclui páginas e metadados SQLite. Detalhes antigos são
+removidos antes do overview global, com recuperação de páginas por auto-vacuum.
+O botão existente limpa somente tiles e conserva dados em RAM, configurações e
+arquivos pessoais; a leitura de uso conta os tamanhos reais dos arquivos.
+R-tree e FTS5 estão disponíveis, mas não são necessários para chaves de imagens.

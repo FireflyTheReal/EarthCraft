@@ -373,3 +373,23 @@ Completion wakes egui, which applies imported marks, flight targets, paths and
 localized statuses. Native dialogs remain app-owned. Feature parsing and tile
 decoding use their separate pools. A local test covers ordered save/open, edits
 after submission, missing-file errors, PNG content and completion wakeups.
+
+## MBTiles checkpoint
+
+Persistent tiles now use MBTiles 1.3 with tokio-rusqlite 0.8 and rusqlite 0.40
+(bundled SQLite). One background connection worker attaches separate tilesets
+for providers, stable Wayback releases and PNG/JPEG formats. XYZ-to-TMS rows,
+metadata, encoded payloads, lazy legacy migration and reopen reads are tested.
+Overview plus visited detail use the user-selected 128 MiB managed-file target;
+eviction counts SQLite pages/metadata, prefers retaining the global overview,
+and reclaims file bytes through full auto-vacuum. Clearing still preserves RAM
+and other data, rejects pre-clear writeback, and refreshes actual usage. Decoded
+tiles publish before persistence; corrupt tile bytes are invalidated for refetch.
+
+The bundled R-tree and FTS5 modules are available and tested without loading
+extensions. They belong in a separate geometry/place catalog if needed, not the
+MBTiles imagery schema. No Serde row-mapping dependency is needed for key/BLOB
+queries. Native cache usage and clearing were exercised while imagery remained
+available. Rust 1.89 all-target checks, workspace regressions, strict Clippy and
+the macOS ARM64 build passed. Other platforms and native KML dialogs remain
+unverified for this checkpoint.

@@ -268,27 +268,44 @@ CPU rasterization, texture upload or geographic-overlay work. Streets, topograph
 and historical imagery are not globally prefetched. The public OSM service
 [prohibits prefetching](https://operations.osmfoundation.org/policies/tiles/).
 
-Settings offers **Clear on-disk cache** for downloaded imagery. The data-owned
-`DiskCache` removes only the four provider directories, preserving settings,
-language, boundary caches and personal files. Clearing runs asynchronously;
-the button is disabled until completion, and results reach the normal status bar.
-The adjacent usage readout sums encoded file lengths in the same provider directories,
-excluding settings, boundary data and filesystem allocation overhead. Measurement
-runs on a blocking worker, coordinated with clearing, and refreshes at most once
-every five seconds while Settings is open, plus after clearing. No scan runs in
-the UI or pixel loops, and closed Settings does not schedule further scans.
-Decoded Moka tiles remain available. The app cancels the remaining overview plan
-for that session so clearing does not trigger speculative downloads immediately.
-Future visible misses and the next startup may download tiles again.
+Persistent imagery uses MBTiles 1.3 SQLite tilesets under the existing provider
+directories. Each provider/Wayback release and encoded image format has its own
+file; metadata describes its format, and XYZ rows are flipped to TMS on disk.
+Legacy `.tile` files are imported lazily without another network fetch. The
+original encoded PNG/JPEG bytes are retained; decoding remains on tile workers.
 
-An async read/write gate coordinates this instance's disk reads/writes with
-clearing. Each request captures the disk epoch at admission; clearing advances
-it, so queued and active old jobs can complete into RAM but cannot restore deleted
-files. Provider symlinks are removed without following their targets. Cache writes
-retain best-effort behavior; clear failures are reported in English. This is
-in-process coordination, not a lock between multiple running applications.
-The current persistent cache remains individual tile files; MBTiles and a disk
-size budget are proposed later stages and are not implemented yet.
+One lazy `tokio-rusqlite` in-memory connection supplies a single background worker
+for this cache. It attaches one persistent tileset at a time, avoiding a thread
+per provider/release and keeping SQLite/file work off Tokio/egui. `rusqlite`
+remains the direct driver dependency, with bundled SQLite for consistent builds.
+SQLite R-tree and FTS5 support is compiled and tested; imagery uses exact B-tree
+keys and does not need those extensions. MBTiles tables use core SQLite features.
+Serde row mapping remains optional for a future typed place/geometry catalog.
+
+Overview and visited detail share a 128 MiB managed-file target, counting SQLite
+pages, indexes, metadata and legacy tile files. Least-recently-used detail is
+evicted before the satellite z0–4 overview. Overview retention is preferred, not
+unbounded: overview tiles can also be evicted if they alone exceed the target.
+Full auto-vacuum reclaims freed pages, and empty tilesets are removed. Eviction
+creates headroom to avoid running at every subsequent insertion. The readout
+counts actual managed file lengths; it is not just the sum of BLOB payloads.
+Temporary SQLite journals and another running instance can exceed a snapshot
+briefly; this is an instance-managed target, not a cross-process disk quota.
+
+Settings offers **Clear on-disk cache**. Clearing and usage measurement run on the
+same database worker, with an async read/write gate coordinating them with I/O.
+The request epoch prevents old downloads from restoring cleared data. Only the
+owned provider directories are removed; settings, language, boundary caches,
+KML and screenshots remain. Provider symlinks are removed without following their
+targets. The existing button and five-second usage refresh remain. Clear cancels
+this session's remaining speculative warmup, while future visible misses and a
+later startup may persist new tiles. Decoded Moka tiles remain available.
+
+Tiles publish to RAM and wake egui before optional persistence. Corrupt image
+entries are invalidated and retried from the network instead of repeatedly
+reading the same bad bytes. SQLite failures retain best-effort persistence: a
+writable disk is not required to display downloaded imagery. This gate is
+in-process coordination, not a lock between running applications.
 
 Startup loads world countries, states and populated-place labels. Brazilian
 municipality labels are requested below their existing 300 km visibility limit;

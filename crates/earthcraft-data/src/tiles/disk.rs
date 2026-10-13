@@ -7,7 +7,10 @@ use std::{
     sync::atomic::{AtomicU64, Ordering},
 };
 
+mod mbtiles;
+
 pub(super) struct DiskCache {
+    tilesets: mbtiles::Mbtiles,
     root: PathBuf,
     epoch: AtomicU64,
     gate: tokio::sync::RwLock<()>,
@@ -16,6 +19,7 @@ pub(super) struct DiskCache {
 impl DiskCache {
     pub(super) fn new(root: PathBuf) -> Self {
         Self {
+            tilesets: mbtiles::Mbtiles::new(root.clone()),
             root,
             epoch: AtomicU64::new(0),
             gate: tokio::sync::RwLock::new(()),
@@ -42,44 +46,41 @@ impl DiskCache {
     }
     pub(super) async fn read(&self, path: &Path) -> Option<Vec<u8>> {
         let _guard = self.gate.read().await;
-        tokio::fs::read(path).await.ok()
+        self.tilesets.read(path).await.ok().flatten()
     }
-    pub(super) async fn write(&self, path: &Path, bytes: &[u8], epoch: u64) -> io::Result<()> {
+    #[cfg(test)]
+    pub(super) async fn write(
+        &self,
+        path: &Path,
+        bytes: &[u8],
+        epoch: u64,
+    ) -> Result<(), crate::Error> {
+        self.write_owned(path, bytes.to_vec(), epoch).await
+    }
+    pub(super) async fn write_owned(
+        &self,
+        path: &Path,
+        bytes: Vec<u8>,
+        epoch: u64,
+    ) -> Result<(), crate::Error> {
         let _guard = self.gate.read().await;
-        // Jobs admitted before clearing may still finish decoding into RAM,
-        // but must not restore their downloads to disk after the clear.
         if epoch != self.epoch() {
             return Ok(());
         }
-        if let Some(parent) = path.parent() {
-            tokio::fs::create_dir_all(parent).await?;
-        }
-        tokio::fs::write(path, bytes).await
+        self.tilesets.write_owned(path, bytes).await
     }
-    pub(super) async fn clear(&self) -> io::Result<()> {
+    pub(super) async fn invalidate(&self, path: &Path) -> Result<(), crate::Error> {
+        let _guard = self.gate.read().await;
+        self.tilesets.invalidate(path).await
+    }
+    pub(super) async fn clear(&self) -> Result<(), crate::Error> {
         let _guard = self.gate.write().await;
         self.epoch.fetch_add(1, Ordering::Relaxed);
-        // Only owned provider directories: settings, language, boundary data,
-        // and personal files elsewhere in the cache root are preserved.
-        for provider in Provider::ALL {
-            let path = self.root.join(provider.dir());
-            let metadata = match tokio::fs::symlink_metadata(&path).await {
-                Ok(metadata) => metadata,
-                Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
-                Err(error) => return Err(error),
-            };
-            if metadata.file_type().is_symlink() {
-                tokio::fs::remove_file(path).await?;
-            } else {
-                tokio::fs::remove_dir_all(path).await?;
-            }
-        }
-        Ok(())
+        self.tilesets.clear().await
     }
     pub(super) async fn usage_bytes(&self) -> Result<u64, crate::Error> {
         let _guard = self.gate.read().await;
-        let root = self.root.clone();
-        Ok(tokio::task::spawn_blocking(move || count_file_bytes(&root)).await??)
+        self.tilesets.usage().await
     }
 }
 

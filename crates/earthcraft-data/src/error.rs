@@ -14,6 +14,10 @@ pub enum Error {
     #[error(transparent)]
     Kml(#[from] ::kml::Error),
     #[error(transparent)]
+    Sqlite(#[from] rusqlite::Error),
+    #[error(transparent)]
+    SqliteWorker(#[from] tokio_rusqlite::Error),
+    #[error(transparent)]
     Task(#[from] tokio::task::JoinError),
     #[error("{0}")]
     Message(String),
