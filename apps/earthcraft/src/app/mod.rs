@@ -86,6 +86,7 @@ pub(crate) struct App {
 
     settings: Settings,
     saved_settings: Settings,
+    settings_writer: earthcraft_data::settings::SettingsWriter,
     applied_ui_scale: f32,
     ui_scale_edit: f32, // slider value while dragging (committed on release)
     show_settings: bool,
@@ -190,6 +191,11 @@ impl App {
             ui_scale_edit: settings.ui_scale,
             settings: settings.clone(),
             saved_settings: settings,
+            settings_writer: earthcraft_data::settings::SettingsWriter::new({
+                let ctx = cc.egui_ctx.clone();
+                move || ctx.request_repaint()
+            })
+            .expect("start settings writer"),
             applied_ui_scale: 0.0,
             show_settings: false,
             wayback_list: vec![],
@@ -219,8 +225,11 @@ impl eframe::App for App {
         }
         // persist settings once a slider is released
         if self.settings != self.saved_settings && !ctx.input(|i| i.pointer.any_down()) {
-            self.settings.save();
+            self.settings_writer.settings(&self.settings);
             self.saved_settings = self.settings.clone();
+        }
+        if let Some(error) = self.settings_writer.take_error() {
+            self.status = format!("Settings persistence failed: {error}");
         }
         self.poll_files();
         self.handle_dropped_files(ctx);

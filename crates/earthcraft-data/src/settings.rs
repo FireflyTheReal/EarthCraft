@@ -1,7 +1,9 @@
+mod writer;
 use crate::paths::{cache_dir, default_out_dir};
 use earthcraft_core::language::Lang;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+pub use writer::SettingsWriter;
 pub const MIN_UI_SCALE: f32 = 0.7;
 pub const MAX_UI_SCALE: f32 = 2.5;
 pub const MIN_MAP_SCALE: f32 = 0.6;
@@ -20,11 +22,6 @@ pub fn load_lang() -> Lang {
         _ => Lang::En, // English is the default
     }
 }
-pub fn save_lang(l: Lang) {
-    let _ = std::fs::create_dir_all(cache_dir());
-    let _ = std::fs::write(lang_file(), l.code());
-}
-
 #[derive(Clone, PartialEq, Serialize)]
 pub struct Settings {
     pub screenshot_dir: String,
@@ -79,12 +76,6 @@ impl Settings {
             let _ = settings.apply_json(&bytes);
         }
         settings
-    }
-    pub fn save(&self) {
-        if let Ok(bytes) = serde_json::to_vec(self) {
-            let _ = std::fs::create_dir_all(cache_dir());
-            let _ = std::fs::write(settings_file(), bytes);
-        }
     }
 }
 #[cfg(test)]

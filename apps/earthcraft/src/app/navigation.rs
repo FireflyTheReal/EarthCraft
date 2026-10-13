@@ -1,14 +1,13 @@
 use super::App;
 use earthcraft_core::flight::Flight;
 use earthcraft_core::language::Lang;
-use earthcraft_data::settings::save_lang;
 use eframe::egui::{Pos2, Rect};
 use std::time::Instant;
 
 impl App {
     pub(super) fn set_lang(&mut self, l: Lang) {
         self.lang = l;
-        save_lang(l);
+        self.settings_writer.language(l);
         self.status = l.text("app-ready-status").into();
     }
 
