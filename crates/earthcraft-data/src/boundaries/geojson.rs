@@ -1,6 +1,7 @@
 use super::{LabelKind, Line, MapLabel};
 use earthcraft_core::language::fold_name;
 use std::collections::HashMap;
+use std::sync::Arc;
 /// Keeps only the segments that belong to exactly one polygon, i.e. the outer boundary of a group
 /// of neighbouring municipalities (shared inner borders appear twice and are dropped).
 pub(super) fn outer_outline<'a>(lines: impl Iterator<Item = &'a Line>) -> Vec<Line> {
@@ -26,7 +27,7 @@ pub(super) fn outer_outline<'a>(lines: impl Iterator<Item = &'a Line>) -> Vec<Li
     count
         .into_values()
         .filter(|e| e.0 == 1)
-        .map(|e| vec![e.1, e.2])
+        .map(|e| Arc::new(vec![e.1, e.2]))
         .collect()
 }
 
@@ -117,7 +118,7 @@ pub fn dedupe_city_labels(labels: &mut Vec<MapLabel>) {
 }
 
 // Recursively extracts GeoJSON coordinate sequences. GeoJSON order is [longitude, latitude].
-pub(super) fn collect_geojson_lines(value: &serde_json::Value, out: &mut Vec<Vec<(f64, f64)>>) {
+pub(super) fn collect_geojson_lines(value: &serde_json::Value, out: &mut Vec<Line>) {
     let Some(items) = value.as_array() else {
         return;
     };
@@ -137,7 +138,7 @@ pub(super) fn collect_geojson_lines(value: &serde_json::Value, out: &mut Vec<Vec
             })
             .collect();
         if line.len() >= 2 {
-            out.push(line);
+            out.push(Arc::new(line));
         }
     } else {
         for child in items {
@@ -156,7 +157,7 @@ mod tests {
         let value = json!([[[10.0, 20.0], [11.0, 21.0], [181.0, 30.0]], [[0.0, 0.0]]]);
         let mut lines = Vec::new();
         collect_geojson_lines(&value, &mut lines);
-        assert_eq!(lines, vec![vec![(20.0, 10.0), (21.0, 11.0)]]);
+        assert_eq!(lines, vec![Arc::new(vec![(20.0, 10.0), (21.0, 11.0)])]);
     }
 
     #[test]
@@ -165,10 +166,11 @@ mod tests {
             vec![(0.0, 0.0), (0.0, 1.0), (1.0, 1.0)],
             vec![(1.0, 1.0), (0.0, 1.0), (0.0, 2.0)],
         ];
+        let lines: Vec<Line> = lines.into_iter().map(Arc::new).collect();
         let outline = outer_outline(lines.iter());
         assert_eq!(outline.len(), 2);
-        assert!(outline.contains(&vec![(0.0, 0.0), (0.0, 1.0)]));
-        assert!(outline.contains(&vec![(0.0, 1.0), (0.0, 2.0)]));
+        assert!(outline.contains(&Arc::new(vec![(0.0, 0.0), (0.0, 1.0)])));
+        assert!(outline.contains(&Arc::new(vec![(0.0, 1.0), (0.0, 2.0)])));
     }
 
     #[test]

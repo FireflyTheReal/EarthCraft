@@ -137,3 +137,23 @@ The app still polls its existing result channels and receives repaint callbacks.
 Network/file I/O is async; image decoding and JSON parsing use blocking tasks so
 large inputs cannot monopolize an async worker. Rasterization continues on Rayon.
 The async transport is tested against local HTTP fixtures, not public services.
+
+## Memory policy
+
+Decoded tiles have a 128 MiB byte budget and least-recently-used eviction. This
+limits retained cache pixels; temporary renderer references, request bodies,
+geometry, textures and other application allocations are separate. Failed requests
+retain their retry delay. Tile workers use weak cache ownership while idle.
+
+Startup loads world countries, states and populated-place labels. Brazilian
+municipality labels are requested below their existing 300 km visibility limit;
+municipal/metropolitan geometry starts when either layer is enabled. Labels-only
+loading does not retain polygon lines. A later geometry request upgrades the
+loaded data once. Geographic lines use shared `Arc<Vec<_>>` storage so overlays
+and metropolitan construction do not duplicate coordinate arrays.
+
+Large GeoJSON downloads stream into temporary files, then Serde projects one
+feature at a time on blocking workers. Cache files are replaced only after valid
+parsing; temporary files are cleaned up, and a writable cache is not required.
+At most two feature jobs run concurrently, and Brazilian states are processed
+sequentially. The service runtime also bounds blocking workers.

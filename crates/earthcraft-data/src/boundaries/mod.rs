@@ -1,10 +1,11 @@
 use earthcraft_core::language::Lang;
 use std::sync::{Arc, Mutex};
+mod brazil;
 mod geojson;
 mod load;
 pub use geojson::dedupe_city_labels;
-pub use load::load_boundaries_async;
-pub type Line = Vec<(f64, f64)>;
+pub use load::{load_boundaries_async, BoundaryLoader};
+pub type Line = Arc<Vec<(f64, f64)>>;
 
 #[derive(Default)]
 pub struct BoundaryData {

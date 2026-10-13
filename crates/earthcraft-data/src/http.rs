@@ -3,8 +3,8 @@ use std::{path::PathBuf, time::Duration};
 const MAX_CACHE_FILENAME_CHARS: usize = 120;
 const JSON_CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
 const JSON_READ_TIMEOUT: Duration = Duration::from_secs(90);
-const JSON_REQUEST_ATTEMPTS: usize = 2;
-const MAX_JSON_RESPONSE_BYTES: u64 = 1 << 30;
+pub(crate) const JSON_REQUEST_ATTEMPTS: usize = 2;
+pub(crate) const MAX_JSON_RESPONSE_BYTES: u64 = 1 << 30;
 
 pub(crate) fn geo_cache_path(url: &str) -> PathBuf {
     let clean: String = url

@@ -45,56 +45,58 @@ impl App {
         } else {
             0.0
         };
-        let draw_lines =
-            |lines: &[Vec<(f64, f64)>], color: Color32, width: f32, max_step_deg: f64| {
-                let stroke = Stroke::new(width, color);
-                for line in lines {
-                    let mut anchor: Option<Pos2> = None;
-                    for pair in line.windows(2) {
-                        let (lat1, lon1) = pair[0];
-                        let (lat2, lon2) = pair[1];
-                        let dlat = lat2 - lat1;
-                        let mut dlon = lon2 - lon1;
-                        if dlon > 180.0 {
-                            dlon -= 360.0;
+        let draw_lines = |lines: &[earthcraft_data::boundaries::Line],
+                          color: Color32,
+                          width: f32,
+                          max_step_deg: f64| {
+            let stroke = Stroke::new(width, color);
+            for line in lines {
+                let mut anchor: Option<Pos2> = None;
+                for pair in line.windows(2) {
+                    let (lat1, lon1) = pair[0];
+                    let (lat2, lon2) = pair[1];
+                    let dlat = lat2 - lat1;
+                    let mut dlon = lon2 - lon1;
+                    if dlon > 180.0 {
+                        dlon -= 360.0;
+                    }
+                    if dlon < -180.0 {
+                        dlon += 360.0;
+                    }
+                    let start = basis.project(ll_to_v3(lat1, lon1), rect);
+                    let end = basis.project(ll_to_v3(lat2, lon2), rect);
+                    if let (Some(a), Some(b)) = (start, end) {
+                        // Common case: both endpoints are visible, so no extra sampling needed.
+                        let from = anchor.unwrap_or(a);
+                        if (b - from).length_sq() >= min_sq {
+                            painter.line_segment([from, b], stroke);
+                            anchor = Some(b);
+                        } else if anchor.is_none() {
+                            anchor = Some(a);
                         }
-                        if dlon < -180.0 {
-                            dlon += 360.0;
+                        continue;
+                    }
+                    anchor = None;
+                    let span = dlat.abs().max(dlon.abs());
+                    if span < max_step_deg {
+                        continue;
+                    }
+                    let steps =
+                        ((span / max_step_deg).ceil() as usize).clamp(1, MAX_BORDER_SUBDIVISIONS);
+                    let mut prev = start;
+                    for i in 1..=steps {
+                        let t = i as f64 / steps as f64;
+                        let lon = wrap_lon(lon1 + dlon * t);
+                        let lat = lat1 + dlat * t;
+                        let cur = basis.project(ll_to_v3(lat, lon), rect);
+                        if let (Some(a), Some(b)) = (prev, cur) {
+                            painter.line_segment([a, b], stroke);
                         }
-                        let start = basis.project(ll_to_v3(lat1, lon1), rect);
-                        let end = basis.project(ll_to_v3(lat2, lon2), rect);
-                        if let (Some(a), Some(b)) = (start, end) {
-                            // Common case: both endpoints are visible, so no extra sampling needed.
-                            let from = anchor.unwrap_or(a);
-                            if (b - from).length_sq() >= min_sq {
-                                painter.line_segment([from, b], stroke);
-                                anchor = Some(b);
-                            } else if anchor.is_none() {
-                                anchor = Some(a);
-                            }
-                            continue;
-                        }
-                        anchor = None;
-                        let span = dlat.abs().max(dlon.abs());
-                        if span < max_step_deg {
-                            continue;
-                        }
-                        let steps = ((span / max_step_deg).ceil() as usize)
-                            .clamp(1, MAX_BORDER_SUBDIVISIONS);
-                        let mut prev = start;
-                        for i in 1..=steps {
-                            let t = i as f64 / steps as f64;
-                            let lon = wrap_lon(lon1 + dlon * t);
-                            let lat = lat1 + dlat * t;
-                            let cur = basis.project(ll_to_v3(lat, lon), rect);
-                            if let (Some(a), Some(b)) = (prev, cur) {
-                                painter.line_segment([a, b], stroke);
-                            }
-                            prev = cur;
-                        }
+                        prev = cur;
                     }
                 }
-            };
+            }
+        };
         let close_zoom = self.cam.alt <= CLOSE_BORDER_ALTITUDE_KM;
         if self.show_country_boundaries {
             draw_lines(

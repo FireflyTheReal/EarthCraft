@@ -43,6 +43,7 @@ struct Fly {
 
 pub(crate) struct App {
     runtime: earthcraft_data::runtime::ServiceRuntime,
+    boundary_loader: earthcraft_data::boundaries::BoundaryLoader,
     lang: Lang,
     cam: Cam,
     fly: Option<Fly>,
@@ -117,6 +118,8 @@ impl App {
         let lang = load_lang();
         let settings = Settings::load();
         let boundary_log: StatusLog = Arc::new(Mutex::new(Vec::new()));
+        let (boundaries_rx, boundary_loader) =
+            load_boundaries_async(boundary_log.clone(), runtime.handle());
         App {
             lang,
             cam: INITIAL_CAMERA,
@@ -136,10 +139,8 @@ impl App {
             show_metro_boundaries: false,
             show_place_labels: true,
             boundaries: BoundaryData::default(),
-            boundaries_rx: Some(load_boundaries_async(
-                boundary_log.clone(),
-                runtime.handle(),
-            )),
+            boundaries_rx: Some(boundaries_rx),
+            boundary_loader,
             boundary_log,
             show_atmo: true,
             show_sun: false,
@@ -221,7 +222,9 @@ impl eframe::App for App {
             }
             if !finished {
                 self.boundaries_rx = Some(rx);
-                ctx.request_repaint_after(BOUNDARY_POLL_INTERVAL); // keep polling while layers load
+                if self.boundary_loader.is_loading() {
+                    ctx.request_repaint_after(BOUNDARY_POLL_INTERVAL);
+                } // keep polling while layers load
             }
         }
         self.step_fly(dt);
@@ -232,6 +235,15 @@ impl eframe::App for App {
         self.bottom_bar(ctx);
         self.side_panel(ctx);
         self.settings_window(ctx);
+        self.boundary_loader.request_visible_layers(
+            self.show_city_boundaries,
+            self.show_metro_boundaries,
+            self.show_place_labels,
+            self.cam.alt,
+        );
+        if self.boundary_loader.is_loading() {
+            ctx.request_repaint_after(BOUNDARY_POLL_INTERVAL);
+        }
         egui::CentralPanel::default()
             .frame(egui::Frame::none())
             .show(ctx, |ui| self.globe_view(ui, ctx));

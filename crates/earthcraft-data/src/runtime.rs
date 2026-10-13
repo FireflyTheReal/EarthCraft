@@ -1,5 +1,8 @@
 //! One application-owned runtime for network and filesystem I/O.
 use std::future::Future;
+const NETWORK_WORKER_THREADS: usize = 2;
+const MAX_BLOCKING_SERVICE_JOBS: usize = 2;
+
 pub struct ServiceRuntime {
     runtime: tokio::runtime::Runtime,
 }
@@ -7,7 +10,8 @@ impl ServiceRuntime {
     pub fn new() -> std::io::Result<Self> {
         Ok(Self {
             runtime: tokio::runtime::Builder::new_multi_thread()
-                .worker_threads(2)
+                .worker_threads(NETWORK_WORKER_THREADS)
+                .max_blocking_threads(MAX_BLOCKING_SERVICE_JOBS)
                 .thread_name("earthcraft-io")
                 .enable_all()
                 .build()?,
