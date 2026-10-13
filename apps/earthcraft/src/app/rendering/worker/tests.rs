@@ -56,7 +56,10 @@ impl ControlledWorker {
                     .send((request.cam.lon, std::thread::current().id()))
                     .unwrap();
                 release_rx.recv_timeout(TEST_TIMEOUT).unwrap();
-                vec![request.cam.lon as u8; request.width * request.height * 4]
+                earthcraft_render::RenderedView {
+                    pixels: vec![request.cam.lon as u8; request.width * request.height * 4],
+                    waiting: vec![],
+                }
             },
             move || {
                 repaint_tx.send(()).unwrap();

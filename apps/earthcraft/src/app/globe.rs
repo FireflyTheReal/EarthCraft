@@ -147,16 +147,7 @@ impl App {
                 self.effective_provider().id(),
                 self.show_grid,
             ),
-            (
-                self.show_country_boundaries,
-                self.show_state_boundaries,
-                self.show_city_boundaries,
-                self.show_metro_boundaries,
-                self.show_place_labels,
-                self.show_atmo,
-                sun_key,
-                self.wayback_idx,
-            ),
+            (self.show_atmo, sun_key, self.wayback_idx),
         )
             .hash(&mut hs);
         let state = hs.finish();
@@ -205,7 +196,7 @@ impl App {
         }
 
         let mut need = state != self.last_state
-            || gen != self.last_gen
+            || (gen != self.last_gen && self.renderer.tiles_changed(&self.cache))
             || (self.texture.is_none() && self.renderer.is_idle());
         if need
             && state == self.last_state
@@ -221,6 +212,7 @@ impl App {
             self.last_gen = gen;
             self.last_render = Instant::now();
         }
+        self.last_gen = gen;
         if !idle {
             ctx.request_repaint_after(ACTIVE_REPAINT_INTERVAL);
         }

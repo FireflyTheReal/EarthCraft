@@ -251,3 +251,19 @@ fn ray_batches_preserve_partial_rows_provider_pixels_and_missing_tile_priorities
         );
     }
 }
+
+#[test]
+fn tracked_frames_watch_pending_tiles_without_enqueuing_them_again() {
+    let case = &batch_references()[0];
+    let cfg = batch_reference_config(case.provider);
+    let basis = case.cam.basis(case.width as f64 / case.height as f64);
+    let (_, missing, waiting) =
+        render_pixels_tracked(case.width, case.height, &basis, &cfg, &|_| Lookup::Pending);
+    assert!(missing.is_empty());
+    assert!(!waiting.is_empty());
+    let (_, absent, absent_waiting) =
+        render_pixels_tracked(case.width, case.height, &basis, &cfg, &|_| Lookup::Absent);
+    let keys: std::collections::HashSet<_> = absent.into_iter().map(|(key, _)| key).collect();
+    assert_eq!(keys, waiting.into_iter().collect());
+    assert_eq!(keys, absent_waiting.into_iter().collect());
+}

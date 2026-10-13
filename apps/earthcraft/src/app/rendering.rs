@@ -15,6 +15,7 @@ use worker::{RenderRequest, RenderWorker};
 pub(super) struct Renderer {
     worker: RenderWorker,
     displayed: Option<(Cam, Basis)>,
+    waiting: Vec<earthcraft_data::tiles::TileKey>,
 }
 
 impl Renderer {
@@ -22,7 +23,7 @@ impl Renderer {
         Self {
             worker: RenderWorker::new(
                 move |request| {
-                    earthcraft_render::render_frame(
+                    earthcraft_render::render_view(
                         request.width,
                         request.height,
                         &request.basis,
@@ -34,7 +35,13 @@ impl Renderer {
             )
             .expect("start frame renderer"),
             displayed: None,
+            waiting: Vec::new(),
         }
+    }
+    pub(super) fn tiles_changed(&self, cache: &earthcraft_data::tiles::TileCache) -> bool {
+        self.waiting
+            .iter()
+            .any(|&key| matches!(cache.lookup(key), earthcraft_data::tiles::Lookup::Ready(_)))
     }
     pub(super) fn is_idle(&self) -> bool {
         self.worker.is_idle()
@@ -107,6 +114,9 @@ impl App {
             }
         }
         self.image = Some((w, h, buf));
+        self.renderer.waiting = frame.waiting;
+        // Recheck dependencies even if a tile finished before frame publication.
+        self.last_gen = u64::MAX;
         self.renderer.displayed = Some((frame.request.cam, frame.request.basis));
     }
 }

@@ -16,6 +16,7 @@ pub(super) struct RenderRequest {
 pub(super) struct RenderedFrame {
     pub request: RenderRequest,
     pub pixels: Vec<u8>,
+    pub waiting: Vec<earthcraft_data::tiles::TileKey>,
 }
 
 #[derive(Default)]
@@ -38,7 +39,7 @@ pub(super) struct RenderWorker {
 
 impl RenderWorker {
     pub(super) fn new(
-        render: impl Fn(&RenderRequest) -> Vec<u8> + Send + 'static,
+        render: impl Fn(&RenderRequest) -> earthcraft_render::RenderedView + Send + 'static,
         repaint: impl Fn() + Send + 'static,
     ) -> std::io::Result<Self> {
         let shared = Arc::new(Shared::default());
@@ -58,7 +59,7 @@ impl RenderWorker {
                     mailbox.pending.take().unwrap()
                 };
                 // No mailbox lock is held during Rayon rasterization or tile admission.
-                let pixels = render(&request);
+                let frame = render(&request);
                 let mut mailbox = worker.mailbox.lock().unwrap();
                 mailbox.active = false;
                 if mailbox.stopped {
@@ -69,7 +70,11 @@ impl RenderWorker {
                     .as_ref()
                     .is_some_and(|next| next.presentation != request.presentation);
                 if !obsolete {
-                    mailbox.completed = Some(RenderedFrame { request, pixels });
+                    mailbox.completed = Some(RenderedFrame {
+                        request,
+                        pixels: frame.pixels,
+                        waiting: frame.waiting,
+                    });
                 }
                 drop(mailbox);
                 repaint();

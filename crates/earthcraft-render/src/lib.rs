@@ -55,6 +55,7 @@ impl<F: Fn(TileKey) -> Lookup> Local<'_, F> {
             }
         }
     }
+    #[cfg(test)]
     fn misses(self) -> impl Iterator<Item = (TileKey, f32)> {
         self.map.into_iter().filter_map(|(key, tile)| match tile {
             LocalTile::Absent(dist) => Some((key, dist)),
@@ -223,7 +224,24 @@ pub fn render_frame(
     cfg: &RenderCfg,
     cache: &TileCache,
 ) -> Vec<u8> {
-    let (buf, mut list) = render_pixels(w, h, basis, cfg, &|key| cache.lookup(key));
+    render_view(w, h, basis, cfg, cache).pixels
+}
+
+pub struct RenderedView {
+    pub pixels: Vec<u8>,
+    /// Tiles that were unavailable when sampled, including work already pending.
+    pub waiting: Vec<TileKey>,
+}
+
+pub fn render_view(
+    w: usize,
+    h: usize,
+    basis: &Basis,
+    cfg: &RenderCfg,
+    cache: &TileCache,
+) -> RenderedView {
+    let (buf, mut list, waiting) =
+        render_pixels_tracked(w, h, basis, cfg, &|key| cache.lookup(key));
 
     // Request missing tiles: lowest zoom first, then closest to the center.
     list.sort_by(|a, b| {
@@ -237,9 +255,13 @@ pub fn render_frame(
             break;
         }
     }
-    buf
+    RenderedView {
+        pixels: buf,
+        waiting,
+    }
 }
 
+#[cfg(test)]
 fn render_pixels(
     w: usize,
     h: usize,
@@ -247,10 +269,21 @@ fn render_pixels(
     cfg: &RenderCfg,
     lookup: &(impl Fn(TileKey) -> Lookup + Sync),
 ) -> (Vec<u8>, Vec<(TileKey, f32)>) {
+    let (pixels, misses, _) = render_pixels_tracked(w, h, basis, cfg, lookup);
+    (pixels, misses)
+}
+
+fn render_pixels_tracked(
+    w: usize,
+    h: usize,
+    basis: &Basis,
+    cfg: &RenderCfg,
+    lookup: &(impl Fn(TileKey) -> Lookup + Sync),
+) -> (Vec<u8>, Vec<(TileKey, f32)>, Vec<TileKey>) {
     let mut buf = vec![0u8; w * h * RGBA_CHANNELS];
     let row_bytes = w * RGBA_CHANNELS;
     let rays = RayCaster::new(w, h, basis);
-    let per_batch: Vec<Vec<(TileKey, f32)>> = buf
+    let per_batch: Vec<Vec<(TileKey, Option<f32>)>> = buf
         .par_chunks_mut(row_bytes * ROWS_PER_TILE_BATCH)
         .enumerate()
         .map(|(batch, rows)| {
@@ -271,16 +304,31 @@ fn render_pixels(
                     row,
                 );
             }
-            loc.misses().collect()
+            loc.map
+                .into_iter()
+                .filter_map(|(key, tile)| match tile {
+                    LocalTile::Ready(_) => None,
+                    LocalTile::Pending => Some((key, None)),
+                    LocalTile::Absent(distance) => Some((key, Some(distance))),
+                })
+                .collect()
         })
         .collect();
 
     let mut misses: HashMap<TileKey, f32> = HashMap::new();
-    for (k, d) in per_batch.into_iter().flatten() {
-        let e = misses.entry(k).or_insert(f32::MAX);
-        *e = e.min(d);
+    let mut waiting = std::collections::HashSet::new();
+    for (k, distance) in per_batch.into_iter().flatten() {
+        waiting.insert(k);
+        if let Some(d) = distance {
+            let e = misses.entry(k).or_insert(f32::MAX);
+            *e = e.min(d);
+        }
     }
-    (buf, misses.into_iter().collect())
+    (
+        buf,
+        misses.into_iter().collect(),
+        waiting.into_iter().collect(),
+    )
 }
 
 #[cfg(test)]
