@@ -12,7 +12,7 @@ use std::{
 const TILE_WORKER_COUNT: usize = 6;
 const FAILED_TILE_RETRY_DELAY: Duration = Duration::from_secs(15);
 /// Best-effort decoded-pixel target; Moka may temporarily exceed it during eviction.
-pub const DEFAULT_TILE_CACHE_BUDGET_BYTES: usize = 128 * 1024 * 1024;
+pub const DEFAULT_TILE_CACHE_BUDGET_BYTES: usize = 256 * 1024 * 1024;
 const MAX_TILE_RESPONSE_BYTES: u64 = 8_000_000;
 pub const MAX_INFLIGHT: usize = 48;
 
@@ -93,10 +93,14 @@ impl TileCache {
         usize::try_from(self.ready.weighted_size()).unwrap_or(usize::MAX)
     }
     pub fn request(&self, key: TileKey) -> bool {
+        self.request_under_limit(key, MAX_INFLIGHT)
+    }
+    // Check under the admission lock, so background work cannot race past its limit.
+    pub(super) fn request_under_limit(&self, key: TileKey, limit: usize) -> bool {
         let mut requests = self.requests.lock().unwrap();
         if self.ready.contains_key(&key)
             || requests.get(&key).is_some_and(RequestState::is_pending)
-            || self.inflight.load(Ordering::Relaxed) >= MAX_INFLIGHT
+            || self.inflight.load(Ordering::Relaxed) >= limit.min(MAX_INFLIGHT)
         {
             return false;
         }

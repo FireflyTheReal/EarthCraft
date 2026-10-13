@@ -13,7 +13,7 @@ updates. All original raster fixtures remain unchanged.
 | glam | `DVec3` geometry, `dcamera` view/perspective constructors, `DMat2` panning and `DQuat` rotations; SIMD colors throughout the renderer | Keep f64 geographic precision and the original camera/raster output; retain emath for egui geometry |
 | bytemuck | Safe zero-copy views of RGBA byte storage | Cast to byte-aligned pixel arrays, not aligned SIMD vectors; no unsafe code |
 | Tokio + reqwest | App-owned async runtime, pooled HTTP clients and bounded service work | Preserve provider policy, timeout values, retries, disk fallback and UI completion delivery; CPU rendering remains on Rayon |
-| Moka | Concurrent decoded-tile storage with byte weights and LRU eviction | 128 MiB is a best-effort target; keep request admission/retries separate and do not force frame-by-frame maintenance |
+| Moka | Concurrent decoded-tile storage with byte weights and LRU eviction | 256 MiB is a best-effort target; keep request admission/retries separate and do not force frame-by-frame maintenance |
 | Fluent | Embedded English/Portuguese catalogs with cached labels and named message arguments | Preserve wording and number precision; test syntax, parity, resolution and fallback |
 
 Do not introduce matrices, affine transforms or typed integer vectors just because

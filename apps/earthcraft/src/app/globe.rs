@@ -1,5 +1,5 @@
 use super::App;
-use super::{MAX_FRAME_DELTA_SECS, PAN_SPEED_POINTS_PER_SECOND};
+use super::{INITIAL_CAMERA, MAX_FRAME_DELTA_SECS, PAN_SPEED_POINTS_PER_SECOND};
 use earthcraft_core::METERS_PER_KM;
 use earthcraft_core::{
     math::{now_unix, wrap_lon},
@@ -29,6 +29,7 @@ const MIN_RENDER_HEIGHT_PX: usize = 32;
 const SUN_UPDATE_INTERVAL_SECS: f64 = 60.0;
 const TILE_REDRAW_INTERVAL: Duration = Duration::from_millis(60);
 const ACTIVE_REPAINT_INTERVAL: Duration = Duration::from_millis(260);
+const OVERVIEW_WARMUP_POLL_INTERVAL: Duration = Duration::from_millis(100);
 const MAX_SCALE_BAR_ALTITUDE_KM: f64 = 3000.0;
 const TARGET_SCALE_BAR_WIDTH_POINTS: f64 = 120.0;
 
@@ -205,6 +206,15 @@ impl App {
         }
         if !idle {
             ctx.request_repaint_after(ACTIVE_REPAINT_INTERVAL);
+        }
+        // Render queues the current viewport first. Pause speculative work when
+        // the user interacts, zooms closer, or selects another imagery layer.
+        if idle
+            && self.provider == Provider::Satellite
+            && self.cam.alt >= INITIAL_CAMERA.alt
+            && self.tile_warmup.pump(&self.cache)
+        {
+            ctx.request_repaint_after(OVERVIEW_WARMUP_POLL_INTERVAL);
         }
 
         // ── drawing

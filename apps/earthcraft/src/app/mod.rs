@@ -4,7 +4,7 @@ use earthcraft_data::{
     boundaries::{load_boundaries_async, BoundaryData, Patch, StatusLog},
     search::{GeoResult, Suggestion},
     settings::{load_lang, Settings},
-    tiles::{Provider, TileCache},
+    tiles::{Provider, TileCache, TileWarmup},
     wayback::WaybackRelease,
 };
 use eframe::egui::{self, Rect};
@@ -48,6 +48,7 @@ pub(crate) struct App {
     cam: Cam,
     fly: Option<Fly>,
     cache: Arc<TileCache>,
+    tile_warmup: TileWarmup,
     provider: Provider,
     show_grid: bool,
     show_country_boundaries: bool,
@@ -135,6 +136,7 @@ impl App {
                 runtime.handle(),
             ),
             provider: Provider::Satellite,
+            tile_warmup: TileWarmup::startup_satellite(),
             show_grid: false,
             show_country_boundaries: true,
             show_state_boundaries: true,

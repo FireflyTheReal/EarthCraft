@@ -170,6 +170,8 @@ impl Tile {
 
 mod cache;
 pub use cache::{Lookup, TileCache, DEFAULT_TILE_CACHE_BUDGET_BYTES, MAX_INFLIGHT};
+mod warmup;
+pub use warmup::TileWarmup;
 
 #[cfg(test)]
 mod sampling_tests {

@@ -66,6 +66,10 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
 - Launch from the root and verify the icon, initial view and panels.
 - Orbit, zoom under the cursor, rotate with right-drag/Shift, use arrow keys,
   compass/north reset, navigation widgets, double-click and fly-to.
+- At the initial distance, let the satellite overview warm, then rotate to the
+  opposite hemisphere. Check that overview imagery is available, close zoom
+  still loads detail, and other layers remain on demand. Compare cold and warm
+  disk-cache startup separately; do not promise immediate cold-network readiness.
 - Switch satellite/streets/topography/historical imagery; verify loading,
   release selection, fallback and attribution.
 - Search by coordinates and address; select suggestions with mouse and keyboard.
@@ -114,7 +118,7 @@ avoid alignment assumptions when using bytemuck with pixel buffers.
 For memory comparisons, use the same build profile, viewport, settings, cache
 state, enabled layers and elapsed startup time. Record which memory metric was
 used. Resident memory and Activity Monitor's memory column are not interchangeable.
-Moka's 128 MiB target is weighted by decoded tile bytes and enforced best-effort;
+Moka's 256 MiB target is weighted by decoded tile bytes and enforced best-effort;
 brief overshoot is expected. It does not limit total application memory, and its
 weighted-size estimate can lag inserts/evictions. Keep retry/deduplication tests
 independent of cache maintenance, and do not add per-frame eviction flushing.
@@ -141,7 +145,9 @@ CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_DEV_INCREMENTAL=false RAYON_NUM_THREADS=
 Run this benchmark alone: it temporarily selects a private cache directory before
 creating worker threads, then restores the process environment and removes that
 directory. It renders 512×384 frames with grid, sunlight and atmosphere, using 341
-warm two-pixel fixture tiles. Five rounds of twenty frames include production ray
+warm two-pixel fixture tiles. Startup warming uses production admission and disk
+workers, and rotations across hemispheres, the dateline and poles assert that
+overview frames request no new tiles. Five rounds of two hundred frames include production ray
 casting, sampling, allocation and tile lookup; they exclude GUI upload, overlays,
 network and eviction pressure. Neither benchmark is a substitute for live-app
 frame-time and memory measurements.

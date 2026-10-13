@@ -9,7 +9,7 @@ use std::{
 
 const FRAME_WIDTH_PX: usize = 512;
 const FRAME_HEIGHT_PX: usize = 384;
-const BENCH_FRAMES: usize = 20;
+const BENCH_FRAMES: usize = 200;
 const BENCH_ROUNDS: usize = 5;
 
 struct FixtureCache {
@@ -66,14 +66,13 @@ fn warm_cpu_frame_time() {
     let runtime = earthcraft_data::runtime::ServiceRuntime::new().unwrap();
     let cache = TileCache::new(|| {}, runtime.handle());
     let started = Instant::now();
-    for &key in &keys {
-        while !cache.request(key) {
-            assert!(
-                started.elapsed() < Duration::from_secs(10),
-                "fixture requests must finish"
-            );
-            std::thread::sleep(Duration::from_millis(1));
-        }
+    let mut warmup = earthcraft_data::tiles::TileWarmup::startup_satellite();
+    while warmup.pump(&cache) {
+        assert!(
+            started.elapsed() < Duration::from_secs(10),
+            "fixture warmup must finish"
+        );
+        std::thread::sleep(Duration::from_millis(1));
     }
     while keys
         .iter()
@@ -100,6 +99,31 @@ fn warm_cpu_frame_time() {
         atmo: true,
         sun: Some(earthcraft_core::math::ll_to_v3(20.0, 45.0)),
     };
+    // Global overview warming must also cover parts of the globe that were
+    // behind the camera at startup, including the dateline and poles.
+    for lat in [-90.0, -15.0, 0.0, 90.0] {
+        for lon in [-180.0, -90.0, 0.0, 90.0, 180.0] {
+            let rotated = Cam {
+                lat,
+                lon,
+                heading: 25.0,
+                alt: 14_000.0,
+            }
+            .basis(FRAME_WIDTH_PX as f64 / FRAME_HEIGHT_PX as f64);
+            black_box(render_frame(
+                FRAME_WIDTH_PX,
+                FRAME_HEIGHT_PX,
+                &rotated,
+                &config,
+                &cache,
+            ));
+            assert_eq!(
+                cache.inflight(),
+                0,
+                "overview rotations must stay in memory"
+            );
+        }
+    }
     black_box(render_frame(
         FRAME_WIDTH_PX,
         FRAME_HEIGHT_PX,

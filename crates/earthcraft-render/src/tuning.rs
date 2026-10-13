@@ -2,6 +2,7 @@
 use glam::Vec4;
 // Tile resolution, projection limits, and level-of-detail tuning.
 pub(super) const TILE_SIZE_PX: f64 = 256.0;
+pub(super) const ROWS_PER_TILE_BATCH: usize = 8;
 pub(super) const WEB_MERCATOR_MAX_LATITUDE_DEG: f64 = 85.051_128_78;
 pub(super) const MIN_LOD_LATITUDE_COSINE: f64 = 0.02;
 pub(super) const MIN_LOD_INCIDENCE_COSINE: f64 = 0.2;

@@ -79,13 +79,69 @@ throughput regressed while this CPU-frame workload improved; these observations
 are not a general FPS guarantee. No timing assertions were added. Commands and
 benchmark limitations are in [contributing](CONTRIBUTING.md).
 
+## Startup overview and renderer batching
+
+Satellite zooms 0–4 now warm globally in the background while the app is idle at
+the initial 14,000 km distance or farther away. The 341 standard tiles use about
+85 MiB decoded within the shared Moka target, now raised to 256 MiB to retain
+more detailed imagery after overview warming. Visible requests are admitted
+first; warming keeps total in-flight work below two before admission, pauses
+during interaction/closer zoom/other layers, and skips ready, loading or recently
+failed tiles. Other providers remain on demand. Cold startup still downloads
+progressively; higher-detail viewing and eviction can require additional loads.
+
+CPU rendering shares tile handles within eight-row Rayon batches and performs
+one local map lookup per sample. Handles are released at batch completion. Misses
+retain their nearest pixel distance, and the redundant second request-deduplication
+set is removed. Original pixel fixtures remain unchanged. New tests cover bounded
+warmup, visible-request priority, whole-world coverage, skipped states and local
+lookup reuse. The isolated disk-fixture benchmark also verifies that overview
+rotations across both hemispheres, the dateline and poles request no new tiles.
+
+Three alternating comparisons used the same optimized dev profile, eight Rayon
+threads, 512×384 frame, 341 two-pixel fixtures, and five rounds of 200 frames:
+
+| Comparison | Previous per-row cache | Eight-row batches |
+| --- | --- | --- |
+| 1 | 3.270 ms | 3.151 ms |
+| 2 | 3.129 ms | 2.931 ms |
+| 3 | 3.532 ms | 2.599 ms |
+
+Values are median CPU-frame times, not application FPS. Individual samples were
+noisy (roughly 2.3–5.7 ms); the consistent direction suggests a modest improvement,
+not a guaranteed percentage. The benchmark excludes network readiness, GUI
+upload, geographic overlays and eviction pressure. The increased round length
+supersedes the earlier 20-frame procedure, not its historical observations.
+
 ## Memory observation
 
 One fresh launch after the memory migration reported RSS of 199,632 KiB (about
 195 MiB) through `ps`. This is a startup observation, not a controlled benchmark
 against the earlier 812.2 MB Activity Monitor screenshot. Different memory metrics,
 settings, elapsed time and enabled layers cannot establish a percentage reduction.
-The current decoded-tile capacity target is 128 MiB and may overshoot temporarily;
+The current decoded-tile capacity target is 256 MiB and may overshoot temporarily;
 geometry, request bodies, temporary
 renderer references and GPU resources remain separate allocations. Use the
 comparison procedure in [contributing](CONTRIBUTING.md) for a repeatable measurement.
+
+## Next performance stages
+
+Commit and inspect the overview/batching build before starting these approved
+stages. Keep changes in separate logical commits and measure affected workloads:
+
+1. Move whole-frame CPU rendering off egui's thread, retaining Rayon pixel
+   parallelism. Keep the latest camera request, discard obsolete results, and
+   perform texture upload on egui's thread.
+2. Cache unchanged overlay projections. Evaluate `rstar` for screen-space label
+   overlap queries while preserving placement priority and visible labels.
+3. Use `wide` to batch independent ray calculations across pixels, preserving
+   double-precision geometry and original raster fixture tolerances.
+4. Reuse frame buffers and reduce conversion/copy work while preserving screenshot
+   output and explicit buffer ownership across workers.
+5. Separate tile decoding from long boundary parsing so the bounded blocking pool
+   does not delay interactive tile loads; avoid unmeasured thread proliferation.
+
+Replace the manual accent table with Unicode normalization in its own library
+commit, testing existing Portuguese matching and international/decomposed names.
+Only after these CPU and data stages are complete and validated, begin a wgpu
+globe renderer. Switching the UI backend alone does not move ray casting to the GPU.

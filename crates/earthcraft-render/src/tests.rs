@@ -68,11 +68,7 @@ fn raster_matches_the_original_implementation() {
                 Lookup::Absent
             }
         };
-        let mut buf = vec![0; w * h * 4];
-        let mut misses = Vec::new();
-        for (y, row) in buf.chunks_mut(w * 4).enumerate() {
-            misses.extend(render_row(y, w, h, &basis, &cfg, &lookup, row));
-        }
+        let (buf, misses) = render_pixels(w, h, &basis, &cfg, &lookup);
         assert!(!misses.is_empty(), "missing tiles must still be reported");
         assert_eq!(buf.len(), expected.len());
         for (i, (actual, reference)) in buf.iter().zip(expected).enumerate() {
@@ -83,4 +79,22 @@ fn raster_matches_the_original_implementation() {
             );
         }
     }
+}
+
+#[test]
+fn local_tile_lookup_is_deduplicated_and_keeps_the_nearest_miss() {
+    let calls = std::sync::atomic::AtomicUsize::new(0);
+    let lookup = |_| {
+        calls.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        Lookup::Absent
+    };
+    let mut loc = Local {
+        lookup: &lookup,
+        map: HashMap::default(),
+    };
+    for dist in [100.0, 80.0, 40.0, 30.0, 50.0] {
+        assert!(loc.tile_color(1, dist, 0.0, 0.0).is_none());
+    }
+    assert_eq!(calls.load(std::sync::atomic::Ordering::Relaxed), 1);
+    assert_eq!(loc.misses().collect::<Vec<_>>(), vec![(1, 30.0)]);
 }

@@ -94,16 +94,39 @@ Bytemuck cria views RGBA sem cópias nem suposições de alinhamento SIMD.
 ## Memória e carregamento
 
 O cache de tiles decodificados usa `moka::sync::Cache`, com alvo ponderado de
-128 MiB e política LRU. O peso é o tamanho do buffer RGBA. O limite é best-effort:
+256 MiB e política LRU. O peso é o tamanho do buffer RGBA. O limite é best-effort:
 pode haver excesso temporário enquanto a manutenção remove entradas. A métrica
 `resident_bytes()` é uma estimativa e pode atrasar em relação às alterações.
 Texturas, geometria, metadados e referências temporárias ficam fora dessa métrica.
+Os 256 MiB não são alocados inteiros na inicialização. Depois da visão global,
+sobram cerca de 171 MiB para detalhes, reduzindo recarregamentos ao revisitar áreas.
 
 Tiles prontos são compartilhados por `Arc`, sem adquirir o mutex de requisições.
 O mapa separado de carregamentos/falhas mantém a deduplicação, o máximo de 48
 requisições e a espera de 15 segundos antes de tentar novamente. Tiles grandes
 demais ou com falhas não entram no cache de pixels. Os workers mantêm referências
 fracas enquanto ociosos, e cada conclusão atualiza a geração e repinta a interface.
+
+O renderer processa blocos de oito linhas com Rayon, compartilhando consultas e
+referências de tiles entre linhas vizinhas. Essas referências são liberadas ao
+terminar o bloco, sem manter outro cache entre frames.
+
+`TileWarmup` percorre uma vez por sessão os níveis 0–4 de satélite, dos mais
+simples aos mais detalhados: 341 tiles RGBA de 256×256 somam cerca de 85 MiB.
+Eles usam o mesmo cache em memória de 256 MiB e o cache em disco. O aquecimento
+só admite trabalho quando há menos de duas requisições em andamento, deixando
+quatro dos seis workers disponíveis para a vista atual. A aplicação o executa
+depois das requisições visíveis, com nova verificação em 100 ms, e pausa durante
+interação, abaixo dos 14.000 km iniciais ou em outra camada. Tiles prontos,
+carregando ou com falha recente são ignorados; falhas continuam com a política
+normal de novas tentativas sob demanda. O plano termina com a aplicação.
+
+Depois do aquecimento, girar a visão global evita esperar por novos tiles de
+satélite. Na primeira execução o download continua progressivo. Telas maiores,
+zoom próximo ou remoção de tiles da memória podem exigir novos carregamentos.
+Rasterização, envio da textura e desenho dos limites ainda consomem tempo.
+Ruas, topografia e imagens históricas permanecem sob demanda; o serviço público
+OSM [proíbe prefetch](https://operations.osmfoundation.org/policies/tiles/).
 
 Países, estados e nomes globais carregam na inicialização. Nomes municipais do
 Brasil carregam abaixo do limite existente de 300 km; geometria municipal e

@@ -11,19 +11,16 @@ use earthcraft_data::tiles::{
     make_key, unkey, KeyBuild, Lookup, Provider, Tile, TileCache, TileKey, MAX_INFLIGHT,
 };
 use rayon::prelude::*;
-use std::{
-    collections::{HashMap, HashSet},
-    f64::consts::PI,
-    sync::Arc,
-};
+use std::{collections::HashMap, f64::consts::PI, sync::Arc};
 use tuning::{
     ATMOSPHERE_BLEND, ATMOSPHERE_COLOR, ATMOSPHERE_HEIGHT_RATIO, ATMOSPHERE_RADIUS_RATIO,
     COLOR_CHANNEL_MAX, DAY_BRIGHTNESS_RANGE, GRID_BLEND, GRID_COLOR, GRID_LINE_WIDTH_PX,
     LOD_SHARPNESS_BIAS, MIN_LOD_INCIDENCE_COSINE, MIN_LOD_LATITUDE_COSINE, MIN_ZOOM_BLEND_FRACTION,
     MISSING_TILE_COLOR, NIGHT_BLUE_TINT, NIGHT_BRIGHTNESS, OPAQUE_ALPHA, RGBA_CHANNELS, RIM_BLEND,
-    RIM_COLOR, RIM_FALLOFF_POWER, SPACE_COLOR, STAR_BRIGHTNESS_DIVISOR, STAR_BRIGHTNESS_MASK,
-    STAR_BRIGHTNESS_SHIFT, STAR_GRID_RESOLUTION, STAR_MIN_BRIGHTNESS, STAR_OCCURRENCE_MODULUS,
-    TILE_SIZE_PX, TWILIGHT_OFFSET, TWILIGHT_WIDTH, WEB_MERCATOR_MAX_LATITUDE_DEG,
+    RIM_COLOR, RIM_FALLOFF_POWER, ROWS_PER_TILE_BATCH, SPACE_COLOR, STAR_BRIGHTNESS_DIVISOR,
+    STAR_BRIGHTNESS_MASK, STAR_BRIGHTNESS_SHIFT, STAR_GRID_RESOLUTION, STAR_MIN_BRIGHTNESS,
+    STAR_OCCURRENCE_MODULUS, TILE_SIZE_PX, TWILIGHT_OFFSET, TWILIGHT_WIDTH,
+    WEB_MERCATOR_MAX_LATITUDE_DEG,
 };
 // ───────────────────────────── Rendering ─────────────────────────────
 
@@ -38,26 +35,33 @@ pub struct RenderCfg {
 
 struct Local<'a, F> {
     lookup: &'a F,
-    map: HashMap<TileKey, Option<Arc<Tile>>, KeyBuild>,
-    misses: Vec<(TileKey, f32)>,
+    map: HashMap<TileKey, LocalTile, KeyBuild>,
+}
+enum LocalTile {
+    Ready(Arc<Tile>),
+    Pending,
+    Absent(f32),
 }
 impl<F: Fn(TileKey) -> Lookup> Local<'_, F> {
     fn tile_color(&mut self, k: TileKey, dist: f32, u: f64, v: f64) -> Option<Vec4> {
-        if !self.map.contains_key(&k) {
-            let val = match (self.lookup)(k) {
-                Lookup::Ready(t) => Some(t),
-                Lookup::Pending => None,
-                Lookup::Absent => {
-                    self.misses.push((k, dist));
-                    None
-                }
-            };
-            self.map.insert(k, val);
+        match self.map.entry(k).or_insert_with(|| match (self.lookup)(k) {
+            Lookup::Ready(tile) => LocalTile::Ready(tile),
+            Lookup::Pending => LocalTile::Pending,
+            Lookup::Absent => LocalTile::Absent(dist),
+        }) {
+            LocalTile::Ready(tile) => Some(tile.sample(u, v)),
+            LocalTile::Pending => None,
+            LocalTile::Absent(nearest) => {
+                *nearest = nearest.min(dist);
+                None
+            }
         }
-        self.map
-            .get(&k)
-            .and_then(|o| o.as_ref())
-            .map(|t| t.sample(u, v))
+    }
+    fn misses(self) -> impl Iterator<Item = (TileKey, f32)> {
+        self.map.into_iter().filter_map(|(key, tile)| match tile {
+            LocalTile::Absent(dist) => Some((key, dist)),
+            _ => None,
+        })
     }
 }
 
@@ -99,14 +103,9 @@ fn render_row(
     h: usize,
     b: &Basis,
     cfg: &RenderCfg,
-    lookup: &impl Fn(TileKey) -> Lookup,
+    loc: &mut Local<impl Fn(TileKey) -> Lookup>,
     row: &mut [u8],
-) -> Vec<(TileKey, f32)> {
-    let mut loc = Local {
-        lookup,
-        map: HashMap::default(),
-        misses: Vec::new(),
-    };
+) {
     let ny = 1.0 - (y as f64 + 0.5) / h as f64 * 2.0;
     let pa = 2.0 * VERTICAL_FOV_HALF_TAN / h as f64; // angle per pixel
     let cc = b.c.length_squared();
@@ -156,9 +155,9 @@ fn render_row(
             let offset = Vec2::new(x as f32 - w as f32 / 2.0, y as f32 - h as f32 / 2.0);
             let dist = offset.length_squared();
 
-            col = sample_chain(&mut loc, cfg.provider, cfg.rel, z0, u, v, dist);
+            col = sample_chain(loc, cfg.provider, cfg.rel, z0, u, v, dist);
             if frac > MIN_ZOOM_BLEND_FRACTION {
-                let c2 = sample_chain(&mut loc, cfg.provider, cfg.rel, z0 + 1, u, v, dist);
+                let c2 = sample_chain(loc, cfg.provider, cfg.rel, z0 + 1, u, v, dist);
                 col = col.lerp_monotonic(c2, frac);
             }
 
@@ -212,7 +211,6 @@ fn render_row(
         pixel[2] = channels.z as u8;
         pixel[3] = OPAQUE_ALPHA;
     }
-    loc.misses
 }
 
 /// Renders an RGBA frame and queues missing tiles, coarse zoom levels first.
@@ -223,34 +221,63 @@ pub fn render_frame(
     cfg: &RenderCfg,
     cache: &TileCache,
 ) -> Vec<u8> {
-    let mut buf = vec![0u8; w * h * RGBA_CHANNELS];
-    let per_row: Vec<Vec<(TileKey, f32)>> = buf
-        .par_chunks_mut(w * RGBA_CHANNELS)
-        .enumerate()
-        .map(|(y, row)| render_row(y, w, h, basis, cfg, &|key| cache.lookup(key), row))
-        .collect();
+    let (buf, mut list) = render_pixels(w, h, basis, cfg, &|key| cache.lookup(key));
 
-    // request missing tiles: lowest zoom first, then closest to the center
-    let mut misses: HashMap<TileKey, f32> = HashMap::new();
-    for (k, d) in per_row.into_iter().flatten() {
-        let e = misses.entry(k).or_insert(f32::MAX);
-        *e = e.min(d);
-    }
-    let mut list: Vec<(TileKey, f32)> = misses.into_iter().collect();
+    // Request missing tiles: lowest zoom first, then closest to the center.
     list.sort_by(|a, b| {
         unkey(a.0)
             .1
             .cmp(&unkey(b.0).1)
             .then(a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
     });
-    let mut seen = HashSet::new();
     for (k, _) in list {
-        if seen.insert(k) && !cache.request(k) && cache.inflight() >= MAX_INFLIGHT {
+        if !cache.request(k) && cache.inflight() >= MAX_INFLIGHT {
             break;
         }
     }
-
     buf
+}
+
+fn render_pixels(
+    w: usize,
+    h: usize,
+    basis: &Basis,
+    cfg: &RenderCfg,
+    lookup: &(impl Fn(TileKey) -> Lookup + Sync),
+) -> (Vec<u8>, Vec<(TileKey, f32)>) {
+    let mut buf = vec![0u8; w * h * RGBA_CHANNELS];
+    let row_bytes = w * RGBA_CHANNELS;
+    let per_batch: Vec<Vec<(TileKey, f32)>> = buf
+        .par_chunks_mut(row_bytes * ROWS_PER_TILE_BATCH)
+        .enumerate()
+        .map(|(batch, rows)| {
+            // Neighboring rows share tiles. Keep handles only for this small batch,
+            // avoiding repeated Moka reads without retaining tiles between frames.
+            let mut loc = Local {
+                lookup,
+                map: HashMap::default(),
+            };
+            for (offset, row) in rows.chunks_mut(row_bytes).enumerate() {
+                render_row(
+                    batch * ROWS_PER_TILE_BATCH + offset,
+                    w,
+                    h,
+                    basis,
+                    cfg,
+                    &mut loc,
+                    row,
+                );
+            }
+            loc.misses().collect()
+        })
+        .collect();
+
+    let mut misses: HashMap<TileKey, f32> = HashMap::new();
+    for (k, d) in per_batch.into_iter().flatten() {
+        let e = misses.entry(k).or_insert(f32::MAX);
+        *e = e.min(d);
+    }
+    (buf, misses.into_iter().collect())
 }
 
 #[cfg(test)]

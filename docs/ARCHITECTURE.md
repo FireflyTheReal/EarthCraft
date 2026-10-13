@@ -55,11 +55,15 @@ Widgets call existing app commands; camera math is tested in core directly.
 2. Core calculates camera basis vectors, projection and cursor picking. It uses
    `emath`'s lightweight `Pos2`/`Rect` types, also re-exported by egui, without
    depending on widgets or a windowing backend.
-3. The renderer ray-casts rows in parallel with Rayon. It samples cached tiles,
+3. The renderer ray-casts eight-row batches in parallel with Rayon. Each batch
+   shares tile lookups and handles across adjacent rows, then releases them at
+   completion. It samples cached tiles,
    blends imagery zoom levels, and applies the grid, atmosphere, sunlight and stars.
 4. Missing tiles are queued with the original priority: lower zoom first, then
    distance to the screen center. The data crate runs six async tile workers, preserving the
-   in-flight limit, retry delay, and disk caching behavior.
+   in-flight limit, retry delay, and disk caching behavior. Once visible requests
+   are admitted, the app pumps a bounded satellite overview warmup while idle at
+   the initial altitude or farther away.
 5. The app injects a thread-safe repaint callback into `TileCache::new`. Workers
    signal completion through that callback; data does not import egui.
 6. The app uploads RGBA output to a texture and draws geographic overlays.
@@ -82,7 +86,8 @@ existing name-normalization function.
 - Existing `lang.txt`, `settings.json`, tile directories and output-folder
   defaults remain unchanged. No data migration is necessary.
 - Provider URLs, attribution, imagery release order, label zoom thresholds,
-  control bindings, UI wording and request behavior are retained.
+  control bindings and UI wording are retained. Startup satellite overview
+  warming adds background requests; other providers remain on demand.
 
 ## Extending the project
 
@@ -153,12 +158,14 @@ The async transport is tested against local HTTP fixtures, not public services.
 
 ## Memory policy
 
-Decoded tiles use `moka::sync::Cache` with LRU eviction and a 128 MiB weighted
+Decoded tiles use `moka::sync::Cache` with LRU eviction and a 256 MiB weighted
 capacity target. Each entry is weighed by its RGBA pixel-buffer length. Capacity
 is best-effort: inserts can temporarily overshoot while maintenance catches up.
 `resident_bytes()` reports Moka's weighted estimate, which can lag recent changes;
 it is not an exact live-allocation measurement. Temporary renderer references,
 request bodies, geometry, textures and cache metadata are separate allocations.
+The target does not allocate all 256 MiB at startup. It leaves about 171 MiB for
+detailed tiles after the global overview, reducing reloads when revisiting views.
 
 Ready-tile lookups return shared `Arc<Tile>` handles through Moka without taking
 our request mutex. Loading/failed metadata uses a separate small map to preserve
@@ -167,6 +174,24 @@ or oversized tiles do not enter the decoded cache. Completion advances generatio
 and wakes the UI. Tile workers use weak cache ownership while idle. The existing
 packed-key hasher and disk-cache contracts are retained; Moka's default TinyLFU
 admission policy is explicitly replaced with LRU for map browsing.
+
+`TileWarmup` visits satellite zooms 0–4 once per session, coarse levels first:
+341 standard 256×256 RGBA tiles total about 85 MiB. They use the same decoded
+cache target and disk cache; no separate pinned cache bypasses the byte budget.
+Warmup admits work only while total in-flight requests are below two, leaving
+four of the six workers available for visible demand. The app pumps it after
+viewport request admission, with a 100 ms wakeup while work remains. It pauses
+during input, below the initial 14,000 km altitude, or on another provider. Ready,
+loading and recent failed tiles are skipped; failures retain normal on-demand
+retry behavior. Closing the app drops the plan with its state.
+
+Once warm, global overview rotation avoids waiting for new satellite tiles.
+The first cold launch still downloads them progressively; larger viewports can
+request higher-resolution detail after input stops. Closer zooms and memory
+eviction can require new loads. This removes overview fetch/decode delays, not
+CPU rasterization, texture upload or geographic-overlay work. Streets, topography
+and historical imagery are not globally prefetched. The public OSM service
+[prohibits prefetching](https://operations.osmfoundation.org/policies/tiles/).
 
 Startup loads world countries, states and populated-place labels. Brazilian
 municipality labels are requested below their existing 300 km visibility limit;

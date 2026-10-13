@@ -154,3 +154,61 @@ fn cached_hits_do_not_wait_for_request_coordination() {
     job.join().unwrap();
     assert!(result.expect("cached hit should bypass request mutex"));
 }
+
+#[test]
+fn overview_warmup_yields_to_visible_work_and_visits_the_world_once() {
+    use crate::tiles::TileWarmup;
+    let (cache, mut rx) = test_cache(4096);
+    let mut warmup = TileWarmup::startup_satellite();
+    let foreground = make_key(Provider::Satellite, 10, 100, 100, 0);
+    let other = make_key(Provider::Satellite, 10, 100, 101, 0);
+    assert!(cache.request(foreground));
+    assert!(cache.request(other));
+    assert_eq!(rx.try_recv().unwrap(), foreground);
+    assert_eq!(rx.try_recv().unwrap(), other);
+    assert!(warmup.pump(&cache));
+    assert!(rx.try_recv().is_err(), "visible work keeps priority");
+    cache.complete(foreground, Ok(tiny_tile(1)));
+    cache.complete(other, Ok(tiny_tile(1)));
+
+    let mut keys = std::collections::HashSet::new();
+    loop {
+        let remaining = warmup.pump(&cache);
+        assert!(cache.inflight() <= 2, "warmup must leave workers available");
+        while let Ok(key) = rx.try_recv() {
+            let (provider, z, x, y, rel) = unkey(key);
+            assert_eq!(provider, Provider::Satellite);
+            assert_eq!(rel, 0);
+            assert!(z <= 4 && x < 1 << z && y < 1 << z);
+            assert!(keys.insert(key), "warmup must not enqueue duplicates");
+            cache.complete(key, Ok(tiny_tile(1)));
+        }
+        if !remaining {
+            break;
+        }
+    }
+    assert_eq!(keys.len(), 341);
+    assert!(!warmup.pump(&cache));
+    assert_eq!(cache.inflight(), 0);
+}
+
+#[test]
+fn overview_skips_cached_loading_and_failed_tiles_without_blocking_foreground() {
+    use crate::tiles::TileWarmup;
+    let (cache, mut rx) = test_cache(4096);
+    let cached = make_key(Provider::Satellite, 0, 0, 0, 0);
+    let failed = make_key(Provider::Satellite, 1, 0, 0, 0);
+    let loading = make_key(Provider::Satellite, 1, 0, 1, 0);
+    cache.complete(cached, Ok(tiny_tile(1)));
+    cache.complete(failed, Err("fixture failure".into()));
+    assert!(cache.request(loading));
+    assert_eq!(rx.try_recv().unwrap(), loading);
+    let mut warmup = TileWarmup::startup_satellite();
+    assert!(warmup.pump(&cache));
+    let first = rx.try_recv().unwrap();
+    assert_ne!(first, cached);
+    assert_ne!(first, failed);
+    assert_ne!(first, loading);
+    assert!(rx.try_recv().is_err());
+    assert!(cache.request(make_key(Provider::Satellite, 12, 1, 1, 0)));
+}
