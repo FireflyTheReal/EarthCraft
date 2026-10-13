@@ -13,6 +13,7 @@ updates. All original raster fixtures remain unchanged.
 | glam | `DVec3` geometry, `dcamera` view/perspective constructors, `DMat2` panning and `DQuat` rotations; SIMD colors throughout the renderer | Keep f64 geographic precision and the original camera/raster output; retain emath for egui geometry |
 | bytemuck | Safe zero-copy views of RGBA byte storage | Cast to byte-aligned pixel arrays, not aligned SIMD vectors; no unsafe code |
 | Tokio + reqwest | App-owned async runtime, pooled HTTP clients and bounded service work | Preserve provider policy, timeout values, retries, disk fallback and UI completion delivery; CPU rendering remains on Rayon |
+| Moka | Concurrent decoded-tile storage with byte weights and LRU eviction | 128 MiB is a best-effort target; keep request admission/retries separate and do not force frame-by-frame maintenance |
 | Fluent | Embedded English/Portuguese catalogs with cached labels and named message arguments | Preserve wording and number precision; test syntax, parity, resolution and fallback |
 
 Do not introduce matrices, affine transforms or typed integer vectors just because
@@ -26,9 +27,14 @@ the existing axis/angle threshold rather than changing its small-angle behavior
 with `from_rotation_arc`. Bytemuck does not make arbitrary buffers SIMD-aligned.
 
 The data crate streams large boundary inputs and shares immutable coordinate
-lines. Decoded tiles have a byte budget with LRU eviction; expensive Brazilian
+lines. Decoded tiles have a best-effort weighted target with LRU eviction; expensive Brazilian
 municipal geometry is loaded on demand. These are resource-policy changes with
 deterministic tests, separate from the library migrations.
 
 See [architecture](ARCHITECTURE.md), [localization](LOCALIZATION.md) and
 [contributing](CONTRIBUTING.md) for the ownership boundaries and verification rules.
+
+Moka uses its `sync` feature because Rayon needs immediate cache reads. UUID is
+locked to 1.26.0 to preserve Rust 1.88 compatibility; newer UUID releases resolved
+by the local stable toolchain require Rust 1.89. Review transitive MSRVs when
+updating the lockfile. No extra UUID API or dependency is exposed by EarthCraft.

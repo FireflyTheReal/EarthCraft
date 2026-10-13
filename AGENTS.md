@@ -71,7 +71,11 @@ User instructions and the requested scope take precedence over these defaults.
   data; use pooled reqwest clients and async I/O. Keep CPU rasterization on Rayon,
   large decoding/projection on bounded blocking workers, and UI access on egui's
   thread. Completion must wake the UI, including the last background job.
-- Bound retained decoded tile bytes, not only tile counts. Preserve retry policy
+- Bound decoded tiles by pixel bytes, not only tile counts. The Moka `sync` cache
+  uses a 128 MiB best-effort weighted target and LRU eviction; brief overshoot is
+  expected, so do not describe it as a hard RAM ceiling. Do not wrap ready-cache
+  reads in an application mutex or force maintenance on every frame. Request
+  admission and retry metadata remain separately synchronized. Preserve retry policy
   and disk fallback. Stream large GeoJSON feature collections; share immutable
   coordinate lines and request municipal data only when its layers are visible.
   Account for temporary references and GPU textures separately when measuring.

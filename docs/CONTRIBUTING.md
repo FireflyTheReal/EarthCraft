@@ -114,6 +114,34 @@ avoid alignment assumptions when using bytemuck with pixel buffers.
 For memory comparisons, use the same build profile, viewport, settings, cache
 state, enabled layers and elapsed startup time. Record which memory metric was
 used. Resident memory and Activity Monitor's memory column are not interchangeable.
-The 128 MiB cache budget limits retained tile bytes, not total application memory.
+Moka's 128 MiB target is weighted by decoded tile bytes and enforced best-effort;
+brief overshoot is expected. It does not limit total application memory, and its
+weighted-size estimate can lag inserts/evictions. Keep retry/deduplication tests
+independent of cache maintenance, and do not add per-frame eviction flushing.
 Municipal geometry is deferred rather than removed. Exercise enabling both
 municipal and metro layers after startup, and verify that loading labels finish.
+
+For a focused cache lookup comparison (optimized dev profile):
+
+```sh
+CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_DEV_INCREMENTAL=false cargo test -p earthcraft-data cached_hit_throughput --locked -- --ignored --nocapture
+```
+
+This ignored manual benchmark reports median cached-hit throughput over five
+rounds with 256 warm tiles and one/eight threads. It calls production lookup code;
+there are no timing assertions. It excludes misses, downloads, eviction pressure,
+full rendering and texture upload. Do not equate its numbers with application FPS.
+
+To compare complete warm CPU frames using isolated disk fixtures:
+
+```sh
+CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_DEV_INCREMENTAL=false RAYON_NUM_THREADS=8 cargo test -p earthcraft-render warm_cpu_frame_time --locked -- --ignored --nocapture --test-threads=1
+```
+
+Run this benchmark alone: it temporarily selects a private cache directory before
+creating worker threads, then restores the process environment and removes that
+directory. It renders 512×384 frames with grid, sunlight and atmosphere, using 341
+warm two-pixel fixture tiles. Five rounds of twenty frames include production ray
+casting, sampling, allocation and tile lookup; they exclude GUI upload, overlays,
+network and eviction pressure. Neither benchmark is a substitute for live-app
+frame-time and memory measurements.

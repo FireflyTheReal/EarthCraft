@@ -153,10 +153,20 @@ The async transport is tested against local HTTP fixtures, not public services.
 
 ## Memory policy
 
-Decoded tiles have a 128 MiB byte budget and least-recently-used eviction. This
-limits retained cache pixels; temporary renderer references, request bodies,
-geometry, textures and other application allocations are separate. Failed requests
-retain their retry delay. Tile workers use weak cache ownership while idle.
+Decoded tiles use `moka::sync::Cache` with LRU eviction and a 128 MiB weighted
+capacity target. Each entry is weighed by its RGBA pixel-buffer length. Capacity
+is best-effort: inserts can temporarily overshoot while maintenance catches up.
+`resident_bytes()` reports Moka's weighted estimate, which can lag recent changes;
+it is not an exact live-allocation measurement. Temporary renderer references,
+request bodies, geometry, textures and cache metadata are separate allocations.
+
+Ready-tile lookups return shared `Arc<Tile>` handles through Moka without taking
+our request mutex. Loading/failed metadata uses a separate small map to preserve
+request deduplication, the 48-request limit and the 15-second retry delay. Failed
+or oversized tiles do not enter the decoded cache. Completion advances generation
+and wakes the UI. Tile workers use weak cache ownership while idle. The existing
+packed-key hasher and disk-cache contracts are retained; Moka's default TinyLFU
+admission policy is explicitly replaced with LRU for map browsing.
 
 Startup loads world countries, states and populated-place labels. Brazilian
 municipality labels are requested below their existing 300 km visibility limit;

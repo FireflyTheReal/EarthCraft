@@ -22,6 +22,7 @@ eframe = "0.27"
 emath = "0.27"
 glam = { version = "0.34", default-features = false, features = ["std", "f64"] }
 bytemuck = "1"
+moka = { version = "0.12", default-features = false, features = ["sync"] }
 thiserror = "2"
 fluent-bundle = "0.16"
 fluent-syntax = "0.12"

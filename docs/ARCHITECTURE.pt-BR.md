@@ -93,10 +93,17 @@ Bytemuck cria views RGBA sem cópias nem suposições de alinhamento SIMD.
 
 ## Memória e carregamento
 
-O cache de tiles decodificados tem orçamento de 128 MiB, com remoção dos menos
-usados recentemente. Texturas, geometria e referências temporárias do renderer
-não fazem parte desse limite. Os workers mantêm referências fracas enquanto
-ociosos e preservam a política de novas tentativas.
+O cache de tiles decodificados usa `moka::sync::Cache`, com alvo ponderado de
+128 MiB e política LRU. O peso é o tamanho do buffer RGBA. O limite é best-effort:
+pode haver excesso temporário enquanto a manutenção remove entradas. A métrica
+`resident_bytes()` é uma estimativa e pode atrasar em relação às alterações.
+Texturas, geometria, metadados e referências temporárias ficam fora dessa métrica.
+
+Tiles prontos são compartilhados por `Arc`, sem adquirir o mutex de requisições.
+O mapa separado de carregamentos/falhas mantém a deduplicação, o máximo de 48
+requisições e a espera de 15 segundos antes de tentar novamente. Tiles grandes
+demais ou com falhas não entram no cache de pixels. Os workers mantêm referências
+fracas enquanto ociosos, e cada conclusão atualiza a geração e repinta a interface.
 
 Países, estados e nomes globais carregam na inicialização. Nomes municipais do
 Brasil carregam abaixo do limite existente de 300 km; geometria municipal e
