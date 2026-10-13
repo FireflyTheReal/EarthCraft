@@ -8,6 +8,7 @@ from pathlib import Path
 import plistlib
 import re
 import shutil
+import subprocess
 import tarfile
 import tempfile
 import tomllib
@@ -17,13 +18,9 @@ ROOT = Path(__file__).resolve().parents[1]
 TARGETS = (
     "x86_64-unknown-linux-gnu",
     "aarch64-unknown-linux-gnu",
-    "riscv64gc-unknown-linux-gnu",
     "x86_64-pc-windows-msvc",
-    "i686-pc-windows-msvc",
     "aarch64-pc-windows-msvc",
-    "aarch64-apple-darwin",
-    "x86_64-apple-darwin",
-    "x86_64-unknown-freebsd",
+    "universal-apple-darwin",
 )
 VERSION = re.compile(
     r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"
@@ -57,9 +54,13 @@ def package(version, target, binary, output):
         raise ValueError(f"Unsupported target: {target}")
     if not binary.is_file():
         raise ValueError(f"Release executable does not exist: {binary}")
+    if target == "universal-apple-darwin":
+        subprocess.run(
+            ["lipo", str(binary), "-verify_arch", "arm64", "x86_64"], check=True
+        )
     output.mkdir(parents=True, exist_ok=True)
     name = f"earthcraft-v{version}-{target}"
-    extension = ".tar.gz" if "linux" in target or "freebsd" in target else ".zip"
+    extension = ".tar.gz" if "linux" in target else ".zip"
     archive = output / f"{name}{extension}"
     with tempfile.TemporaryDirectory(prefix="earthcraft-package-") as temporary:
         payload = Path(temporary) / name
@@ -133,7 +134,7 @@ def main():
             validate(args.tag)
         else:
             package(args.version, args.target, args.binary, args.output)
-    except (OSError, ValueError) as error:
+    except (OSError, ValueError, subprocess.CalledProcessError) as error:
         parser.exit(1, f"Release packaging failed: {error}\n")
 
 
