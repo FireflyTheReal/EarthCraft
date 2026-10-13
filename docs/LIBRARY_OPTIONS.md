@@ -8,7 +8,7 @@ updates. All original raster fixtures remain unchanged.
 | Library | Current use | Compatibility constraint |
 | --- | --- | --- |
 | Serde | Tolerant settings and Nominatim response models; feature-at-a-time GeoJSON projection | Keep valid fields when siblings have wrong types; preserve defaults, scale clamping and coordinate order |
-| quick-xml | KML event reader and writer | Preserve the existing Point subset, CDATA, entities, fallback names and incomplete-envelope compatibility |
+| kml + quick-xml | GeoRust KML reader/writer with a private XML preparation pass | Skip empty Points, balance incomplete outer envelopes, wrap legacy bare coordinates and retain localized names/longitude-first marker positions; no parallel legacy parser |
 | thiserror | Typed data errors with source causes | Convert errors to user-facing text at presentation boundaries |
 | glam | `DVec3` geometry, `dcamera` view/perspective constructors, `DMat2` panning and `DQuat` rotations; SIMD colors throughout the renderer | Keep f64 geographic precision and the original camera/raster output; retain emath for egui geometry |
 | bytemuck | Safe zero-copy views of RGBA byte storage | Cast to byte-aligned pixel arrays, not aligned SIMD vectors; no unsafe code |
@@ -39,3 +39,8 @@ Moka uses its `sync` feature because Rayon needs immediate cache reads. UUID is
 locked to 1.26.0 to preserve Rust 1.88 compatibility; newer UUID releases resolved
 by the local stable toolchain require Rust 1.89. Review transitive MSRVs when
 updating the lockfile. No extra UUID API or dependency is exposed by EarthCraft.
+
+See [geospatial evaluation](GEOSPATIAL.md) for measured `geo` comparisons and
+the proposed roles of geozero, geo-index and Mapbox Vector Tiles. Those libraries
+are not runtime dependencies. Library reference code and fixtures can validate
+our approach without replacing a faster or better-fitting implementation.

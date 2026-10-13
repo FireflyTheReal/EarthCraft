@@ -66,7 +66,12 @@ User instructions and the requested scope take precedence over these defaults.
   channel order and padding explicit. Do not add unsafe casts or unsafe POD impls.
 - Keep structured `earthcraft_data::Error` causes until the presentation boundary.
   Serde settings/service models must retain tolerant field defaults and existing
-  coordinate order. quick-xml supports the existing KML Point subset.
+  coordinate order. Use GeoRust `kml` for KML decoding/writing; the private XML
+  preparation pass skips empty Points and prevents truncated-container EOF loops.
+  Keep marker coordinate order, fallback names and legacy bare-coordinate/outer
+  fragment imports. Do not reintroduce a parallel handwritten KML parser.
+  Treat geographic libraries as reference implementations for differential tests
+  and benchmarks when useful; add runtime dependencies for demonstrated needs.
 - The app owns one `ServiceRuntime`. Inject its handle and repaint callbacks into
   data; use pooled reqwest clients and async I/O. Keep CPU rasterization on Rayon,
   large decoding/projection on bounded blocking workers, and UI access on egui's

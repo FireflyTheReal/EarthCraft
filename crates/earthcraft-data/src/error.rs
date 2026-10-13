@@ -12,6 +12,8 @@ pub enum Error {
     #[error(transparent)]
     Xml(#[from] quick_xml::Error),
     #[error(transparent)]
+    Kml(#[from] ::kml::Error),
+    #[error(transparent)]
     Task(#[from] tokio::task::JoinError),
     #[error("{0}")]
     Message(String),

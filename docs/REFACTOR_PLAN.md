@@ -219,3 +219,34 @@ claims. Commands and workload limitations are in the contributing guide.
 
 Next is the separate `wide` ray-batching stage, then buffer reuse, decoding
 isolation and Unicode normalization before MBTiles and the later GPU renderer.
+
+## GeoRust KML checkpoint and geographic evaluation
+
+GeoRust `kml` 0.14.0 now owns KML reading and writing, with default ZIP/geo-types
+features disabled. The entry point lives in `crates/earthcraft-data/src/kml/mod.rs`,
+with private `guard` and `tests` modules. There is no legacy parser fallback.
+A quick-xml preparation pass skips empty Points, limits recursive depth, closes
+incomplete outer containers and wraps legacy bare Placemark coordinates. This
+prevents the published reader's demonstrated empty-Point panic and unclosed
+Placemark EOF loop while retaining the original fragment/roundtrip fixtures.
+Coordinate decoding, namespaces, text/entities, metadata and serialization belong
+to the library. CDATA is literal and invalid coordinates/metadata return typed
+KML errors. The app remains a marker importer/exporter; no line/polygon or KMZ
+feature is added. Only kml was added to the package graph; sharing quick-xml 0.41
+removed 0.38 without unrelated dependency upgrades.
+
+Eight KML tests cover original imports/roundtrips, namespaced nested folders,
+localized names/order, empty Points with valid siblings, Unicode/entity whitespace,
+CDATA, first-coordinate marker projection, typed failures, incomplete containers
+and bounded nesting. All 63 workspace tests, strict Clippy, formatting and the
+macOS ARM64 optimized-dev build passed; the three manual benchmarks remain ignored
+by default. Original raster fixtures are unchanged. Native KML dialogs and the
+minimum-toolchain/other-platform builds were not rerun for this checkpoint.
+
+An isolated comparison of published geo 0.33.1 did not demonstrate faster
+compatible math: distance adapters were close, and generating our fixed-segment
+DVec3 arcs was substantially slower. Existing production math stays in place.
+See [geospatial evaluation](GEOSPATIAL.md) for the measurements, compatibility
+checks and proposed roles of geozero, MVT and geo-index. Those remain evaluation
+options without runtime dependencies; they do not replace the approved next
+wide/buffer/decoding/Unicode stages or silently change data sources.

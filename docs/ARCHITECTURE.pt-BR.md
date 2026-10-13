@@ -51,8 +51,15 @@ Não é necessária uma migração de dados.
 A lista global de imagens históricas continua sincronizada. O aplicativo possui
 um único runtime Tokio para os serviços; reqwest reutiliza clientes HTTP.
 Decodificação de imagens e projeção de JSON usam workers bloqueantes limitados;
-a renderização continua no Rayon. quick-xml lê e escreve o subconjunto Point
-existente do KML. Serde mantém os padrões tolerantes das configurações e da busca;
+a renderização continua no Rayon. A biblioteca GeoRust `kml`, baseada em quick-xml,
+lê e escreve KML. Uma etapa privada de preparação XML remove Points vazios,
+fecha contêineres incompletos e envolve coordenadas antigas em Point, evitando
+panics e loops no EOF. Não há um parser KML antigo em paralelo. O aplicativo
+continua importando um marcador na primeira coordenada de cada Placemark e
+exportando Points, sem adicionar renderização de linhas/polígonos ou KMZ.
+CDATA mantém seu texto literal; coordenadas/metadados inválidos retornam erros
+tipados, sem a filtragem numérica e o unescape extra do parser antigo.
+Serde mantém os padrões tolerantes das configurações e da busca;
 thiserror preserva causas estruturadas até a apresentação na interface.
 O estado do aplicativo ainda pertence a uma estrutura privada, dividida em
 módulos por responsabilidade.

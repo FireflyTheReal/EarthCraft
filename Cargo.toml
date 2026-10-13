@@ -27,7 +27,8 @@ thiserror = "2"
 fluent-bundle = "0.16"
 fluent-syntax = "0.12"
 unic-langid = "0.9"
-quick-xml = "0.38"
+quick-xml = "0.41"
+kml = { version = "0.14", default-features = false }
 rayon = "1.10"
 rstar = "0.13"
 tokio = { version = "1", features = ["rt-multi-thread", "net", "time", "sync", "fs", "io-util", "macros"] }

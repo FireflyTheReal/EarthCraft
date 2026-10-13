@@ -146,7 +146,15 @@ needed, rather than wrapping every function in a trait.
 ## Deliberately retained implementation constraints
 
 Historical imagery still uses a synchronized process-wide release list. KML uses
-quick-xml while retaining the existing Point subset. App state remains one private
+GeoRust's `kml` reader/writer, backed by quick-xml, in `data::kml`. Its private
+XML preparation pass removes empty Points, balances incomplete outer containers,
+and wraps legacy bare Placemark coordinates. It bounds XML depth and rejects
+truncated text fields before the library can panic or loop at EOF; no legacy
+KML decoder runs in parallel. The app still imports one marker at a Placemark's
+first coordinate and exports Point placemarks, without adding line/polygon or
+KMZ features. The typed reader interprets CDATA literally and reports invalid
+coordinates/metadata through `Error::Kml`; the old ad hoc numeric filtering and
+extra entity decoding inside CDATA are removed. App state remains one private
 owner shared by child modules. Feature extensions to these boundaries need their
 own behavior and lifecycle tests.
 
