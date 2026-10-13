@@ -262,10 +262,8 @@ cargo test --workspace --all-features --locked
 
 ## Frame rate and display synchronization
 
-The status bar reports completed globe frames, sampled once per second, and
-retains the last active rate while idle. It does not count UI-only repaints or
-force a static globe to rerender. Native presentation synchronizes with the
-current display by default. Settings → Uncap FPS persists the choice; restart
+Native presentation synchronizes with the current display by default.
+Settings → Uncap FPS persists the choice; restart
 is required because native swap synchronization is selected at startup. Changing
 this setting does not enable G-SYNC/FreeSync in the graphics driver or display.
 Continuous animation requests repaints without the old 260 ms delay; native

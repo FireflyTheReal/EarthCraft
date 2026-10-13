@@ -220,8 +220,6 @@ statusbar-camera-center = Centro: { $latitude }°, { $longitude }°
 
 statusbar-camera-altitude = Altitude da câmera: { $distance }
 
-statusbar-render-fps = FPS: { $rate }
-statusbar-render-fps-help = Quadros do globo concluídos por segundo. A última taxa medida é mantida enquanto a vista está parada.
 
 settings-uncap-fps-toggle = FPS sem limite (requer reiniciar)
 settings-frame-sync-help = Por padrão, a apresentação é sincronizada com a taxa de atualização da tela. G-SYNC/FreeSync é configurado na tela e no driver gráfico.

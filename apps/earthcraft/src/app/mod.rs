@@ -67,7 +67,6 @@ pub(crate) struct App {
     live_maps: live_maps::LiveMaps,
 
     renderer: rendering::Renderer,
-    frame_rate: ui::FrameRate,
     texture: Option<egui::TextureHandle>,
     image: Option<(usize, usize, Arc<Vec<u8>>)>,
     last_state: u64,
@@ -156,7 +155,6 @@ impl App {
             fly: None,
             cache,
             renderer,
-            frame_rate: ui::FrameRate::default(),
             provider: Provider::Satellite,
             tile_warmup: TileWarmup::startup_satellite(),
             cache_controls: cache::CacheControls::default(),

@@ -200,7 +200,6 @@ impl App {
         // Recheck dependencies even if a tile finished before frame publication.
         self.last_gen = u64::MAX;
         self.renderer.displayed = Some((frame.request.cam, frame.request.basis));
-        self.frame_rate.presented();
     }
 }
 
