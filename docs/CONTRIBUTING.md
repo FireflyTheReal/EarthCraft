@@ -279,3 +279,25 @@ egui view; the CPU path remains the default and fallback. Set
 The Explorer, live meteorological/aircraft layers, moon and custom planet
 remain integrated in `apps/earthcraft`. See [GPU_RENDERER.md](GPU_RENDERER.md)
 for hardware limits, performance and CPU-only build instructions.
+
+## Native desktop File menu
+
+Windows and macOS use native menu adapters in `apps/earthcraft/src/app/menu`.
+macOS uses muda 0.19 (compatible with Rust 1.89); Windows uses the menu-only
+native-windows-gui API to attach commands and bind its existing HWND without
+workspace unsafe code. `raw-window-handle` obtains that borrowed HWND. All menu
+objects and handlers stay on the window thread and outlive native callbacks.
+Linux retains the sidebar's file controls.
+
+Commands reuse the existing KML jobs and screenshot snapshot service. Native
+callbacks enqueue actions and wake egui; egui opens dialogs, submits jobs and
+closes the viewport. Screenshot is disabled before a displayed frame exists.
+Menu captions follow live language changes. macOS registers AppKit accelerators;
+Windows consumes matching egui shortcuts because winit does not translate menu
+accelerators. No second native event loop is started.
+
+Smoke check both native platforms: open/cancel/import KML, save and save-as,
+save a PNG, change language, verify screenshots are disabled before the first
+frame, use shortcuts, then Quit normally while jobs are pending. Confirm egui
+text editing, globe dragging and settings persistence still work. Use an isolated
+profile for these checks. Linux should compile without either native menu backend.

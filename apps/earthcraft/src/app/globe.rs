@@ -60,9 +60,8 @@ impl App {
             || (resp.dragged_by(PointerButton::Primary) && shift)
         {
             let drag = ctx.input(|i| i.pointer.delta());
-            self.cam.heading = wrap_lon(
-                self.cam.heading - drag.x as f64 * DRAG_HEADING_DEG_PER_POINT,
-            );
+            self.cam.heading =
+                wrap_lon(self.cam.heading - drag.x as f64 * DRAG_HEADING_DEG_PER_POINT);
             interacting = true;
         }
         if resp.hovered() {
@@ -74,14 +73,18 @@ impl App {
                 let factor = (-sc * SCROLL_ZOOM_RATE_PER_POINT).exp();
                 if self.explorer.active == super::explorer::Body::Earth {
                     self.zoom_at(factor, cur, rect, aspect);
-                } else { self.zoom(factor); }
+                } else {
+                    self.zoom(factor);
+                }
                 interacting = true;
             }
             if (zd - 1.0).abs() > 1e-4 {
                 self.fly = None;
                 if self.explorer.active == super::explorer::Body::Earth {
                     self.zoom_at(1.0 / zd, cur, rect, aspect);
-                } else { self.zoom(1.0 / zd); }
+                } else {
+                    self.zoom(1.0 / zd);
+                }
                 interacting = true;
             }
         }
@@ -262,10 +265,29 @@ impl App {
             );
         }
         if self.explorer.active != super::explorer::Body::Earth {
-            painter.rect_filled(rect,0.0,Color32::BLACK);
-            if let Some(sky)=self.explorer.sky.as_ref().filter(|_| self.explorer.active == super::explorer::Body::Custom) { painter.image(sky.id(),rect,Rect::from_min_max(Pos2::ZERO,Pos2::new(1.0,1.0)),Color32::WHITE); }
-            if let Some(body)=self.explorer.active_texture() {
-                draw_planet(&painter, rect, body, self.cam.lat, self.cam.lon, self.cam.alt);
+            painter.rect_filled(rect, 0.0, Color32::BLACK);
+            if let Some(sky) = self
+                .explorer
+                .sky
+                .as_ref()
+                .filter(|_| self.explorer.active == super::explorer::Body::Custom)
+            {
+                painter.image(
+                    sky.id(),
+                    rect,
+                    Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
+                    Color32::WHITE,
+                );
+            }
+            if let Some(body) = self.explorer.active_texture() {
+                draw_planet(
+                    &painter,
+                    rect,
+                    body,
+                    self.cam.lat,
+                    self.cam.lon,
+                    self.cam.alt,
+                );
             }
         }
         // Keep projected borders and labels aligned with the displayed raster
@@ -273,7 +295,13 @@ impl App {
         let (display_cam, display_basis) =
             self.renderer.displayed_view().unwrap_or((self.cam, basis));
         if self.explorer.active == super::explorer::Body::Earth {
-            self.live_maps.draw(&painter, &display_basis, rect, self.show_clouds, self.show_weather);
+            self.live_maps.draw(
+                &painter,
+                &display_basis,
+                rect,
+                self.show_clouds,
+                self.show_weather,
+            );
             self.draw_overlays(&painter, &display_basis, rect, display_cam.alt);
             self.draw_live_layers(&painter, &display_basis, rect, display_cam.alt);
         }
@@ -340,14 +368,30 @@ impl App {
             Color32::from_white_alpha(200),
         );
 
-        if self.explorer.active == super::explorer::Body::Earth && (self.show_clouds || self.show_weather) {
-            let source = self.live_maps.status(self.show_clouds, self.show_weather, lg);
+        if self.explorer.active == super::explorer::Body::Earth
+            && (self.show_clouds || self.show_weather)
+        {
+            let source = self
+                .live_maps
+                .status(self.show_clouds, self.show_weather, lg);
             let credit = if self.show_clouds && self.show_weather {
-                format!("{}\n{}", lg.text("live-cloud-credit"), lg.text("live-radar-credit"))
-            } else if self.show_clouds { lg.text("live-cloud-credit").into() }
-            else { lg.text("live-radar-credit").into() };
-            painter.text(rect.left_bottom() + Vec2::new(12.0, -58.0), Align2::LEFT_BOTTOM,
-                format!("{source}\n{credit}"), FontId::proportional(11.0), Color32::WHITE);
+                format!(
+                    "{}\n{}",
+                    lg.text("live-cloud-credit"),
+                    lg.text("live-radar-credit")
+                )
+            } else if self.show_clouds {
+                lg.text("live-cloud-credit").into()
+            } else {
+                lg.text("live-radar-credit").into()
+            };
+            painter.text(
+                rect.left_bottom() + Vec2::new(12.0, -58.0),
+                Align2::LEFT_BOTTOM,
+                format!("{source}\n{credit}"),
+                FontId::proportional(11.0),
+                Color32::WHITE,
+            );
         }
 
         // context menu (right-click)
@@ -453,7 +497,7 @@ fn draw_planet(
             ];
             let mut uvs = [(0.0_f64, 0.0_f64); 4];
             for (i, &(x, y)) in corners.iter().enumerate() {
-                let z = (1.0 - (x*x + y*y).min(1.0)).sqrt();
+                let z = (1.0 - (x * x + y * y).min(1.0)).sqrt();
                 let xp = x * longitude.cos() + z * longitude.sin();
                 let zp = -x * longitude.sin() + z * longitude.cos();
                 let yp = y * latitude.cos() + zp * latitude.sin();
@@ -471,9 +515,17 @@ fn draw_planet(
                 // the texture interpolation jump across the entire image.
                 let left_count = uvs.iter().filter(|uv| uv.0 < 0.5).count();
                 if left_count >= 2 {
-                    for uv in &mut uvs { if uv.0 > 0.5 { uv.0 = 0.0; } }
+                    for uv in &mut uvs {
+                        if uv.0 > 0.5 {
+                            uv.0 = 0.0;
+                        }
+                    }
                 } else {
-                    for uv in &mut uvs { if uv.0 < 0.5 { uv.0 = 1.0; } }
+                    for uv in &mut uvs {
+                        if uv.0 < 0.5 {
+                            uv.0 = 1.0;
+                        }
+                    }
                 }
             }
             let base = mesh.vertices.len() as u32;

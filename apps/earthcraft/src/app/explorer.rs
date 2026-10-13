@@ -5,8 +5,12 @@ use serde::{Deserialize, Serialize};
 use std::{fs, path::Path, process::Command};
 
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
-pub(super) enum Body { #[default] Earth, Moon, Custom }
-
+pub(super) enum Body {
+    #[default]
+    Earth,
+    Moon,
+    Custom,
+}
 
 #[derive(Default)]
 pub(super) struct Explorer {
@@ -28,79 +32,119 @@ struct PlanetFile {
     version: u32,
     name: String,
     texture: String,
-    #[serde(default)] texture_bytes: Vec<u8>,
-    #[serde(default)] sky_bytes: Vec<u8>,
+    #[serde(default)]
+    texture_bytes: Vec<u8>,
+    #[serde(default)]
+    sky_bytes: Vec<u8>,
 }
 
 fn texture(ctx: &egui::Context, file: &Path) -> Result<TextureHandle, String> {
     let data = fs::read(file).map_err(|e| e.to_string())?;
-    let im = image::load_from_memory(&data).map_err(|e| e.to_string())?.to_rgba8();
+    let im = image::load_from_memory(&data)
+        .map_err(|e| e.to_string())?
+        .to_rgba8();
     let size = [im.width() as usize, im.height() as usize];
-    Ok(ctx.load_texture(file.to_string_lossy(), ColorImage::from_rgba_unmultiplied(size, im.as_raw()), Default::default()))
+    Ok(ctx.load_texture(
+        file.to_string_lossy(),
+        ColorImage::from_rgba_unmultiplied(size, im.as_raw()),
+        Default::default(),
+    ))
 }
 
 fn texture_bytes(ctx: &egui::Context, label: &str, data: &[u8]) -> Result<TextureHandle, String> {
-    let im = image::load_from_memory(data).map_err(|e| e.to_string())?.to_rgba8();
+    let im = image::load_from_memory(data)
+        .map_err(|e| e.to_string())?
+        .to_rgba8();
     let size = [im.width() as usize, im.height() as usize];
-    Ok(ctx.load_texture(label, ColorImage::from_rgba_unmultiplied(size, im.as_raw()), Default::default()))
+    Ok(ctx.load_texture(
+        label,
+        ColorImage::from_rgba_unmultiplied(size, im.as_raw()),
+        Default::default(),
+    ))
 }
 impl Explorer {
-    /// Clears the status after a language change without exposing internal state.
-    pub(super) fn clear_message(&mut self) {
-        self.message.clear();
-    }
     pub fn choose(&mut self, body: Body, ctx: &egui::Context) {
         self.active = body;
         let item = match body {
-            Body::Moon => Some((&mut self.moon, "Moon", include_bytes!("../../assets/lroc_color_2k.jpg").as_slice())),
+            Body::Moon => Some((
+                &mut self.moon,
+                "Moon",
+                include_bytes!("../../assets/lroc_color_2k.jpg").as_slice(),
+            )),
             _ => None,
         };
         if let Some((slot, label, bytes)) = item {
-            if slot.is_none() { *slot = texture_bytes(ctx,label,bytes).ok(); }
+            if slot.is_none() {
+                *slot = texture_bytes(ctx, label, bytes).ok();
+            }
         }
     }
     pub fn active_texture(&self) -> Option<&TextureHandle> {
-        match self.active {Body::Moon => self.moon.as_ref(), Body::Custom => self.viewer.as_ref(), Body::Earth => None}
+        match self.active {
+            Body::Moon => self.moon.as_ref(),
+            Body::Custom => self.viewer.as_ref(),
+            Body::Earth => None,
+        }
     }
 }
 fn open_url(url: &str) -> Result<(), String> {
-    #[cfg(target_os="windows")]
+    #[cfg(target_os = "windows")]
     let result = Command::new("cmd").args(["/C", "start", "", url]).spawn();
-    #[cfg(target_os="macos")]
+    #[cfg(target_os = "macos")]
     let result = Command::new("open").arg(url).spawn();
-    #[cfg(all(not(target_os="windows"),not(target_os="macos")))]
+    #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
     let result = Command::new("xdg-open").arg(url).spawn();
     result.map(|_| ()).map_err(|e| e.to_string())
 }
 
-fn speak(text: &str, lang: earthcraft_core::language::Lang) -> Result<(), String> {
+fn speak(text: &str, _lang: earthcraft_core::language::Lang) -> Result<(), String> {
     // System TTS, without uploading the narration to any cloud service.
-    #[cfg(target_os="macos")]
+    #[cfg(target_os = "macos")]
     let result = Command::new("say").arg(text).spawn();
     #[cfg(target_os="windows")]
     let result = Command::new("powershell").args(["-NoProfile", "-Command", "Add-Type -AssemblyName System.Speech; $s=New-Object System.Speech.Synthesis.SpeechSynthesizer; $s.Speak($args[0])", text]).spawn();
-    #[cfg(all(not(target_os="windows"),not(target_os="macos")))]
-    let result = Command::new("espeak").args(["-v", if lang == earthcraft_core::language::Lang::PtBr { "pt-br" } else { "en" }, text]).spawn();
-    result.map(|_| ()).map_err(|e| format!("TTS unavailable (install espeak on Linux): {e}"))
+    #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
+    let result = Command::new("espeak")
+        .args([
+            "-v",
+            if _lang == earthcraft_core::language::Lang::PtBr {
+                "pt-br"
+            } else {
+                "en"
+            },
+            text,
+        ])
+        .spawn();
+    result
+        .map(|_| ())
+        .map_err(|e| format!("TTS unavailable (install espeak on Linux): {e}"))
 }
 
 fn photo_search(name: &str) -> String {
     // Wikimedia Commons Special:MediaSearch; human-selected photographs, not invented imagery.
-    format!("https://commons.wikimedia.org/wiki/Special:MediaSearch?type=image&search={}", encode(name))
+    format!(
+        "https://commons.wikimedia.org/wiki/Special:MediaSearch?type=image&search={}",
+        encode(name)
+    )
 }
 fn encode(s: &str) -> String {
-    let mut out=String::new();
+    let mut out = String::new();
     for byte in s.bytes() {
-        if byte.is_ascii_alphanumeric() || b"-_.~".contains(&byte) {out.push(byte as char)}
-        else {out.push_str(&format!("%{byte:02X}"));}
+        if byte.is_ascii_alphanumeric() || b"-_.~".contains(&byte) {
+            out.push(byte as char)
+        } else {
+            out.push_str(&format!("%{byte:02X}"));
+        }
     }
     out
 }
 impl App {
     pub(super) fn explorer_window(&mut self, ctx: &egui::Context) {
-        if !self.explorer.open { return; }
+        if !self.explorer.open {
+            return;
+        }
         let lg = self.lang;
-        let mut open=self.explorer.open;
+        let mut open = self.explorer.open;
         egui::Window::new(lg.text("explorer-title"))
             .open(&mut open).default_width(390.0).resizable(true).vscroll(true)
             .show(ctx, |ui| {
@@ -192,28 +236,52 @@ impl App {
                 ui.small(lg.text("explorer-sky-preview"));
                 if !self.explorer.message.is_empty(){ui.separator();ui.label(&self.explorer.message);}
             });
-        self.explorer.open=open;
+        self.explorer.open = open;
     }
 }
-fn save_planet(path:&Path,name:&str,source:&str,sky:&str)->Result<String,String>{
-    let texture_bytes=fs::read(source).map_err(|e|format!("Planet image: {e}"))?;
-    image::load_from_memory(&texture_bytes).map_err(|e|e.to_string())?;
-    let sky_bytes=if sky.trim().is_empty(){Vec::new()}else{
-        let b=fs::read(sky).map_err(|e|format!("Sky: {e}"))?;
-        image::load_from_memory(&b).map_err(|e|e.to_string())?; b
+fn save_planet(path: &Path, name: &str, source: &str, sky: &str) -> Result<String, String> {
+    let texture_bytes = fs::read(source).map_err(|e| format!("Planet image: {e}"))?;
+    image::load_from_memory(&texture_bytes).map_err(|e| e.to_string())?;
+    let sky_bytes = if sky.trim().is_empty() {
+        Vec::new()
+    } else {
+        let b = fs::read(sky).map_err(|e| format!("Sky: {e}"))?;
+        image::load_from_memory(&b).map_err(|e| e.to_string())?;
+        b
     };
-    let doc=PlanetFile{version:2,name:name.to_owned(),texture:String::new(),texture_bytes,sky_bytes};
-    fs::write(path,serde_json::to_vec(&doc).map_err(|e|e.to_string())?).map_err(|e|e.to_string())?;
-    Ok(format!("Planet and sky embedded in {}",path.display()))
+    let doc = PlanetFile {
+        version: 2,
+        name: name.to_owned(),
+        texture: String::new(),
+        texture_bytes,
+        sky_bytes,
+    };
+    fs::write(path, serde_json::to_vec(&doc).map_err(|e| e.to_string())?)
+        .map_err(|e| e.to_string())?;
+    Ok(format!("Planet and sky embedded in {}", path.display()))
 }
-fn load_planet(path:&Path,ctx:&egui::Context)->Result<(String,TextureHandle,Option<TextureHandle>),String>{
-    let doc:PlanetFile=serde_json::from_slice(&fs::read(path).map_err(|e|e.to_string())?).map_err(|e|e.to_string())?;
-    let data=if doc.version==1 {
-        let rel=Path::new(&doc.texture);
-        if rel.components().count()!=1{return Err("Invalid path".into())}
-        fs::read(path.parent().unwrap_or(Path::new(".")).join(rel)).map_err(|e|e.to_string())?
-    } else if doc.version==2 { doc.texture_bytes } else {return Err("Unsupported version".into())};
-    let planet=texture_bytes(ctx,"loaded-planet",&data)?;
-    let sky=if doc.sky_bytes.is_empty(){None}else{Some(texture_bytes(ctx,"loaded-sky",&doc.sky_bytes)?)};
-    Ok((doc.name,planet,sky))
+fn load_planet(
+    path: &Path,
+    ctx: &egui::Context,
+) -> Result<(String, TextureHandle, Option<TextureHandle>), String> {
+    let doc: PlanetFile = serde_json::from_slice(&fs::read(path).map_err(|e| e.to_string())?)
+        .map_err(|e| e.to_string())?;
+    let data = if doc.version == 1 {
+        let rel = Path::new(&doc.texture);
+        if rel.components().count() != 1 {
+            return Err("Invalid path".into());
+        }
+        fs::read(path.parent().unwrap_or(Path::new(".")).join(rel)).map_err(|e| e.to_string())?
+    } else if doc.version == 2 {
+        doc.texture_bytes
+    } else {
+        return Err("Unsupported version".into());
+    };
+    let planet = texture_bytes(ctx, "loaded-planet", &data)?;
+    let sky = if doc.sky_bytes.is_empty() {
+        None
+    } else {
+        Some(texture_bytes(ctx, "loaded-sky", &doc.sky_bytes)?)
+    };
+    Ok((doc.name, planet, sky))
 }
