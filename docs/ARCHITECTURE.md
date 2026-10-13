@@ -279,7 +279,11 @@ Large GeoJSON downloads stream into temporary files, then Serde projects one
 feature at a time on blocking workers. Cache files are replaced only after valid
 parsing; temporary files are cleaned up, and a writable cache is not required.
 At most two feature jobs run concurrently, and Brazilian states are processed
-sequentially. The service runtime also bounds blocking workers.
+sequentially. Feature projection and tile decoding each use a lazy, process-shared two-thread
+Rayon service pool, separate from the frame-rendering pool. Existing feature
+admission (two jobs) and tile admission (48 jobs, six workers) bound submissions.
+Tokio retains two blocking workers for filesystem/DNS and smaller service jobs;
+large feature parsing cannot occupy tile-decoding or filesystem workers.
 
 ## Localization
 

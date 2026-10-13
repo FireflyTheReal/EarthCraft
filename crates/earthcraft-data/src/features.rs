@@ -84,10 +84,10 @@ async fn read<T: Default + Send + 'static, F: Fn(&serde_json::Value, &mut T) + S
     path: PathBuf,
     consume: F,
 ) -> Result<T, crate::Error> {
-    tokio::task::spawn_blocking(move || {
+    crate::cpu::run(crate::cpu::Service::Features, move || {
         project(BufReader::new(std::fs::File::open(path)?), consume)
     })
-    .await?
+    .await
 }
 struct Temporary(PathBuf);
 impl Drop for Temporary {

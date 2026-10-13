@@ -178,9 +178,10 @@ async fn fetch_tile(k: TileKey, disk: &DiskCache, epoch: u64) -> Result<Tile, cr
             )
         }
     };
-    let (tile, bytes) =
-        tokio::task::spawn_blocking(move || Tile::decode(&bytes).map(|tile| (tile, bytes)))
-            .await??;
+    let (tile, bytes) = crate::cpu::run(crate::cpu::Service::Tiles, move || {
+        Tile::decode(&bytes).map(|tile| (tile, bytes))
+    })
+    .await?;
     if !from_disk {
         // Optional persistence stays best-effort; a writable disk cache is not
         // required to display successfully downloaded imagery.
