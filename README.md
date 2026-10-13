@@ -32,7 +32,9 @@ An internet connection is required to download map tiles.
 ### Controls
 Drag: rotate globe · Right-drag / Shift+drag: rotate view · Wheel / +/-: zoom · Double-click: fly to point · Arrow keys: move · N: north up
 
-On Windows and macOS, the native **File** menu opens/saves KML and saves PNG screenshots. Use Ctrl (Windows) or Cmd (macOS): O to open, S to save, Shift+S for Save As, and Shift+E for a screenshot. Screenshots use the folder selected in Settings. Quit is in the application menu on macOS.
+Use **☰** in the toolbar to hide or reopen the sidebar and give the map more room.
+
+On macOS, the native **File** menu opens/saves KML and saves PNG screenshots. Use Cmd+O to open, Cmd+S to save, Cmd+Shift+S for Save As, and Cmd+Shift+E for a screenshot. Screenshots use the folder selected in Settings. Quit is in the application menu. Windows and Linux use the sidebar's file controls and the same shortcuts with Ctrl instead of Cmd; Ctrl+Q quits.
 
 ### Not implemented (would require proprietary data/infrastructure)
 

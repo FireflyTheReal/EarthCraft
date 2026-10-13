@@ -7,6 +7,13 @@ impl App {
         let mut field_rect = Rect::NOTHING;
         egui::TopBottomPanel::top("top").show(ctx, |ui| {
             ui.horizontal(|ui| {
+                let sidebar_hint = if self.sidebar_open {
+                    lg.text("sidebar-hide-tooltip")
+                } else {
+                    lg.text("sidebar-show-tooltip")
+                };
+                ui.toggle_value(&mut self.sidebar_open, "☰")
+                    .on_hover_text(sidebar_hint);
                 ui.strong("🌍 EarthCraft");
                 if ui.button(lg.text("top-explore-action")).clicked() {
                     self.explorer.open = true;

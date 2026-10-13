@@ -56,6 +56,7 @@ impl RasterView {
                 self.grid,
             ),
             (self.atmosphere, sun_key, self.release_index),
+            self.aspect.to_bits(),
         )
             .hash(&mut state);
         let mut presentation = std::collections::hash_map::DefaultHasher::new();
@@ -106,6 +107,11 @@ mod tests {
         assert_ne!(view.keys(180.0).presentation, moved.presentation);
         view.grid = true;
         assert_ne!(view.keys(120.0).presentation, moved.presentation);
+        let before_resize = view.keys(120.0);
+        // Raster dimensions can round to the same pixels even as the viewport changes.
+        view.aspect += 0.0001;
+        assert_ne!(view.keys(120.0).state, before_resize.state);
+        assert_ne!(view.keys(120.0).presentation, before_resize.presentation);
     }
     #[test]
     fn interaction_resolution_and_size_limits_are_preserved() {

@@ -25,10 +25,11 @@ quadro exibido, mantendo alinhamento durante movimento.
 
 A CPU usa Rayon, blocos de oito linhas e quatro raios f64 por lote com `wide`.
 Glam fornece matrizes/quaternions e cores SIMD; bytemuck fornece conversões seguras
-de pixels e uniforms. As bibliotecas proíbem Rust inseguro. O desktop permite
-somente a chamada documentada que conecta o menu ao HWND ativo do eframe no
-Windows. Menus nativos ficam no desktop; seus callbacks enfileiram ações e
-solicitam uma atualização do egui. Buffers são reutilizados
+de pixels e uniforms. O workspace proíbe Rust inseguro. Os menus nativos do
+macOS ficam no desktop; seus callbacks enfileiram ações e solicitam uma
+atualização do egui. Windows e Linux usam os controles do painel lateral.
+O botão na barra de ferramentas permite ocultar e reabrir o painel lateral,
+preservando seus controles e seções. Buffers são reutilizados
 quando exclusivos; capturas retêm `Arc` imutável e são codificadas na thread de
 arquivos. O egui continua responsável pelo upload e desenho das texturas.
 

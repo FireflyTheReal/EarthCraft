@@ -1,11 +1,12 @@
 //! Native desktop commands; dialogs and app state are always handled by egui's thread.
 use super::App;
+#[cfg(target_os = "macos")]
 use earthcraft_core::language::Lang;
 use eframe::egui;
+#[cfg(target_os = "macos")]
 mod native;
+#[cfg(target_os = "macos")]
 pub(super) use native::NativeMenu;
-#[cfg(target_os = "windows")]
-mod windows;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum Action {
@@ -16,6 +17,7 @@ pub(super) enum Action {
     Quit,
 }
 impl Action {
+    #[cfg(target_os = "macos")]
     pub(super) const ALL: [Self; 5] = [
         Self::Open,
         Self::Save,
@@ -23,6 +25,7 @@ impl Action {
         Self::Screenshot,
         Self::Quit,
     ];
+    #[cfg(target_os = "macos")]
     pub(super) fn label(self, lang: Lang) -> String {
         lang.text(match self {
             Self::Open => "menu-kml-open",
@@ -33,7 +36,7 @@ impl Action {
         })
         .into()
     }
-    #[cfg(target_os = "windows")]
+    #[cfg(not(target_os = "macos"))]
     pub(super) fn shortcut(self) -> egui::KeyboardShortcut {
         use egui::{Key, Modifiers};
         let key = match self {
@@ -51,6 +54,7 @@ impl Action {
     }
 }
 impl App {
+    #[cfg(target_os = "macos")]
     pub(super) fn with_native_menu(mut self, cc: &eframe::CreationContext<'_>) -> Self {
         match NativeMenu::new(cc, self.lang) {
             Ok(menu) => self.native_menu = Some(menu),
@@ -58,6 +62,7 @@ impl App {
         }
         self
     }
+    #[cfg(target_os = "macos")]
     pub(super) fn poll_native_menu(&mut self, ctx: &egui::Context) {
         let Some(menu) = &mut self.native_menu else {
             return;
@@ -67,9 +72,13 @@ impl App {
         while let Ok(action) = menu.events.try_recv() {
             actions.push(action);
         }
-        // Windows' winit loop does not translate native menu accelerators. Consume
-        // shortcuts here; macOS dispatches its registered accelerators via AppKit.
-        #[cfg(target_os = "windows")]
+        for action in actions {
+            self.run_file_action(action, ctx);
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    pub(super) fn file_shortcuts(&mut self, ctx: &egui::Context) {
+        // Keep file shortcuts available on platforms without a native menu bar.
         for action in [
             Action::SaveAs,
             Action::Screenshot,
@@ -78,18 +87,18 @@ impl App {
             Action::Quit,
         ] {
             if ctx.input_mut(|input| input.consume_shortcut(&action.shortcut())) {
-                actions.push(action);
+                self.run_file_action(action, ctx);
             }
         }
-        for action in actions {
-            match action {
-                Action::Open => self.pick_kml_open(),
-                Action::Save => self.save_kml_to(self.resolve_kml_path(&self.kml_path)),
-                Action::SaveAs => self.pick_kml_save_as(),
-                Action::Screenshot if self.image.is_some() => self.save_screenshot(),
-                Action::Screenshot => {}
-                Action::Quit => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
-            }
+    }
+    fn run_file_action(&mut self, action: Action, ctx: &egui::Context) {
+        match action {
+            Action::Open => self.pick_kml_open(),
+            Action::Save => self.save_kml_to(self.resolve_kml_path(&self.kml_path)),
+            Action::SaveAs => self.pick_kml_save_as(),
+            Action::Screenshot if self.image.is_some() => self.save_screenshot(),
+            Action::Screenshot => {}
+            Action::Quit => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
         }
     }
 }

@@ -93,9 +93,11 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
 Report which checks actually ran and which platforms/services remain unverified.
 For packaging, use the app manifest/package, e.g. a package-selecting command
 supported by your packaging tool or run it from `apps/earthcraft`. Release
-artifacts still go to the root `target/release`. The pre-missing
-`icon.icns` and `packaging/earthcraft.desktop` assets must be supplied before
-validating bundle/deb output; supply those assets before validating packages.
+artifacts still go to the root `target/release`. macOS bundles use
+`assets/icon.icns`, generated from the unchanged `assets/icon.png` artwork with
+transparent Dock padding and standard and Retina sizes (16–1024 pixels).
+The `packaging/earthcraft.desktop` asset must still be supplied before validating
+deb output.
 
 ## Resource-constrained builds
 
@@ -280,26 +282,26 @@ The Explorer, live meteorological/aircraft layers, moon and custom planet
 remain integrated in `apps/earthcraft`. See [GPU_RENDERER.md](GPU_RENDERER.md)
 for hardware limits, performance and CPU-only build instructions.
 
-## Native desktop File menu
+## Sidebar and native File menu
 
-Windows and macOS use native menu adapters in `apps/earthcraft/src/app/menu`.
-Both use muda 0.19 (compatible with Rust 1.89), with `raw-window-handle` on
-Windows. Libraries forbid unsafe code. The app denies it everywhere except the
-single Windows attachment function: a scoped allowance documents why the HWND
-borrowed from CreationContext is live on the event-loop thread. Do not broaden
-this allowance or add raw-handle teardown outside muda. All menu
-objects and handlers stay on the window thread and outlive native callbacks.
-Linux retains the sidebar's file controls.
+The toolbar's sidebar button hides and reopens the sidebar with egui's panel
+animation. The sidebar is open at startup; toggling it does not reset layer,
+placemark, ruler or section state. Reopening restores its width and scroll state.
+The map uses the space released by the panel. While it animates, frame submission
+and publication pause; in-flight jobs can finish without blocking egui. Keep the
+previous frame and overlays at their original rectangle, clipped to the available
+map area, until a compatible frame for the settled viewport arrives. KML drops
+remain available with the sidebar hidden.
 
-Commands reuse the existing KML jobs and screenshot snapshot service. Native
-callbacks enqueue actions and wake egui; egui opens dialogs, submits jobs and
-closes the viewport. Screenshot is disabled before a displayed frame exists.
-Menu captions follow live language changes. macOS registers AppKit accelerators;
-Windows consumes matching egui shortcuts because winit does not translate menu
-accelerators. No second native event loop is started.
+macOS uses muda 0.19 (compatible with Rust 1.89) in `apps/earthcraft/src/app/menu`.
+Menu objects and handlers stay on the window thread. Callbacks enqueue actions
+and wake egui; the app opens dialogs, submits existing KML/screenshot jobs and
+closes normally. Screenshot is disabled before a frame exists. Captions follow
+language changes and AppKit handles Cmd shortcuts. Windows and Linux use the
+sidebar's file controls; both support Ctrl+O/S/Shift+S/Shift+E and Ctrl+Q
+without a native menu bar. All workspace code forbids unsafe Rust.
 
-Smoke check both native platforms: open/cancel/import KML, save and save-as,
-save a PNG, change language, verify screenshots are disabled before the first
-frame, use shortcuts, then Quit normally while jobs are pending. Confirm egui
-text editing, globe dragging and settings persistence still work. Use an isolated
-profile for these checks. Linux should compile without either native menu backend.
+Smoke check hiding/reopening the sidebar, preserving expanded sections and layer
+selections, map navigation while hidden and after resizing, and toggling in both
+languages. On macOS also check Open/Save KML, screenshots and Quit through the
+native menu. Use isolated settings/cache for these checks.
