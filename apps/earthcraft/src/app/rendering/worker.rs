@@ -42,6 +42,7 @@ impl RenderWorker {
     pub(super) fn new(
         render: impl Fn(&RenderRequest, Vec<u8>) -> earthcraft_render::RenderedView + Send + 'static,
         repaint: impl Fn() + Send + 'static,
+        admit: impl Fn(&earthcraft_render::RenderedView) + Send + 'static,
     ) -> std::io::Result<Self> {
         let shared = Arc::new(Shared::default());
         let worker = shared.clone();
@@ -74,6 +75,9 @@ impl RenderWorker {
                     .as_ref()
                     .is_some_and(|next| next.presentation != request.presentation);
                 if !obsolete {
+                    // Admission is short and bounded; synchronize it with pending
+                    // presentation changes so incompatible rasters cannot fetch tiles.
+                    admit(&frame);
                     if let Some(previous) = mailbox.completed.take() {
                         mailbox.spare = Some(previous.pixels);
                     }

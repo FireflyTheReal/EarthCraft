@@ -2,7 +2,7 @@ use super::{disk::DiskCache, unkey, KeyBuild, Tile, TileKey};
 use crate::paths::cache_dir;
 use moka::{policy::EvictionPolicy, sync::Cache};
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet, VecDeque},
     sync::{
         atomic::{AtomicU64, AtomicUsize, Ordering},
         Arc, Mutex,
@@ -38,6 +38,8 @@ pub struct TileCache {
     ready: Cache<TileKey, Arc<Tile>, KeyBuild>,
     // Synchronizes request admission only; decoded-cache hits bypass this lock.
     requests: Mutex<HashMap<TileKey, RequestState, KeyBuild>>,
+    // Always lock after requests; channel messages are wake tickets, not FIFO jobs.
+    queue: Mutex<VecDeque<TileKey>>,
     budget: usize,
     disk: DiskCache,
     tx: tokio::sync::mpsc::UnboundedSender<TileKey>,
@@ -58,6 +60,7 @@ impl TileCache {
                 .eviction_policy(EvictionPolicy::lru())
                 .build_with_hasher(KeyBuild::default()),
             requests: Mutex::new(HashMap::default()),
+            queue: Mutex::new(VecDeque::new()),
             budget,
             disk: DiskCache::new(cache_dir()),
             tx,
@@ -107,14 +110,56 @@ impl TileCache {
             return false;
         }
         requests.insert(key, RequestState::Loading(self.disk.epoch()));
+        self.queue.lock().unwrap().push_back(key);
         self.inflight.fetch_add(1, Ordering::Relaxed);
         if self.tx.send(key).is_err() {
+            self.queue.lock().unwrap().retain(|&queued| queued != key);
             requests.insert(key, RequestState::Failed(Instant::now()));
             self.inflight.fetch_sub(1, Ordering::Relaxed);
             return false;
         }
         true
     }
+    /// Put the latest view first; retire old queued work while keeping active
+    /// downloads and the small satellite overview queue. Keys arrive coarse-first.
+    pub fn prioritize_view(&self, keys: &[TileKey]) {
+        let wanted: HashSet<_> = keys.iter().copied().collect();
+        {
+            let mut requests = self.requests.lock().unwrap();
+            let mut queue = self.queue.lock().unwrap();
+            queue.retain(|key| {
+                let (provider, zoom, _, _, _) = unkey(*key);
+                let keep =
+                    wanted.contains(key) || (provider == super::Provider::Satellite && zoom <= 4);
+                if !keep && matches!(requests.remove(key), Some(RequestState::Loading(_))) {
+                    self.inflight.fetch_sub(1, Ordering::Relaxed);
+                }
+                keep
+            });
+            let queued: HashSet<_> = queue.iter().copied().collect();
+            let mut ordered: VecDeque<_> = keys
+                .iter()
+                .copied()
+                .filter(|key| queued.contains(key))
+                .collect();
+            ordered.extend(queue.iter().copied().filter(|key| !wanted.contains(key)));
+            *queue = ordered;
+        }
+        for &key in keys {
+            if !self.request(key) && self.inflight() >= MAX_INFLIGHT {
+                break;
+            }
+        }
+    }
+    fn next_job(&self) -> Option<(TileKey, u64)> {
+        let requests = self.requests.lock().unwrap();
+        let key = self.queue.lock().unwrap().pop_front()?;
+        let Some(RequestState::Loading(epoch)) = requests.get(&key) else {
+            return None;
+        };
+        Some((key, *epoch))
+    }
+
     fn complete(&self, key: TileKey, result: Result<Tile, crate::Error>) {
         let admitted = match result {
             Ok(tile) if tile.px.len() <= self.budget => {
@@ -128,6 +173,7 @@ impl TileCache {
         };
         // Publish the decoded tile before removing Loading to avoid duplicate requests.
         let mut requests = self.requests.lock().unwrap();
+        self.queue.lock().unwrap().retain(|&queued| queued != key);
         let was_loading = matches!(requests.remove(&key), Some(RequestState::Loading(_)));
         requests.retain(|_, state| state.is_pending());
         if !admitted {
@@ -195,18 +241,14 @@ async fn worker(
     repaint: Arc<dyn Fn() + Send + Sync>,
 ) {
     loop {
-        let Some(key) = rx.lock().await.recv().await else {
+        let Some(_ticket) = rx.lock().await.recv().await else {
             return;
         };
         let Some(cache) = cache.upgrade() else {
             return;
         };
-        let epoch = {
-            let requests = cache.requests.lock().unwrap();
-            let Some(RequestState::Loading(epoch)) = requests.get(&key) else {
-                continue;
-            };
-            *epoch
+        let Some((key, epoch)) = cache.next_job() else {
+            continue;
         };
         let result = fetch_tile(key, &cache.disk, epoch).await;
         cache.complete(key, result);

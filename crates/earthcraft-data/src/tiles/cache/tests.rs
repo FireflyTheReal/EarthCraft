@@ -240,3 +240,32 @@ async fn clearing_preserves_memory_and_the_original_epoch_of_queued_requests() {
     let requests = cache.requests.lock().unwrap();
     assert!(matches!(requests.get(&1), Some(RequestState::Loading(0))));
 }
+
+#[test]
+fn new_view_retires_queued_work_preserving_active_downloads_and_overview() {
+    let (cache, _tickets) = test_cache(4096);
+    let active = make_key(Provider::Satellite, 10, 1, 1, 0);
+    let stale = make_key(Provider::Satellite, 10, 2, 1, 0);
+    let overview = make_key(Provider::Satellite, 2, 0, 0, 0);
+    let visible = make_key(Provider::Satellite, 10, 3, 1, 0);
+    assert!(cache.request(active));
+    assert_eq!(cache.next_job().unwrap().0, active);
+    assert!(cache.request(stale));
+    assert!(cache.request(overview));
+    assert!(cache.request(visible));
+    cache.prioritize_view(&[visible]);
+    assert_eq!(cache.inflight(), 3);
+    assert!(matches!(cache.lookup(stale), Lookup::Absent));
+    assert!(matches!(cache.lookup(active), Lookup::Pending));
+    assert_eq!(cache.next_job().unwrap().0, visible);
+    assert_eq!(cache.next_job().unwrap().0, overview);
+    assert!(cache.next_job().is_none());
+    for key in [active, visible, overview] {
+        cache.complete(key, Ok(tiny_tile(42)));
+    }
+    assert_eq!(cache.inflight(), 0);
+    assert!(
+        cache.request(stale),
+        "retired work can be requested again without a failure delay"
+    );
+}

@@ -5,7 +5,7 @@ mod tuning;
 use earthcraft_core::METERS_PER_LATITUDE_DEGREE;
 use earthcraft_core::{camera::Basis, math::v3_to_ll, EARTH_RADIUS_M, VERTICAL_FOV_HALF_TAN};
 use earthcraft_data::tiles::{
-    make_key, unkey, KeyBuild, Lookup, Provider, Tile, TileCache, TileKey, MAX_INFLIGHT,
+    make_key, unkey, KeyBuild, Lookup, Provider, Tile, TileCache, TileKey,
 };
 use rayon::prelude::*;
 use rays::{RayCaster, RAY_LANES};
@@ -224,13 +224,16 @@ pub fn render_frame(
     cfg: &RenderCfg,
     cache: &TileCache,
 ) -> Vec<u8> {
-    render_view(w, h, basis, cfg, cache).pixels
+    let frame = render_view(w, h, basis, cfg, cache);
+    cache.prioritize_view(&frame.requests);
+    frame.pixels
 }
 
 pub struct RenderedView {
     pub pixels: Vec<u8>,
     /// Tiles that were unavailable when sampled, including work already pending.
     pub waiting: Vec<TileKey>,
+    pub requests: Vec<TileKey>,
 }
 
 pub fn render_view(
@@ -261,14 +264,11 @@ pub fn render_view_into(
             .cmp(&unkey(b.0).1)
             .then(a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
     });
-    for (k, _) in list {
-        if !cache.request(k) && cache.inflight() >= MAX_INFLIGHT {
-            break;
-        }
-    }
+    let requests = list.into_iter().map(|(key, _)| key).collect();
     RenderedView {
         pixels: buf,
         waiting,
+        requests,
     }
 }
 

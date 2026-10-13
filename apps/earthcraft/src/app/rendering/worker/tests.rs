@@ -34,6 +34,7 @@ struct ControlledWorker {
     release: mpsc::Sender<()>,
     repaint: mpsc::Receiver<()>,
     exited: mpsc::Receiver<()>,
+    admitted: mpsc::Receiver<u8>,
 }
 
 impl ControlledWorker {
@@ -42,6 +43,7 @@ impl ControlledWorker {
         let (release, release_rx) = mpsc::channel();
         let (repaint_tx, repaint) = mpsc::channel();
         let (exit_tx, exited) = mpsc::channel();
+        let (admit_tx, admitted) = mpsc::channel();
         struct ExitSignal(mpsc::Sender<()>);
         impl Drop for ExitSignal {
             fn drop(&mut self) {
@@ -61,10 +63,14 @@ impl ControlledWorker {
                 earthcraft_render::RenderedView {
                     pixels: buffer,
                     waiting: vec![],
+                    requests: vec![],
                 }
             },
             move || {
                 repaint_tx.send(()).unwrap();
+            },
+            move |frame| {
+                admit_tx.send(frame.pixels[0]).unwrap();
             },
         )
         .unwrap();
@@ -74,6 +80,7 @@ impl ControlledWorker {
             release,
             repaint,
             exited,
+            admitted,
         }
     }
     fn start(&self) -> (f64, std::thread::ThreadId) {
@@ -119,7 +126,12 @@ fn obsolete_provider_style_or_size_results_are_discarded() {
     test.finish();
     test.start();
     assert!(test.worker.take_completed(7).is_none());
+    assert!(
+        test.admitted.try_recv().is_err(),
+        "obsolete frames must not admit downloads"
+    );
     test.finish();
+    assert_eq!(test.admitted.recv_timeout(TEST_TIMEOUT).unwrap(), 2);
     // Recheck against the UI's current presentation, even when a style changed
     // after the worker completed its job.
     assert!(test.worker.take_completed(9).is_none());

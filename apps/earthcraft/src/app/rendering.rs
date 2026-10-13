@@ -20,6 +20,7 @@ pub(super) struct Renderer {
 
 impl Renderer {
     pub(super) fn new(cache: Arc<earthcraft_data::tiles::TileCache>, ctx: egui::Context) -> Self {
+        let admission_cache = cache.clone();
         Self {
             worker: RenderWorker::new(
                 move |request, buffer| {
@@ -33,6 +34,19 @@ impl Renderer {
                     )
                 },
                 move || ctx.request_repaint(),
+                move |frame| {
+                    let mut keys = frame.requests.clone();
+                    // Keep pending visible work even though it was not a new miss.
+                    let admitted: std::collections::HashSet<_> = keys.iter().copied().collect();
+                    keys.extend(
+                        frame
+                            .waiting
+                            .iter()
+                            .copied()
+                            .filter(|key| !admitted.contains(key)),
+                    );
+                    admission_cache.prioritize_view(&keys);
+                },
             )
             .expect("start frame renderer"),
             displayed: None,
