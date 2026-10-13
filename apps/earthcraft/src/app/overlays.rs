@@ -8,9 +8,7 @@ use eframe::egui::{self, Align2, Color32, FontId, Pos2, Rect, Stroke, Vec2};
 #[cfg(test)]
 mod benchmarks;
 mod cache;
-mod labels;
 mod projected;
-mod spatial;
 pub(super) use cache::OverlayCache;
 use cache::{OverlayLayers, OverlayStyle, OverlayView};
 

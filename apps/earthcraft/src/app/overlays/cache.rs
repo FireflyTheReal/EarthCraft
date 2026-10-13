@@ -4,14 +4,7 @@ use earthcraft_core::{camera::Basis, language::Lang};
 use earthcraft_data::boundaries::BoundaryData;
 use eframe::egui::{self, Rect, Shape};
 
-#[derive(Clone, Copy, PartialEq)]
-pub(super) struct OverlayLayers {
-    pub countries: bool,
-    pub states: bool,
-    pub cities: bool,
-    pub metro: bool,
-    pub labels: bool,
-}
+pub(super) use earthcraft_render::overlays::OverlayLayers;
 
 #[derive(Clone, Copy, PartialEq)]
 pub(super) struct OverlayStyle {
@@ -32,7 +25,7 @@ pub(super) struct OverlayView {
 pub(in crate::app) struct OverlayCache {
     key: Option<(OverlayView, OverlayStyle)>,
     shapes: Vec<Shape>,
-    index: Option<super::spatial::BoundaryIndex>,
+    index: Option<earthcraft_render::overlays::BoundaryIndex>,
 }
 
 impl OverlayCache {
@@ -51,7 +44,7 @@ impl OverlayCache {
         if self.key != Some((view, style)) {
             let index = self
                 .index
-                .get_or_insert_with(|| super::spatial::BoundaryIndex::new(boundaries));
+                .get_or_insert_with(|| earthcraft_render::overlays::BoundaryIndex::new(boundaries));
             let visible = index.visible(&view.basis, view.rect);
             self.shapes =
                 projected::build_indexed(painter, view, boundaries, style, Some(&visible));

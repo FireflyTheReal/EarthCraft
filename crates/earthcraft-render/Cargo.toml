@@ -16,3 +16,6 @@ rayon.workspace = true
 glam.workspace = true
 bytemuck.workspace = true
 wide.workspace = true
+emath.workspace = true
+geo-index.workspace = true
+rstar.workspace = true

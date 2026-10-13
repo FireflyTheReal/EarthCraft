@@ -1,8 +1,7 @@
 use super::App;
 use earthcraft_core::language::{fold_name, Lang};
-use earthcraft_data::boundaries::{LabelKind, MapLabel};
-use earthcraft_data::search::{geocode, parse_latlon, photon_suggest, Suggestion};
-use earthcraft_data::search::{CITY_SEARCH_ALTITUDE_KM, COUNTRY_SEARCH_ALTITUDE_KM};
+use earthcraft_data::search::merge_suggestions;
+use earthcraft_data::search::{geocode, parse_latlon, photon_suggest};
 use eframe::egui;
 use std::{
     sync::mpsc,
@@ -10,11 +9,6 @@ use std::{
 };
 const SUGGESTION_DEBOUNCE_DELAY: Duration = Duration::from_millis(280);
 const SUGGESTION_POLL_INTERVAL: Duration = Duration::from_millis(90);
-
-const BIG_STATE_SEARCH_ALTITUDE_KM: f64 = 3000.0;
-const STATE_SEARCH_ALTITUDE_KM: f64 = 1200.0;
-const METRO_SEARCH_ALTITUDE_KM: f64 = 150.0;
-const MAX_LOCAL_SUGGESTIONS: usize = 4;
 
 impl App {
     pub(super) fn on_query_changed(&mut self) {
@@ -36,63 +30,12 @@ impl App {
 
     /// Instant local matches (countries, states, cities already loaded) + remote results.
     pub(super) fn rebuild_suggestions(&mut self) {
-        let fq = fold_name(self.query.trim());
-        let mut out: Vec<Suggestion> = Vec::new();
-        if fq.chars().count() >= 2 {
-            let mut hits: Vec<(u8, u8, usize, &MapLabel)> = Vec::new();
-            for l in &self.boundaries.labels {
-                let name = fold_name(l.text(self.lang));
-                let kind_rank = match l.kind {
-                    LabelKind::Country => 0,
-                    LabelKind::State => 1,
-                    LabelKind::City => 2,
-                    LabelKind::Metro => 3,
-                };
-                if name.starts_with(&fq) {
-                    hits.push((kind_rank, l.rank, name.len(), l));
-                }
-            }
-            hits.sort_by_key(|a| (a.1.min(3), a.0, a.2));
-            for (_, _, _, l) in hits {
-                if out.len() >= MAX_LOCAL_SUGGESTIONS {
-                    break;
-                }
-                let label = l.text(self.lang).to_string();
-                if out.iter().any(|o| fold_name(&o.label) == fold_name(&label)) {
-                    continue;
-                }
-                let alt = match l.kind {
-                    LabelKind::Country => COUNTRY_SEARCH_ALTITUDE_KM,
-                    LabelKind::State => {
-                        if l.big {
-                            BIG_STATE_SEARCH_ALTITUDE_KM
-                        } else {
-                            STATE_SEARCH_ALTITUDE_KM
-                        }
-                    }
-                    LabelKind::Metro => METRO_SEARCH_ALTITUDE_KM,
-                    LabelKind::City => CITY_SEARCH_ALTITUDE_KM,
-                };
-                out.push(Suggestion {
-                    label,
-                    lat: l.lat,
-                    lon: l.lon,
-                    alt,
-                });
-            }
-        }
-        for r in &self.remote_sugg {
-            if out.len() >= 8 {
-                break;
-            }
-            if !out
-                .iter()
-                .any(|o| fold_name(&o.label) == fold_name(&r.label))
-            {
-                out.push(r.clone());
-            }
-        }
-        self.suggestions = out;
+        self.suggestions = merge_suggestions(
+            &self.query,
+            self.lang,
+            &self.boundaries.labels,
+            &self.remote_sugg,
+        );
         if self.sugg_sel.is_some_and(|i| i >= self.suggestions.len()) {
             self.sugg_sel = None;
         }

@@ -1,5 +1,5 @@
 use super::*;
-use eframe::egui::{pos2, vec2};
+use emath::{pos2, vec2};
 
 #[test]
 fn label_occupancy_preserves_touching_edges_containment_and_first_admission() {

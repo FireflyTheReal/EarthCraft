@@ -1,7 +1,8 @@
 //! Isolated synthetic measurements; no services, cache files or timing assertions.
-use super::{cache::*, labels::LabelIndex};
+use super::cache::*;
 use earthcraft_core::{camera::Cam, language::Lang};
 use earthcraft_data::boundaries::{BoundaryData, LabelKind, MapLabel};
+use earthcraft_render::overlays::LabelIndex;
 use eframe::egui::{self, pos2, vec2, LayerId, Pos2, Rect};
 use std::{hint::black_box, sync::Arc, time::Instant};
 

@@ -1150,8 +1150,6 @@ dependencies = [
  "earthcraft-data",
  "earthcraft-render",
  "eframe",
- "geo-index",
- "glam",
  "image 0.25.10",
  "rfd",
  "rstar",
@@ -1197,8 +1195,11 @@ dependencies = [
  "bytemuck",
  "earthcraft-core",
  "earthcraft-data",
+ "emath",
+ "geo-index",
  "glam",
  "rayon",
+ "rstar",
  "wide",
 ]
 

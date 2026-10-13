@@ -34,20 +34,12 @@ const BOUNDARY_POLL_INTERVAL: Duration = Duration::from_millis(300);
 
 type SuggestionResponse = (String, Result<Vec<Suggestion>, earthcraft_data::Error>);
 
-struct Fly {
-    a: Cam,
-    b: Cam,
-    t: f64,
-    dur: f64,
-    bump: f64,
-}
-
 pub(crate) struct App {
     runtime: earthcraft_data::runtime::ServiceRuntime,
     boundary_loader: earthcraft_data::boundaries::BoundaryLoader,
     lang: Lang,
     cam: Cam,
-    fly: Option<Fly>,
+    fly: Option<earthcraft_core::flight::Flight>,
     cache: Arc<TileCache>,
     cache_controls: cache::CacheControls,
     tile_warmup: TileWarmup,

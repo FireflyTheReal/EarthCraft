@@ -185,3 +185,14 @@ asserting identical admissions. It also compares rebuild/reuse for 10,000
 Medians exclude the first font/cache warmup, rendering, services, tessellation
 and GPU work. R-tree insertion/traversal can cost more at the current 500-label
 cap; do not present cache reuse or this benchmark as an application FPS guarantee.
+
+For static geographic-index comparisons, run the render-owned benchmark:
+
+```sh
+CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_DEV_INCREMENTAL=false cargo test -p earthcraft-render static_boundary_index_time --locked -- --ignored --nocapture --test-threads=1
+```
+
+It compares candidate results with rstar and linear bounds checks over moving
+views, separately from fonts, shape caching and GPU work. Geographic projection,
+occupancy and frame scheduling tests live in render; egui shape/font tests remain
+in the desktop app. Native checks still verify their integration.

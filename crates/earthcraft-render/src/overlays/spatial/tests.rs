@@ -29,10 +29,7 @@ fn conservative_bounds_keep_visible_interiors_across_poles_dateline_and_horizon(
                         heading,
                     }
                     .basis(4.0 / 3.0);
-                    let rect = Rect::from_min_size(
-                        eframe::egui::Pos2::ZERO,
-                        eframe::egui::vec2(800.0, 600.0),
-                    );
+                    let rect = Rect::from_min_size(emath::Pos2::ZERO, emath::vec2(800.0, 600.0));
                     let visible = index.visible(&basis, rect);
                     for line in &lines {
                         let bounds = Bounds::line(line);
@@ -50,7 +47,7 @@ fn conservative_bounds_keep_visible_interiors_across_poles_dateline_and_horizon(
                             assert!(point.cmpge(bounds.min).all() && point.cmple(bounds.max).all());
                             if basis.project(point, rect).is_some_and(|p| rect.contains(p)) {
                                 assert!(
-                                    visible.contains(&(Arc::as_ptr(line) as usize)),
+                                    visible.ids.contains(&(Arc::as_ptr(line) as usize)),
                                     "visible interpolation must survive culling"
                                 );
                             }
@@ -83,11 +80,17 @@ fn hidden_and_offscreen_lines_are_rejected_without_reordering_survivors() {
         heading: 0.0,
     }
     .basis(1.0);
-    let rect = Rect::from_min_size(eframe::egui::Pos2::ZERO, eframe::egui::vec2(600.0, 600.0));
+    let rect = Rect::from_min_size(emath::Pos2::ZERO, emath::vec2(600.0, 600.0));
     let visible = index.visible(&basis, rect);
-    assert!(visible.contains(&(Arc::as_ptr(&data.countries[0]) as usize)));
-    assert!(!visible.contains(&(Arc::as_ptr(&data.countries[1]) as usize)));
-    assert!(!visible.contains(&(Arc::as_ptr(&data.countries[2]) as usize)));
+    assert!(visible
+        .ids
+        .contains(&(Arc::as_ptr(&data.countries[0]) as usize)));
+    assert!(!visible
+        .ids
+        .contains(&(Arc::as_ptr(&data.countries[1]) as usize)));
+    assert!(!visible
+        .ids
+        .contains(&(Arc::as_ptr(&data.countries[2]) as usize)));
 }
 
 #[test]
@@ -129,7 +132,7 @@ fn static_boundary_index_time() {
     let mut indexed = std::time::Duration::ZERO;
     let mut linear = std::time::Duration::ZERO;
     let mut reference_query = std::time::Duration::ZERO;
-    let rect = Rect::from_min_size(eframe::egui::Pos2::ZERO, eframe::egui::vec2(800.0, 600.0));
+    let rect = Rect::from_min_size(emath::Pos2::ZERO, emath::vec2(800.0, 600.0));
     for lon in 0..360 {
         let basis = Cam {
             lat: 20.0,
@@ -163,8 +166,8 @@ fn static_boundary_index_time() {
             .map(|(id, _)| *id)
             .collect();
         linear += start.elapsed();
-        assert_eq!(result, expected);
-        assert_eq!(result, reference_result);
+        assert_eq!(result.ids, expected);
+        assert_eq!(result.ids, reference_result);
     }
     println!("10k lines: bounds+geo-index build {:.3} ms / rstar index-only build {:.3} ms; moving-view query geo-index+planes {:.3} ms / linear planes {:.3} ms / rstar+planes {:.3} ms; packed index {} bytes (bounds/IDs separate)",construction.as_secs_f64()*1000.0,reference_construction.as_secs_f64()*1000.0,indexed.as_secs_f64()*1000.0/360.0,linear.as_secs_f64()*1000.0/360.0,reference_query.as_secs_f64()*1000.0/360.0,index.tree.as_ref().unwrap().as_ref().len());
 }

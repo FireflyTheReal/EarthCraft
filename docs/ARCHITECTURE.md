@@ -22,7 +22,7 @@ Arrows mean Cargo dependencies. Libraries never depend on the application.
 | `earthcraft` | Native window, input, UI state and orchestration | `apps/earthcraft/src/main.rs`, `app/mod.rs` |
 | `earthcraft-core` | Globe math, camera, language, placemark values | `camera`, `math`, `language`, `placemark` |
 | `earthcraft-data` | Network services, tile cache, boundary data, settings and KML | `tiles`, `wayback`, `boundaries`, `search`, `settings`, `kml` |
-| `earthcraft-render` | Parallel CPU ray casting and missing-tile prioritization | `RenderCfg`, `render_frame` |
+| `earthcraft-render` | CPU rasterization, frame scheduling, geographic overlays and tile prioritization | `RenderCfg`, `render_frame`, `worker`, `overlays` |
 
 The workspace root owns dependency versions, shared package metadata, build
 profiles, and the lockfile. `apps/earthcraft` is the default member, so
@@ -36,17 +36,21 @@ launcher. Application packaging metadata stays in its own manifest.
 `app/mod.rs` contains private application state, construction, and the eframe
 update loop. Child modules extend that state through focused `impl App` blocks:
 
-- `navigation`: camera commands, language changes, and fly-to animation.
-- `search`: asynchronous search, suggestion polling, and selection.
+- `navigation`: camera commands, language changes, and UI timing of core flight animation.
+- `search`: asynchronous search, suggestion polling, and selection. Data owns
+  local match ranking, deduplication and merging with remote results.
 - `wayback`: historical imagery loading and selected release state.
 - `files`: native dialogs, KML commands, dropped files, and screenshots.
 - `cache`: disk-cache clearing commands and completion polling.
 - `globe`: viewport interaction, redraw decisions, and image presentation.
 - `rendering`: snapshots renderer inputs, owns the frame coordinator, and uploads
-  completed pixels to egui. Its private `worker` module owns the bounded mailbox.
+  completed pixels to egui. The render crate
+  owns the bounded frame mailbox and accepts an injected repaint callback.
 - `overlays`: merges boundary patches and draws borders, labels and ruler marks.
-  Its private `cache` retains one projected view, `projected` builds border/text
-  shapes, and `labels` owns screen-space R-tree occupancy.
+  Its private `cache` retains one
+  egui shape view; `projected` measures fonts and builds styled border/text shapes.
+  Geographic projection, visibility indexing, ordered label candidates and
+  rectangle occupancy belong to `earthcraft-render::overlays`.
 - `ui/`: bars, sidebar, suggestions, settings, and navigation controls.
 
 Keeping state in the parent lets child modules access it without exporting it to
@@ -59,7 +63,7 @@ Widgets call existing app commands; camera math is tested in core directly.
 2. Core calculates camera basis vectors, projection and cursor picking. It uses
    `emath`'s lightweight `Pos2`/`Rect` types, also re-exported by egui, without
    depending on widgets or a windowing backend.
-3. A dedicated app-owned coordinator calls the renderer off the UI thread. The
+3. A dedicated render-owned coordinator calls the renderer off the UI thread. The
    renderer ray-casts eight-row batches in parallel with Rayon. Each batch
    constructs and intersects four independent f64 rays at a time using `wide`.
    Geographic conversion and tile/LOD selection remain scalar. Partial groups
@@ -310,3 +314,15 @@ Locale persistence and native language names retain their existing values.
 Geographic names remain service data, rather than catalog keys. Application-owned diagnostic logs and error messages use English, even in
 Portuguese mode. Underlying external error details retain their original text.
 See [localization](LOCALIZATION.md) for editing catalogs and regression fixtures.
+
+## UI-independent rendering boundary
+
+Render's overlay APIs take `emath` coordinates and return projected label
+candidates or visit projected border segments. They never measure egui fonts or
+create egui shapes. `VisibleBoundaries` keeps index identity details private.
+The desktop adapter assigns colors/strokes, measures glyphs and submits shapes;
+its cache retains those backend-specific resources. Render owns the bounded
+coordinator and accepts renderer/admission/repaint callbacks without importing
+windowing. Core owns `Flight` interpolation; data owns `merge_suggestions`.
+Changes to input timing, font metrics, dialogs or texture lifetimes belong in app;
+changes to geometry, visibility, ranking or scheduling belong in these libraries.

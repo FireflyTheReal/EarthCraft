@@ -60,7 +60,7 @@ impl ControlledWorker {
                 release_rx.recv_timeout(TEST_TIMEOUT).unwrap();
                 buffer.resize(request.width * request.height * 4, 0);
                 buffer.fill(request.cam.lon as u8);
-                earthcraft_render::RenderedView {
+                crate::RenderedView {
                     pixels: buffer,
                     waiting: vec![],
                     requests: vec![],
@@ -163,12 +163,12 @@ fn shutdown_drops_pending_views_without_waiting_for_an_active_raster() {
     test.release.send(()).unwrap();
     test.exited.recv_timeout(TEST_TIMEOUT).unwrap();
     assert!(matches!(
-        test.started.try_recv(),
-        Err(mpsc::TryRecvError::Disconnected)
+        test.started.recv_timeout(TEST_TIMEOUT),
+        Err(mpsc::RecvTimeoutError::Disconnected)
     ));
     assert!(matches!(
-        test.repaint.try_recv(),
-        Err(mpsc::TryRecvError::Disconnected)
+        test.repaint.recv_timeout(TEST_TIMEOUT),
+        Err(mpsc::RecvTimeoutError::Disconnected)
     ));
 }
 

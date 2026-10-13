@@ -17,3 +17,5 @@ pub const MAX_CAMERA_ALTITUDE_KM: f64 = 40_000.0;
 pub const METERS_PER_LATITUDE_DEGREE: f64 = 111_195.0;
 /// Stop short of the poles so camera orientation remains well-defined.
 pub const MAX_CAMERA_LATITUDE_DEG: f64 = 89.9;
+
+pub mod flight;

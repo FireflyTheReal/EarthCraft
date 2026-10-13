@@ -10,7 +10,7 @@ Esta reorganização mantém os recursos, controles, serviços e textos existent
 | `apps/earthcraft` | Janela, egui, entrada do usuário, estado, diálogos e coordenação |
 | `crates/earthcraft-core` | Matemática do globo, câmera, idioma e valores de placemarks |
 | `crates/earthcraft-data` | Tiles, busca, limites geográficos, cache, configurações e KML |
-| `crates/earthcraft-render` | Renderização por CPU e prioridade dos tiles ausentes |
+| `crates/earthcraft-render` | Renderização por CPU, overlays geográficos e coordenação de frames |
 
 O aplicativo depende das três bibliotecas. `data` depende de `core`; `render`
 depende de `core` e `data`. Nenhuma biblioteca depende do aplicativo.
@@ -135,7 +135,7 @@ O índice é somente de tela, sem alterar visibilidade geográfica ou carregamen
 é descartado após reconstruir. Para conjuntos pequenos, uma varredura linear
 pode ser mais rápida; o benchmark separa esse custo do ganho de reutilização.
 
-Um coordenador da aplicação chama o renderer fora da thread da interface, usando
+Um coordenador de earthcraft-render chama o renderer fora da thread da interface, usando
 o pool existente do Rayon. Há no máximo um frame ativo, uma solicitação pendente
 substituível e um resultado concluído. Novas posições de câmera substituem o
 trabalho pendente. Mudanças de provedor, data histórica, tamanho/aspecto ou efeitos
@@ -203,3 +203,14 @@ embutidos no executável. `Lang::text` fornece textos estáticos já formatados;
 `Lang::format` recebe argumentos nomeados para mensagens completas. Há fallback
 para inglês e testes de chaves, variáveis e textos originais. Os nomes geográficos
 continuam vindos dos serviços. Consulte [o guia de localização](LOCALIZATION.md).
+
+## Limite entre interface e bibliotecas
+
+`earthcraft-render::overlays` contém projeção de bordas, seleção e ordenação
+estável dos nomes, ocupação de retângulos com rstar e visibilidade geográfica
+com geo-index. As APIs usam emath, sem depender de egui. A aplicação mede fontes,
+atribui cores e traços, cria formas egui e mantém o cache dessas formas.
+O coordenador de frames fica em render e recebe callbacks de repaint/admissão.
+A interpolação de voo da câmera fica em `earthcraft-core::flight`; ranking,
+deduplicação e combinação das sugestões ficam em `earthcraft-data::search`.
+Temporização dos eventos, entrada, texturas e diálogos nativos continuam no app.

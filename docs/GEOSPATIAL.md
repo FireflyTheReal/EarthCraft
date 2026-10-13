@@ -101,6 +101,10 @@ when boundary patches arrive. Keep rstar for the screen-label occupancy tree,
 which accepts rectangles incrementally in priority order. Static dataset indexes
 and dynamic label placement solve different jobs.
 
-Geozero, MVT and geo-index remain evaluation options, not installed features.
+Geo-index is now installed for static boundary-line visibility in the render
+crate. Conservative interpolation bounds, horizon/frustum rejection and tests
+for visible interiors at poles/dateline preserve the existing projection.
+The synthetic index comparison is recorded in REFACTOR_PLAN.md. Geozero and MVT
+remain evaluation options without runtime dependencies.
 The existing optimization sequence remains wide ray batching, buffer reuse,
 decoding isolation and Unicode normalization before imagery MBTiles and wgpu.

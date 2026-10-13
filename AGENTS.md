@@ -14,7 +14,8 @@ User instructions and the requested scope take precedence over these defaults.
 - `crates/earthcraft-data` owns tile services, search, boundary loading, and local
   persistence. It depends on core. Report results or invoke the injected repaint
   callback; do not add egui/eframe dependencies.
-- `crates/earthcraft-render` owns CPU rasterization and tile request prioritization.
+- `crates/earthcraft-render` owns rasterization, frame coordination, geographic
+  overlay projection/visibility/occupancy and tile request prioritization.
   It depends on core and data, never on the desktop application.
 - Dependencies flow downward. Do not create cycles, import app code into libraries,
   or add a crate just to shorten a file. Use modules for related implementation.
@@ -25,6 +26,14 @@ User instructions and the requested scope take precedence over these defaults.
   behavior, persistence paths/formats, service URLs, timeouts, and rendering order.
   Feature requests may change behavior explicitly; document the difference.
 - Put logic in the owning crate and surface drawing in the matching app UI module.
+  Pure geographic visibility, overlay projection, ordered label candidates and
+  rectangle occupancy belong in render, with `emath` screen coordinates and no
+  egui dependency. The app measures fonts and creates/draws styled egui shapes.
+  Camera flight interpolation belongs in core; local suggestion ranking/merging
+  belongs in data. The bounded frame coordinator belongs in render and receives
+  a repaint callback. UI event timing, input delivery, texture ownership and
+  native dialogs remain app responsibilities. Audit the owner before adding
+  non-widget algorithms to an app module.
   Keep `main.rs` limited to startup. Avoid catch-all `utils` or `common` modules.
 - Keep implementation private. Expose only APIs needed across modules/crates;
   use `pub(super)`/`pub(crate)` where possible. Keep synchronization internals private.
@@ -86,7 +95,7 @@ User instructions and the requested scope take precedence over these defaults.
   data; use pooled reqwest clients and async I/O. Keep CPU rasterization on Rayon,
   large decoding/projection on bounded blocking workers, and UI access on egui's
   thread. Completion must wake the UI, including the last background job.
-- Keep whole-frame rasterization on the app's coordinator with the existing
+- Keep whole-frame rasterization on the render-owned coordinator with the existing
   Rayon pool. Bound pending/completed frames; coalesce pending camera requests.
   Reject incompatible provider/style/size results and align overlays with the
   displayed frame's camera. Keep texture upload on egui's thread; never wait there

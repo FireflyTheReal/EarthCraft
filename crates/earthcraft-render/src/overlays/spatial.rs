@@ -1,7 +1,7 @@
 //! Static geographic bounds; screen-space label admission remains in `labels`.
 use earthcraft_core::{camera::Basis, VERTICAL_FOV_HALF_TAN};
 use earthcraft_data::boundaries::{BoundaryData, Line};
-use eframe::egui::Rect;
+use emath::Rect;
 use geo_index::rtree::{sort::HilbertSort, RTree, RTreeBuilder, RTreeIndex};
 use glam::DVec3;
 use std::{collections::HashSet, sync::Arc};
@@ -121,12 +121,22 @@ fn trig_range((low, high): (f64, f64), cosine: bool) -> (f64, f64) {
     (min, max)
 }
 
-pub(super) struct BoundaryIndex {
+#[derive(Debug, PartialEq, Eq)]
+pub struct VisibleBoundaries {
+    ids: HashSet<usize>,
+}
+impl VisibleBoundaries {
+    pub(super) fn contains_line(&self, line: &Line) -> bool {
+        self.ids.contains(&(Arc::as_ptr(line) as usize))
+    }
+}
+
+pub struct BoundaryIndex {
     tree: Option<RTree<f64>>,
     entries: Vec<(usize, Bounds)>,
 }
 impl BoundaryIndex {
-    pub(super) fn new(data: &BoundaryData) -> Self {
+    pub fn new(data: &BoundaryData) -> Self {
         let entries: Vec<_> = [
             &data.countries,
             &data.states,
@@ -152,26 +162,30 @@ impl BoundaryIndex {
         };
         Self { tree, entries }
     }
-    pub(super) fn visible(&self, basis: &Basis, rect: Rect) -> HashSet<usize> {
+    pub fn visible(&self, basis: &Basis, rect: Rect) -> VisibleBoundaries {
         // The horizon's spherical cap lies inside this chord-radius box. The
         // packed 2D tree supplies candidates; 3D plane tests tighten the result.
         let center = basis.c.normalize();
         let radius = (2.0 - 2.0 / basis.c.length()).max(0.0).sqrt();
         let Some(tree) = &self.tree else {
-            return HashSet::new();
+            return VisibleBoundaries {
+                ids: HashSet::new(),
+            };
         };
-        tree.search(
-            center.x - radius,
-            center.y - radius,
-            center.x + radius,
-            center.y + radius,
-        )
-        .into_iter()
-        .filter_map(|id| {
-            let (pointer, bounds) = self.entries[id as usize];
-            bounds.visible(basis, rect).then_some(pointer)
-        })
-        .collect()
+        let ids = tree
+            .search(
+                center.x - radius,
+                center.y - radius,
+                center.x + radius,
+                center.y + radius,
+            )
+            .into_iter()
+            .filter_map(|id| {
+                let (pointer, bounds) = self.entries[id as usize];
+                bounds.visible(basis, rect).then_some(pointer)
+            })
+            .collect();
+        VisibleBoundaries { ids }
     }
 }
 

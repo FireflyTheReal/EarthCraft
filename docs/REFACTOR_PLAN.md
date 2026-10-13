@@ -130,25 +130,24 @@ comparison procedure in [contributing](CONTRIBUTING.md) for a repeatable measure
 
 The post-SIMD review and geographic-index discussion refine the remaining order:
 
-1. Align globe picking with the displayed frame's camera, matching the existing
+1. **Completed:** Align globe picking with the displayed frame's camera, matching the existing
    overlay alignment. Cover input while a newer camera frame is still rendering.
-2. Isolate expensive boundary parsing and tile decoding so long feature jobs do
+2. **Completed:** Isolate expensive boundary parsing and tile decoding so long feature jobs do
    not occupy all blocking capacity needed by interactive tile I/O. Measure queue
    wait and responsiveness with both workloads active.
-3. Avoid raster rebuilds for unrelated tile completions and overlay-only changes.
-4. Reuse frame buffers and texture storage while preserving screenshot ownership.
-5. Improve stale-view tile request scheduling without changing retry, admission
+3. **Completed:** Avoid raster rebuilds for unrelated tile completions and overlay-only changes.
+4. **Completed:** Reuse frame buffers and texture storage while preserving screenshot ownership.
+5. **Completed:** Improve stale-view tile request scheduling without changing retry, admission
    limits or coarse-tile fallback.
-6. Use `geo-index` for a static boundary-chunk index and conservative geographic
+6. **Completed:** Use `geo-index` for a static boundary-chunk index and conservative geographic
    visibility culling before vertex conversion/projection. Benchmark construction,
    memory and moving-view queries against a bulk-loaded `rstar` index and the
    existing traversal. Keep mutable `rstar` for priority-ordered label occupancy.
    Preserve visible segments across the horizon, poles and dateline; rejecting
    chunks solely because their endpoints are invisible is insufficient.
 
-`geo-index` is approved for the static boundary initiative; it is not yet a
-runtime dependency or an implemented culling optimization. A separate k-d tree
-is not planned without a concrete point-query workload. Unicode normalization,
+`geo-index` now implements the static boundary initiative. A separate k-d tree
+is not planned without a concrete point-query workload. Unicode normalization is complete.
 MBTiles, conditional DashMap evaluation and the GPU/version stages remain below.
 Keep each initiative in its own logical commit.
 
@@ -164,9 +163,9 @@ stages. Keep changes in separate logical commits and measure affected workloads:
    overlap queries while preserving placement priority and visible labels.
 3. **Completed:** Use `wide` to batch independent ray calculations across pixels, preserving
    double-precision geometry and original raster fixture tolerances.
-4. Reuse frame buffers and reduce conversion/copy work while preserving screenshot
+4. **Completed:** Reuse frame buffers and reduce conversion/copy work while preserving screenshot
    output and explicit buffer ownership across workers.
-5. Separate tile decoding from long boundary parsing so the bounded blocking pool
+5. **Completed:** Separate tile decoding from long boundary parsing so the bounded blocking pool
    does not delay interactive tile loads; avoid unmeasured thread proliferation.
 
 Replace the manual accent table with Unicode normalization in its own library
@@ -346,3 +345,21 @@ removal from `unicode-normalization`, followed by full lowercase expansion and
 alphanumeric filtering. Existing Portuguese matching is preserved; decomposed
 names, Vietnamese, Greek and Turkish accents are covered, while Cyrillic/CJK
 letters remain in their own scripts. Display names are never rewritten.
+
+## Ownership audit checkpoint
+
+Overlay geometry, geographic culling, stable label candidate ordering and R-tree
+occupancy now live in `earthcraft-render::overlays`, with emath rather than egui.
+The bounded frame coordinator also moved into render. The app retains font
+measurement, colors/strokes, egui shape caching, input, texture ownership and
+repaint/event wiring. Camera flight interpolation moved to core; local suggestion
+ranking/deduplication/merging moved to data. Existing overlay/worker tests moved
+with their production algorithms, while egui shape tests stay in the app.
+Agent rules record these boundaries for future additions.
+
+Ownership validation: 76 workspace tests passed (four manual benchmarks ignored),
+strict workspace Clippy, formatting and the macOS ARM64 build passed. Native
+rotation showed aligned imagery/borders/labels, Settings opened during rotation,
+and the isolated window closed normally. Full mouse input, live-provider,
+file-dialog and other-platform checks are still separate. The shutdown test now
+waits for channel disconnection rather than racing the capture destructor order.

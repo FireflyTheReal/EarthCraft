@@ -1,9 +1,11 @@
 //! Parallel CPU globe rendering. No filesystem or UI lifecycle ownership.
 use glam::{DVec3, Vec2, Vec4};
+pub mod overlays;
 mod rays;
 mod tuning;
-use earthcraft_core::METERS_PER_LATITUDE_DEGREE;
+pub mod worker;
 use earthcraft_core::{camera::Basis, math::v3_to_ll, EARTH_RADIUS_M, VERTICAL_FOV_HALF_TAN};
+use earthcraft_core::{METERS_PER_KM, METERS_PER_LATITUDE_DEGREE};
 use earthcraft_data::tiles::{
     make_key, unkey, KeyBuild, Lookup, Provider, Tile, TileCache, TileKey,
 };
@@ -20,6 +22,24 @@ use tuning::{
     STAR_OCCURRENCE_MODULUS, TILE_SIZE_PX, TWILIGHT_OFFSET, TWILIGHT_WIDTH,
     WEB_MERCATOR_MAX_LATITUDE_DEG,
 };
+const GRID_STEPS_DEG: [f64; 12] = [
+    30.0, 10.0, 5.0, 2.0, 1.0, 0.5, 0.2, 0.1, 0.05, 0.01, 0.005, 0.001,
+];
+const TARGET_GRID_DIVISIONS: f64 = 5.0;
+const MIN_GRID_STEP_DEG: f64 = 0.001;
+
+/// Geographic grid spacing for the raster's projected pixel footprint.
+pub fn grid_step(altitude_km: f64, width: usize, height: usize) -> f64 {
+    let mpp = altitude_km * METERS_PER_KM * 2.0 * VERTICAL_FOV_HALF_TAN / height as f64;
+    let span = (mpp * width as f64 / METERS_PER_LATITUDE_DEGREE).min(180.0);
+
+    GRID_STEPS_DEG
+        .iter()
+        .copied()
+        .find(|s| *s <= span / TARGET_GRID_DIVISIONS)
+        .unwrap_or(MIN_GRID_STEP_DEG)
+}
+
 // ───────────────────────────── Rendering ─────────────────────────────
 
 pub struct RenderCfg {
@@ -225,7 +245,7 @@ pub fn render_frame(
     cache: &TileCache,
 ) -> Vec<u8> {
     let frame = render_view(w, h, basis, cfg, cache);
-    cache.prioritize_view(&frame.requests);
+    cache.prioritize_view(&frame.required_tiles());
     frame.pixels
 }
 
@@ -234,6 +254,22 @@ pub struct RenderedView {
     /// Tiles that were unavailable when sampled, including work already pending.
     pub waiting: Vec<TileKey>,
     pub requests: Vec<TileKey>,
+}
+
+impl RenderedView {
+    /// New misses and already-pending dependencies, in coarse-first order.
+    pub fn required_tiles(&self) -> Vec<TileKey> {
+        let mut keys = self.requests.clone();
+        let admitted: std::collections::HashSet<_> = keys.iter().copied().collect();
+        keys.extend(
+            self.waiting
+                .iter()
+                .copied()
+                .filter(|key| !admitted.contains(key)),
+        );
+        keys.sort_by_key(|&key| unkey(key).1);
+        keys
+    }
 }
 
 pub fn render_view(

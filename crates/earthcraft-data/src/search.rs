@@ -202,3 +202,6 @@ mod tests {
         }
     }
 }
+
+mod local;
+pub use local::merge_suggestions;

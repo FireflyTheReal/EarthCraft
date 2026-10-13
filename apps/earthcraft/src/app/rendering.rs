@@ -2,15 +2,12 @@ use super::App;
 use earthcraft_core::{
     camera::{Basis, Cam},
     math::{ll_to_v3, now_unix, subsolar},
-    VERTICAL_FOV_HALF_TAN,
 };
-use earthcraft_core::{METERS_PER_KM, METERS_PER_LATITUDE_DEGREE};
 use earthcraft_data::tiles::Provider;
+use earthcraft_render::worker::{RenderRequest, RenderWorker};
 use earthcraft_render::RenderCfg;
 use eframe::egui;
 use std::sync::Arc;
-mod worker;
-use worker::{RenderRequest, RenderWorker};
 
 pub(super) struct Renderer {
     worker: RenderWorker,
@@ -35,17 +32,7 @@ impl Renderer {
                 },
                 move || ctx.request_repaint(),
                 move |frame| {
-                    let mut keys = frame.requests.clone();
-                    // Keep pending visible work even though it was not a new miss.
-                    let admitted: std::collections::HashSet<_> = keys.iter().copied().collect();
-                    keys.extend(
-                        frame
-                            .waiting
-                            .iter()
-                            .copied()
-                            .filter(|key| !admitted.contains(key)),
-                    );
-                    admission_cache.prioritize_view(&keys);
+                    admission_cache.prioritize_view(&frame.required_tiles());
                 },
             )
             .expect("start frame renderer"),
@@ -68,23 +55,11 @@ impl Renderer {
         self.displayed
     }
 }
-const GRID_STEPS_DEG: [f64; 12] = [
-    30.0, 10.0, 5.0, 2.0, 1.0, 0.5, 0.2, 0.1, 0.05, 0.01, 0.005, 0.001,
-];
-const TARGET_GRID_DIVISIONS: f64 = 5.0;
-const MIN_GRID_STEP_DEG: f64 = 0.001;
 
 impl App {
     pub(super) fn request_render(&mut self, w: usize, h: usize, aspect: f64, presentation: u64) {
         let basis = self.cam.basis(aspect);
-        let mpp = self.cam.alt * METERS_PER_KM * 2.0 * VERTICAL_FOV_HALF_TAN / h as f64;
-        let span = (mpp * w as f64 / METERS_PER_LATITUDE_DEGREE).min(180.0);
-
-        let grid_step = GRID_STEPS_DEG
-            .iter()
-            .copied()
-            .find(|s| *s <= span / TARGET_GRID_DIVISIONS)
-            .unwrap_or(MIN_GRID_STEP_DEG);
+        let grid_step = earthcraft_render::grid_step(self.cam.alt, w, h);
         let sun = if self.show_sun {
             let (la, lo) = subsolar(now_unix());
             Some(ll_to_v3(la, lo))

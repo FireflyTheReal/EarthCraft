@@ -1,5 +1,5 @@
 //! Screen-space occupancy, preserving the caller's ordered label admission.
-use eframe::egui::Rect;
+use emath::Rect;
 use rstar::{RTree, RTreeObject, AABB};
 use std::ops::ControlFlow;
 
@@ -13,14 +13,17 @@ impl RTreeObject for LabelRect {
 }
 
 #[derive(Default)]
-pub(super) struct LabelIndex {
+pub struct LabelIndex {
     tree: RTree<LabelRect>,
 }
 impl LabelIndex {
-    pub(super) fn len(&self) -> usize {
+    pub fn is_empty(&self) -> bool {
+        self.tree.size() == 0
+    }
+    pub fn len(&self) -> usize {
         self.tree.size()
     }
-    pub(super) fn try_insert(&mut self, rect: Rect) -> bool {
+    pub fn try_insert(&mut self, rect: Rect) -> bool {
         let entry = LabelRect(rect);
         // Internal traversal short-circuits without allocating an iterator stack.
         // AABB and egui both treat touching edges as intersection.
