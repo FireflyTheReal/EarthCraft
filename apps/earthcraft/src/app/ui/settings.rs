@@ -49,6 +49,12 @@ impl App {
                         ui.end_row();
                     });
                 ui.separator();
+                ui.checkbox(
+                    &mut self.settings.uncap_fps,
+                    lg.text("settings-uncap-fps-toggle"),
+                );
+                ui.weak(lg.text("settings-frame-sync-help"));
+                ui.separator();
                 ui.strong(lg.text("settings-folders-section-title"));
                 let folder_row =
                     |ui: &mut egui::Ui, label: &str, value: &mut String, title: &str| {

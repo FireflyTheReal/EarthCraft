@@ -214,3 +214,9 @@ statusbar-tiles-loading = ⏳ loading { $count } tiles
 statusbar-camera-center = Center: { $latitude }°, { $longitude }°
 
 statusbar-camera-altitude = Camera altitude: { $distance }
+
+statusbar-render-fps = FPS: { $rate }
+statusbar-render-fps-help = Completed globe frames per second. The last measured rate is retained while the view is idle.
+
+settings-uncap-fps-toggle = Uncap FPS (restart required)
+settings-frame-sync-help = By default, presentation synchronizes with the display refresh rate. G-SYNC/FreeSync is configured in your display and graphics driver.

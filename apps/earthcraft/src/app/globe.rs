@@ -28,7 +28,6 @@ const MAX_RENDER_WIDTH_PX: usize = 2000;
 const MIN_RENDER_HEIGHT_PX: usize = 32;
 const SUN_UPDATE_INTERVAL_SECS: f64 = 60.0;
 const TILE_REDRAW_INTERVAL: Duration = Duration::from_millis(60);
-const ACTIVE_REPAINT_INTERVAL: Duration = Duration::from_millis(260);
 const OVERVIEW_WARMUP_POLL_INTERVAL: Duration = Duration::from_millis(100);
 const MAX_SCALE_BAR_ALTITUDE_KM: f64 = 3000.0;
 const TARGET_SCALE_BAR_WIDTH_POINTS: f64 = 120.0;
@@ -218,7 +217,7 @@ impl App {
         }
         self.last_gen = gen;
         if !idle {
-            ctx.request_repaint_after(ACTIVE_REPAINT_INTERVAL);
+            ctx.request_repaint();
         }
         // The frame worker admits visible tiles before becoming idle. Speculative
         // work waits for it, and pauses during interaction/closer zoom/other layers.

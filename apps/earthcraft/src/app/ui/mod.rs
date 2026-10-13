@@ -21,3 +21,6 @@ pub(in crate::app) fn apply_ui_scale(ctx: &egui::Context, scale: f32) {
     style.spacing.interact_size.y = (20.0 * scale).max(18.0);
     ctx.set_style(style);
 }
+
+mod fps;
+pub(super) use fps::FrameRate;

@@ -28,6 +28,7 @@ pub struct Settings {
     pub kml_dir: String,
     pub ui_scale: f32,  // text size of buttons/panels
     pub map_scale: f32, // text size of map labels
+    pub uncap_fps: bool,
 }
 impl Default for Settings {
     fn default() -> Self {
@@ -36,6 +37,7 @@ impl Default for Settings {
             kml_dir: default_out_dir("Documents"),
             ui_scale: 1.0,
             map_scale: 1.0,
+            uncap_fps: false,
         }
     }
 }
@@ -52,6 +54,8 @@ struct SettingsInput {
     ui_scale: Option<f64>,
     #[serde(default, deserialize_with = "crate::json_fields::number")]
     map_scale: Option<f64>,
+    #[serde(default, deserialize_with = "crate::json_fields::boolean")]
+    uncap_fps: Option<bool>,
 }
 impl Settings {
     fn apply_json(&mut self, bytes: &[u8]) -> Result<(), crate::Error> {
@@ -67,6 +71,9 @@ impl Settings {
         }
         if let Some(scale) = input.map_scale {
             self.map_scale = (scale as f32).clamp(MIN_MAP_SCALE, MAX_MAP_SCALE);
+        }
+        if let Some(uncap) = input.uncap_fps {
+            self.uncap_fps = uncap;
         }
         Ok(())
     }
@@ -88,24 +95,30 @@ mod tests {
             kml_dir: "documents".into(),
             ui_scale: 1.0,
             map_scale: 1.0,
+            uncap_fps: false,
         };
         settings
             .apply_json(
-                br#"{"screenshot_dir":123,"kml_dir":"custom","ui_scale":9,"map_scale":"wrong"}"#,
+                br#"{"screenshot_dir":123,"kml_dir":"custom","ui_scale":9,"map_scale":"wrong","uncap_fps":"wrong"}"#,
             )
             .unwrap();
         assert_eq!(settings.screenshot_dir, "pictures");
         assert_eq!(settings.kml_dir, "custom");
         assert_eq!(settings.ui_scale, MAX_UI_SCALE);
         assert_eq!(settings.map_scale, 1.0);
+        assert!(!settings.uncap_fps);
         settings
-            .apply_json(br#"{"kml_dir":"","ui_scale":-5,"map_scale":9}"#)
+            .apply_json(br#"{"kml_dir":"","ui_scale":-5,"map_scale":9,"uncap_fps":true}"#)
             .unwrap();
         assert_eq!(settings.kml_dir, "custom");
         assert_eq!(settings.ui_scale, MIN_UI_SCALE);
         assert_eq!(settings.map_scale, MAX_MAP_SCALE);
+        assert!(settings.uncap_fps);
+        settings.apply_json(br#"{}"#).unwrap();
+        assert!(settings.uncap_fps);
         let json: serde_json::Value =
             serde_json::from_slice(&serde_json::to_vec(&settings).unwrap()).unwrap();
         assert_eq!(json["kml_dir"], "custom");
+        assert_eq!(json["uncap_fps"], true);
     }
 }

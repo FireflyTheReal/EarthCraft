@@ -237,8 +237,9 @@ impl App {
                             });
                             ui.weak(lg.format(
                                 "export-folder-label",
-                                &[("path", self.settings.kml_dir.as_str().into())],
-                            ));
+                                &[("path", short_folder(&self.settings.kml_dir).into())],
+                            ))
+                            .on_hover_text(&self.settings.kml_dir);
                         });
 
                     egui::CollapsingHeader::new(lg.text("ruler-section-title"))
@@ -270,8 +271,9 @@ impl App {
                             }
                             ui.weak(lg.format(
                                 "export-folder-label",
-                                &[("path", self.settings.screenshot_dir.as_str().into())],
-                            ));
+                                &[("path", short_folder(&self.settings.screenshot_dir).into())],
+                            ))
+                            .on_hover_text(&self.settings.screenshot_dir);
                             if ui.button(lg.text("settings-folders-action")).clicked() {
                                 self.show_settings = true;
                             }
@@ -309,4 +311,23 @@ impl App {
             self.fly_to(la, lo, al);
         }
     }
+}
+
+/// Keep the recognizable directory tail while hiding machine-specific parents.
+fn short_folder(path: &str) -> String {
+    const VISIBLE_FOLDER_COMPONENTS: usize = 2;
+    let mut tail: Vec<_> = std::path::Path::new(path)
+        .components()
+        .rev()
+        .filter_map(|component| match component {
+            std::path::Component::Normal(name) => Some(name.to_string_lossy()),
+            _ => None,
+        })
+        .take(VISIBLE_FOLDER_COMPONENTS)
+        .collect();
+    tail.reverse();
+    if tail.is_empty() {
+        return path.to_string();
+    }
+    format!(".../{}", tail.join("/"))
 }

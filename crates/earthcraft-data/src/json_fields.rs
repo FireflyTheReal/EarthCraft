@@ -18,3 +18,10 @@ pub(crate) fn string_numbers<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<f64>
         .filter_map(|v| v.as_str()?.parse().ok())
         .collect())
 }
+
+pub(crate) fn boolean<'de, D: serde::Deserializer<'de>>(
+    decoder: D,
+) -> Result<Option<bool>, D::Error> {
+    let value = serde_json::Value::deserialize(decoder)?;
+    Ok(value.as_bool())
+}

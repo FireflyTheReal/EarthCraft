@@ -30,6 +30,7 @@ fn main() -> Result<(), eframe::Error> {
     }
     let options = eframe::NativeOptions {
         viewport,
+        vsync: !earthcraft_data::settings::Settings::load().uncap_fps,
         ..Default::default()
     };
     eframe::run_native("EarthCraft", options, Box::new(|cc| Box::new(App::new(cc))))
