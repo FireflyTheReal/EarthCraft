@@ -2,7 +2,7 @@
 
 One macOS ARM64 native run used the optimized development profile (`opt-level=2`,
 no debug information/incremental output), eight Rayon threads and an isolated
-cache. Existing geographic cache files and z0–4 satellite files were copied;
+cache. Cached geographic data files and z0–4 satellite files were copied;
 the real user cache/settings were not changed. Live detail downloads and lazy
 municipal loading remained enabled. Compilation/checks finished before measured
 phases. This is an instrumented observational baseline, not a controlled FPS

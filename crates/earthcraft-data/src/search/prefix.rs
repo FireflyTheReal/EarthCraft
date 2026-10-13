@@ -89,7 +89,7 @@ impl NameIndex {
                     hits.push(priority);
                 }
             }
-            // FST traversal is lexical; preserve the original rank, kind, byte
+            // FST traversal is lexical; preserve the rank, kind, byte
             // length and stable source-order ties. Keep only the best four candidates,
             // avoiding a full sort/allocation for very broad prefixes.
             for priority in hits.into_sorted_vec() {
@@ -173,7 +173,7 @@ impl LocalSearch {
             .send(Some(Arc::new(Snapshot { generation, labels })))
             .map_err(|_| crate::Error::from("local prefix index worker is unavailable"))
     }
-    /// None while a current index is being built; callers retain the original scan fallback.
+    /// None while a current index is being built; callers retain the scan fallback.
     pub fn merge(&self, query: &str, lang: Lang, remote: &[Suggestion]) -> Option<Vec<Suggestion>> {
         let state = self.published.lock().unwrap();
         if state.generation != self.generation.load(Ordering::Acquire) {

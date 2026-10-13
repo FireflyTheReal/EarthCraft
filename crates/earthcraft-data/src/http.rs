@@ -83,7 +83,7 @@ pub(crate) async fn parse_json(bytes: Vec<u8>) -> Result<serde_json::Value, crat
         .await?
         .map_err(Into::into)
 }
-/// Fetch cached boundary JSON with the existing retry/fallback policy.
+/// Fetch boundary JSON with bounded retries and disk-cache fallback.
 pub(crate) async fn fetch_json(url: &str) -> Result<serde_json::Value, crate::Error> {
     fetch_json_at(url, geo_cache_path(url)).await
 }

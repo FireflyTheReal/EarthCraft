@@ -21,7 +21,7 @@ impl Catalog {
             })
             .collect();
         let mut bundle = FluentBundle::new_concurrent(vec![code.parse().expect("valid locale")]);
-        // Preserve the existing en/pt output without inserting bidi control characters.
+        // Format numeric strings and paths without inserting bidirectional isolation characters.
         bundle.set_use_isolating(false);
         bundle
             .add_resource(resource)

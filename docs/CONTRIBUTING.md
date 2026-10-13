@@ -48,15 +48,14 @@ explicitly when updating CI tooling.
 
 Camera tests call the same methods as the app. Boundary and search tests use
 local JSON/strings. KML tests use isolated temporary files. Raster regression
-fixtures were captured from the original implementation, including empty-cache
-and loaded-tile rendering; see [fixture provenance](../crates/earthcraft-render/tests/fixtures/README.md).
+fixtures cover empty-cache and loaded-tile rendering; see [fixture provenance](../crates/earthcraft-render/tests/fixtures/README.md).
 Tests require no public map service or saved user configuration. HTTP fixtures
 bind an ephemeral loopback port; they exercise response limits, retries and disk
 cache behavior. Fluent tests verify catalog syntax, matching keys/variables and
-exact original UI output. See [localization](LOCALIZATION.md) before editing text.
+exact UI output. See [localization](LOCALIZATION.md) before editing text.
 
 Prefer tests of observable behavior and invariants. Avoid copies of production
-algorithms. For a behavior-preserving refactor, retain constants, coordinate
+algorithms. For behavior-preserving changes, retain constants, coordinate
 order, persistence formats and UI strings. Do not regenerate regression fixtures
 unless a deliberately approved rendering change explains the difference.
 
@@ -94,9 +93,9 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
 Report which checks actually ran and which platforms/services remain unverified.
 For packaging, use the app manifest/package, e.g. a package-selecting command
 supported by your packaging tool or run it from `apps/earthcraft`. Release
-artifacts still go to the root `target/release`. The pre-existing missing
+artifacts still go to the root `target/release`. The pre-missing
 `icon.icns` and `packaging/earthcraft.desktop` assets must be supplied before
-validating bundle/deb output; this refactor does not invent replacements.
+validating bundle/deb output; supply those assets before validating packages.
 
 ## Resource-constrained builds
 
@@ -121,7 +120,7 @@ Update architecture docs when ownership or dependency direction changes. Update
 both READMEs when changing user-facing setup or feature descriptions. Stage
 explicit files and keep generated output out of commits.
 
-## Library refactors and memory measurements
+## Dependency changes and memory measurements
 
 Use separate commits for each library migration; group dependencies only when
 needed for one boundary (for example Tokio/reqwest or Fluent's supporting crates).
@@ -253,7 +252,7 @@ exclude eframe's subsequent tessellation/GPU work. `overlay.prepare` includes
 cached returns and index rebuilding when needed. Tile lock timing samples view
 admission, not every per-pixel cache miss. Avoid adding overlapping timing medians
 across threads. The [native baseline](PERFORMANCE_BASELINE.md) records limitations
-and the [GPU plan](GPU_RENDERER.md) records fallback requirements.
+and the [GPU renderer](GPU_RENDERER.md) records fallback requirements.
 
 Feature-enabled checks must accompany normal checks when changing instrumentation:
 
@@ -272,3 +271,14 @@ is required because native swap synchronization is selected at startup. Changing
 this setting does not enable G-SYNC/FreeSync in the graphics driver or display.
 Continuous animation requests repaints without the old 260 ms delay; native
 presentation and renderer readiness determine the achievable cadence.
+
+## GPU checks
+
+Default desktop builds include optional GPU globe rendering. Follow
+[GPU_RENDERER.md](GPU_RENDERER.md) for native parity and complete-frame benchmarks.
+Exercise both `EARTHCRAFT_RENDERER=gpu` and `EARTHCRAFT_RENDERER=cpu`, including
+resize, provider changes, sunlight/atmosphere, screenshots, close zoom and grid
+fallback. Run `cargo check -p earthcraft --no-default-features --locked` and strict
+Clippy for that configuration too. Headless CI runs hardware-independent tests;
+GPU tests require an explicit native adapter and remain opt-in. Do not declare
+Windows/Linux GPU behavior verified from a macOS run.

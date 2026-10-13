@@ -22,7 +22,7 @@ User instructions and the requested scope take precedence over these defaults.
 
 ## Making changes
 
-- For refactoring tasks, preserve features, UI strings, defaults, keyboard/mouse
+- For behavior-preserving changes, preserve features, UI strings, defaults, keyboard/mouse
   behavior, persistence paths/formats, service URLs, timeouts, and rendering order.
   Feature requests may change behavior explicitly; document the difference.
 - Put logic in the owning crate and surface drawing in the matching app UI module.
@@ -40,7 +40,7 @@ User instructions and the requested scope take precedence over these defaults.
 - Prefer named structures when tuples or positional arguments hide meaning.
   Add abstractions only for a concrete dependency boundary or multiple real uses.
 - Use workspace dependency versions and shared package metadata. Keep `Cargo.lock`
-  tracked. Do not update unrelated dependencies during a refactor.
+  tracked. Do not update unrelated dependencies during unrelated changes.
 - Import unchanged dependency types, traits, and functions directly from their
   owning package. Do not re-export them through EarthCraft crates or hide them
   behind equivalent aliases. Declare a direct workspace dependency when needed.
@@ -57,7 +57,7 @@ User instructions and the requested scope take precedence over these defaults.
 - Name policy limits, thresholds, timing, units, colors, and non-obvious coefficients.
   Include units in names (`_KM`, `_DEG`, `_SECS`, `_PX`, `_POINTS`). Keep constants
   with their owning module; share only values with the same meaning. Keep values
-  and floating-point evaluation order unchanged during a naming refactor.
+  and floating-point evaluation order unchanged when naming constants.
 - Leave obvious algebraic values (zero, one, halves, vector indices) inline unless
   they encode a format or policy. Avoid a global bag of unrelated constants.
 - Use rustfmt. A module approaching 400 lines is a review signal, not a quota:
@@ -84,8 +84,8 @@ User instructions and the requested scope take precedence over these defaults.
   alignment; a byte buffer is not automatically aligned for a SIMD vector. Keep
   channel order and padding explicit. Do not add unsafe casts or unsafe POD impls.
 - Keep structured `earthcraft_data::Error` causes until the presentation boundary.
-  Serde settings/service models must retain tolerant field defaults and existing
-  coordinate order. Use GeoRust `kml` for KML decoding/writing; the private XML
+  Serde settings/service models must retain tolerant field defaults and longitude-first
+  coordinate arrays. Use GeoRust `kml` for KML decoding/writing; the private XML
   preparation pass skips empty Points and prevents truncated-container EOF loops.
   Keep marker coordinate order, fallback names and legacy bare-coordinate/outer
   fragment imports. Do not reintroduce a parallel handwritten KML parser.
@@ -101,7 +101,7 @@ User instructions and the requested scope take precedence over these defaults.
   Native dialogs remain app-owned; never wait on a file job in egui.
   Retain displayed RGBA through shared immutable ownership for screenshots;
   never copy the entire frame on submission or recycle a buffer with readers.
-- Keep whole-frame rasterization on the render-owned coordinator with the existing
+- Keep whole-frame rasterization on the render-owned coordinator with the
   Rayon pool. Bound pending/completed frames; coalesce pending camera requests.
   Reject incompatible provider/style/size results and align overlays with the
   displayed frame's camera. Keep texture upload on egui's thread; never wait there
@@ -139,7 +139,7 @@ User instructions and the requested scope take precedence over these defaults.
   tile directories, preserve other data and report actual usage. R-tree/FTS5
   belong to a separate auxiliary catalog, not imagery's exact-key hot path.
 - Keep startup overview warming bounded and subordinate to visible requests. Use
-  the existing cache budget and disk loader; avoid pinning a second unaccounted
+  the cache budget and disk loader; avoid pinning a second unaccounted
   tile set. Respect provider prefetch policies; the public OSM service stays on
   demand. Measure CPU frame time separately from network readiness and GUI work.
   Renderer batch-local tile handles must be released after their batch, rather
@@ -152,7 +152,7 @@ User instructions and the requested scope take precedence over these defaults.
 - UI translations live in `crates/earthcraft-core/locales/{en,pt-BR}.ftl`.
   Add the same semantic ID and named variables to both catalogs. Use `Lang::text`
   for static labels and `Lang::format` for whole messages; do not assemble translated
-  fragments in Rust. Preserve number precision and whitespace during refactors.
+  fragments in Rust. Preserve number precision and whitespace when changing message handling.
   Name IDs after the feature and message role, such as `settings-title`,
   `search-input-placeholder`, or `wayback-fallback-help`. Keep them concise and
   stable when wording changes. Do not generate IDs from translated sentences,
@@ -160,10 +160,17 @@ User instructions and the requested scope take precedence over these defaults.
   Share an ID only when the meaning and usage match, not just the displayed text.
   See `docs/LOCALIZATION.md` for fallback, fixtures and contributor examples.
 
-- GPU acceleration must remain optional when introduced: retain CPU rendering,
+- GPU acceleration remains optional: retain CPU rendering,
   validate adapter capabilities/limits and precision, and fall back explicitly
   when adapter/device initialization fails. Add a CPU-forced diagnostic mode and
   test failure paths. Do not claim changing egui's backend accelerates the globe.
+  Keep adapter/device initialization, uploads, dispatch, waits and readback on the
+  frame coordinator. Bound GPU residency separately; hold weak decoded references
+  between frames. Preserve the CPU precision path for close/grid views and shared
+  sky/horizon/tile-seam repair. Reject unsupported dimensions/LOD or unusual tile
+  layouts rather than silently dropping imagery. GPU changes need explicit native
+  parity, dependency-coverage, device-loss and complete-frame measurements; an
+  ignored hardware test is not evidence until run. See `docs/GPU_RENDERER.md`.
 - Performance claims need workload-specific evidence. Opt-in profiling uses a
   bounded background recorder; never write timing logs on UI/pixel paths, mix
   raster resolutions, or equate app-side texture submission with GPU execution.
@@ -182,9 +189,9 @@ cargo build --workspace --locked
 ```
 
 - Test production behavior, never a copied implementation. Keep automated tests
-  independent of public map services, local user settings, and existing caches.
+  independent of public map services, local user settings, and caches.
 - Preserve the original-renderer fixtures; do not regenerate expected output merely
-  to make a failing refactor test pass. See the fixture README for provenance.
+  to make a failing regression test pass. See the fixture README for provenance.
 - For UI/input/render changes, also run the desktop smoke checklist in
   `docs/CONTRIBUTING.md`. Compiler success does not verify interactive behavior.
 - Keep changes reviewable and explain boundaries, behavior changes, tests, and

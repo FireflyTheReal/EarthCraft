@@ -1,4 +1,4 @@
-//! GeoRust KML I/O, projected onto EarthCraft's existing placemark model.
+//! Read and write EarthCraft placemarks through GeoRust KML.
 use ::kml::{
     types::{Coord, Element, Geometry, KmlDocument, KmlVersion, Placemark as KmlPlacemark, Point},
     Kml, KmlReader, KmlWriter,

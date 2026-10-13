@@ -30,7 +30,7 @@ Geo's bulk interpolation also produced a different point count for 946 of 8,192
 sample arcs; it cannot replace our fixed-segment contract directly. Ordinary
 finite distance outputs differed by at most about 4e-11 km in those samples.
 
-Keep the existing math. Compare future geographic operations individually,
+Use core's spherical math. Compare future geographic operations individually,
 including dateline/pole/antipodal behavior, rather than importing geo wholesale
 or assuming SIMD from a vector type. These measurements are component timings,
 not application FPS, and should be repeated for an actual proposed adapter.
@@ -80,11 +80,10 @@ choose a provider/schema first, preserve the required names/ranks, transform
 extent-scaled tile-local coordinates to globe coordinates, define styling and
 handle clipped features/duplicate labels across tile boundaries. The format
 alone supplies neither a provider nor a map style. A switch must not silently
-replace existing data or change layer coverage.
+replace current data or change layer coverage.
 
-MVT can be stored in MBTiles as `pbf` tile data. The planned imagery MBTiles work
-continues independently; do not treat vector tiles as an interchangeable payload
-for the existing RGBA sampling path.
+MVT can be stored in MBTiles as `pbf` tile data. Imagery persistence uses MBTiles independently; do not treat vector tiles as an interchangeable payload
+for the current RGBA sampling path.
 
 ## Geo-index
 
@@ -103,11 +102,12 @@ and dynamic label placement solve different jobs.
 
 Geo-index is now installed for static boundary-line visibility in the render
 crate. Conservative interpolation bounds, horizon/frustum rejection and tests
-for visible interiors at poles/dateline preserve the existing projection.
-The synthetic index comparison is recorded in REFACTOR_PLAN.md. Geozero and MVT
-remain evaluation options without runtime dependencies.
-The existing optimization sequence remains wide ray batching, buffer reuse,
-decoding isolation and Unicode normalization before imagery MBTiles and wgpu.
+for visible interiors at poles/dateline preserve the current projection.
+The synthetic 10k-line comparison measured 12.612 ms for bounds/index construction
+and 0.012 ms for moving-view queries, versus 0.029 ms for a linear plane scan and
+0.031 ms for rstar plus planes. Candidate sets matched; retained packed-tree bytes
+were 362,754, excluding IDs/3D bounds. These are component measurements, not FPS.
+Geozero and MVT are evaluation options without runtime dependencies.
 
 ## Current SQLite and vector-source decision
 
@@ -118,7 +118,7 @@ query workload needs them: R-tree for bounding-box candidates, FTS5 for token,
 phrase and richer text search. Exact imagery keys already use the MBTiles B-tree;
 per-frame visibility uses the packed in-memory geo-index tree, and loaded-name
 prefix lookup uses an immutable FST. Duplicating these indexes would add memory
-and maintenance without changing the existing prefix-only search feature.
+and maintenance without changing the current prefix-only search feature.
 `serde_rusqlite` remains a useful option for that future typed catalog; current
 small key/BLOB queries use explicit mappings and do not need it.
 
@@ -132,8 +132,8 @@ coverage need validation; metropolitan membership still comes from IBGE.
 Keep those layers until an adapter proves equivalent coverage and semantics.
 
 Geozero is a good processor/decoder candidate for that future MVT adapter. The
-existing feature-at-a-time GeoJSON visitor is already streaming file input, so
+current feature-at-a-time GeoJSON visitor is already streaming file input, so
 adding another reader today is not an established optimization. A vector switch
 needs a tiled data planner independent of raster sampling; it does not replace
 satellite PNG/JPEG imagery. No MVT source or geozero runtime dependency was added
-in the imagery-cache/CPU review series. GPU work and the 0.1.0 bump remain later.
+to the application. See [GPU rendering](GPU_RENDERER.md) for the raster backend.

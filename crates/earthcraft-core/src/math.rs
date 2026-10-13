@@ -5,7 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 const GREAT_CIRCLE_ANGLE_EPSILON_RAD: f64 = 1e-9;
 const SECONDS_PER_DAY: f64 = 86400.0;
 const UNIX_EPOCH_TO_J2000_DAYS: f64 = 10957.5;
-// Coefficients of the existing approximate solar-position model, in degrees and days.
+// Coefficients of the approximate solar-position model, in degrees and days.
 const MEAN_LONGITUDE_AT_J2000_DEG: f64 = 280.460;
 const MEAN_LONGITUDE_RATE_DEG_PER_DAY: f64 = 0.9856474;
 const MEAN_ANOMALY_AT_J2000_DEG: f64 = 357.528;

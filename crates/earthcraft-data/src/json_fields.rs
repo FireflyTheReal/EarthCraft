@@ -1,4 +1,4 @@
-//! Tolerant field decoding preserves the original partial-response behavior.
+//! Decode valid fields while ignoring ill-typed siblings in partial responses.
 use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 pub(crate) fn string<'de, D: Deserializer<'de>>(d: D) -> Result<Option<String>, D::Error> {
