@@ -58,7 +58,7 @@ impl App {
                     ui.checkbox(&mut self.show_country_boundaries, lg.pick("Country borders (worldwide)", "Limites dos países (mundo todo)"));
                     ui.checkbox(&mut self.show_state_boundaries, lg.pick("States / provinces (worldwide)", "Estados / províncias (mundo todo)"));
                     ui.checkbox(&mut self.show_place_labels, lg.pick("Country, state and city names", "Nomes de países, estados e cidades"));
-                    ui.checkbox(&mut self.show_city_boundaries, lg.pick("City / municipality borders (Brazil dataset)", "Limites de cidades / municípios (base do Brasil)"));
+                    ui.checkbox(&mut self.show_city_boundaries, lg.pick("City / municipality borders (Brazil only)", "Limites de cidades / municípios (disponível apenas para o Brasil)"));
                     ui.checkbox(&mut self.show_metro_boundaries, lg.pick("Metropolitan regions (Brazil only)", "Regiões metropolitanas (disponível apenas para o Brasil)"));
                     if self.boundaries_rx.is_some() {
                         ui.weak(lg.pick("⏳ Loading borders and names…", "⏳ Carregando limites e nomes…"));
