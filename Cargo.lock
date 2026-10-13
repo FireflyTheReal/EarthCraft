@@ -1088,6 +1088,7 @@ dependencies = [
 name = "earthcraft-data"
 version = "0.0.2"
 dependencies = [
+ "bytemuck",
  "earthcraft-core",
  "image 0.25.10",
  "rayon",
@@ -1099,6 +1100,7 @@ dependencies = [
 name = "earthcraft-render"
 version = "0.0.2"
 dependencies = [
+ "bytemuck",
  "earthcraft-core",
  "earthcraft-data",
  "glam",

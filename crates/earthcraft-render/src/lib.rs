@@ -118,7 +118,8 @@ fn render_row(
     let cc = b.c.dot(b.c);
     let maxz = cfg.provider.max_zoom() as f64;
 
-    for x in 0..w {
+    let pixels: &mut [[u8; RGBA_CHANNELS]] = bytemuck::cast_slice_mut(row);
+    for (x, pixel) in pixels.iter_mut().enumerate() {
         let nx = (x as f64 + 0.5) / w as f64 * 2.0 - 1.0;
         let d = b.dir(nx, ny);
         let bb = b.c.dot(d);
@@ -214,11 +215,10 @@ fn render_row(
                 }
             }
         }
-        let o = x * RGBA_CHANNELS;
-        row[o] = (col[0].clamp(0.0, 1.0) * COLOR_CHANNEL_MAX) as u8;
-        row[o + 1] = (col[1].clamp(0.0, 1.0) * COLOR_CHANNEL_MAX) as u8;
-        row[o + 2] = (col[2].clamp(0.0, 1.0) * COLOR_CHANNEL_MAX) as u8;
-        row[o + 3] = OPAQUE_ALPHA;
+        pixel[0] = (col[0].clamp(0.0, 1.0) * COLOR_CHANNEL_MAX) as u8;
+        pixel[1] = (col[1].clamp(0.0, 1.0) * COLOR_CHANNEL_MAX) as u8;
+        pixel[2] = (col[2].clamp(0.0, 1.0) * COLOR_CHANNEL_MAX) as u8;
+        pixel[3] = OPAQUE_ALPHA;
     }
     loc.misses
 }

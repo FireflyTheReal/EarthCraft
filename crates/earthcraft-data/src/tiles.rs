@@ -190,11 +190,12 @@ impl Tile {
         let fx = ((x - x0 as f64) as f32).min(1.0);
         let fy = ((y - y0 as f64) as f32).min(1.0);
         let p = |xx: usize, yy: usize| {
-            let i = (yy * self.w + xx) * 4;
+            let pixels: &[[u8; 4]] = bytemuck::cast_slice(&self.px);
+            let pixel = pixels[yy * self.w + xx];
             [
-                self.px[i] as f32,
-                self.px[i + 1] as f32,
-                self.px[i + 2] as f32,
+                pixel[0] as f32,
+                pixel[1] as f32,
+                pixel[2] as f32,
             ]
         };
         let (a, b, c, d) = (p(x0, y0), p(x1, y0), p(x0, y1), p(x1, y1));
