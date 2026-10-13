@@ -31,8 +31,7 @@ Drag: rotate globe · Right-drag / Shift+drag: rotate view · Wheel / +/-: zoom 
 
 ### Not implemented (would require proprietary data/infrastructure)
 
-Real 3D terrain, 3D buildings, Street View, Google Earth Studio, geotagged photos, narrated tours, data layers (weather, oceans, Mars/Moon) and icons
-Tiles come from third-party services: please respect their terms of use (OSM limits heavy usage).
+Real 3D terrain, 3D buildings, Street View, Google Earth Studio, geotagged photos, narrated tours, data layers (weather, oceans, Mars/Moon) and icons / Tiles come from third-party services: please respect their terms of use (OSM limits heavy usage).
 
 ### Development
 
