@@ -13,11 +13,13 @@ use std::{
     time::{Duration, Instant},
 };
 mod cache;
-mod files;
 mod explorer;
+mod files;
 mod globe;
 mod live_layers;
 mod live_maps;
+#[cfg(any(target_os = "macos", target_os = "windows"))]
+mod menu;
 mod navigation;
 mod overlays;
 mod rendering;
@@ -38,6 +40,8 @@ const BOUNDARY_POLL_INTERVAL: Duration = Duration::from_millis(300);
 type SuggestionResponse = (String, Result<Vec<Suggestion>, earthcraft_data::Error>);
 
 pub(crate) struct App {
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    native_menu: Option<menu::NativeMenu>,
     runtime: earthcraft_data::runtime::ServiceRuntime,
     explorer: explorer::Explorer,
     boundary_loader: earthcraft_data::boundaries::BoundaryLoader,
@@ -148,7 +152,9 @@ impl App {
             let ctx = cc.egui_ctx.clone();
             move || ctx.request_repaint()
         });
-        App {
+        let app = App {
+            #[cfg(any(target_os = "macos", target_os = "windows"))]
+            native_menu: None,
             explorer: explorer::Explorer::default(),
             lang,
             cam: INITIAL_CAMERA,
@@ -226,6 +232,14 @@ impl App {
             kml_drop_rect: Rect::NOTHING,
             ring_drag: false,
             runtime,
+        };
+        #[cfg(any(target_os = "macos", target_os = "windows"))]
+        {
+            app.with_native_menu(cc)
+        }
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+        {
+            app
         }
     }
 }
@@ -250,6 +264,8 @@ impl eframe::App for App {
         if let Some(error) = self.settings_writer.take_error() {
             self.status = format!("Settings persistence failed: {error}");
         }
+        #[cfg(any(target_os = "macos", target_os = "windows"))]
+        self.poll_native_menu(ctx);
         self.poll_files();
         self.handle_dropped_files(ctx);
         self.ensure_wayback(ctx);
@@ -275,7 +291,8 @@ impl eframe::App for App {
         self.side_panel(ctx);
         self.settings_window(ctx);
         self.explorer_window(ctx);
-        self.live_maps.update(ctx, &self.runtime, self.show_clouds, self.show_weather);
+        self.live_maps
+            .update(ctx, &self.runtime, self.show_clouds, self.show_weather);
         self.boundary_loader.request_visible_layers(
             self.show_city_boundaries,
             self.show_metro_boundaries,

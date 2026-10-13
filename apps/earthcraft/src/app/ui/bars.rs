@@ -8,13 +8,24 @@ impl App {
         egui::TopBottomPanel::top("top").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.strong("🌍 EarthCraft");
-                if ui.button(lg.text("top-explore-action")).clicked() { self.explorer.open = true; }
-                for (name,body) in [
-                    (lg.text("top-earth"),super::super::explorer::Body::Earth),
-                    (lg.text("top-moon"),super::super::explorer::Body::Moon),
-                    (lg.text("top-custom-planet"),super::super::explorer::Body::Custom),
+                if ui.button(lg.text("top-explore-action")).clicked() {
+                    self.explorer.open = true;
+                }
+                for (name, body) in [
+                    (lg.text("top-earth"), super::super::explorer::Body::Earth),
+                    (lg.text("top-moon"), super::super::explorer::Body::Moon),
+                    (
+                        lg.text("top-custom-planet"),
+                        super::super::explorer::Body::Custom,
+                    ),
                 ] {
-                    if ui.button(name).clicked() {self.explorer.choose(body,ctx);if body == super::super::explorer::Body::Custom {self.explorer.open=true;}self.touch();}
+                    if ui.button(name).clicked() {
+                        self.explorer.choose(body, ctx);
+                        if body == super::super::explorer::Body::Custom {
+                            self.explorer.open = true;
+                        }
+                        self.touch();
+                    }
                 }
                 ui.separator();
 

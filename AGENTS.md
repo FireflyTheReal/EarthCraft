@@ -7,7 +7,12 @@ User instructions and the requested scope take precedence over these defaults.
 ## Ownership and dependencies
 
 - `apps/earthcraft` owns desktop startup, egui widgets, input, application state,
-  texture upload, native dialogs, and background-result polling.
+  texture upload, native dialogs, native desktop menus, and background-result polling.
+  Native menu callbacks enqueue commands and wake egui; apply actions and open
+  dialogs only from the app update. Keep menu objects on the window thread,
+  localize captions in both catalogs, and reuse the existing file services.
+  Libraries forbid unsafe code. The app denies it except for the single documented
+  Windows menu attachment in `app/menu/windows.rs`; do not broaden that allowance.
 - `crates/earthcraft-core` owns geometry, camera operations, language selection,
   embedded localization, and placemark values. It may use `emath` for screen geometry; keep network,
   filesystem, egui widgets, and windowing out of it.

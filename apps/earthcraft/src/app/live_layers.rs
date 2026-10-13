@@ -18,22 +18,102 @@ struct FlightRoute {
 }
 
 const FLIGHT_ROUTES: &[FlightRoute] = &[
-    FlightRoute { code: "AZU2410", from: (-23.55, -46.64), to: (-22.91, -43.17), period_secs: 2400.0 },
-    FlightRoute { code: "GLO2056", from: (-22.81, -43.25), to: (-12.97, -38.50), period_secs: 4300.0 },
-    FlightRoute { code: "LAT3401", from: (-23.43, -46.47), to: (-30.03, -51.23), period_secs: 5000.0 },
-    FlightRoute { code: "AFR459", from: (48.86, 2.35), to: (-23.55, -46.64), period_secs: 9000.0 },
-    FlightRoute { code: "BAW247", from: (51.47, -0.45), to: (-22.91, -43.17), period_secs: 8600.0 },
-    FlightRoute { code: "DAL105", from: (33.64, -84.42), to: (-23.43, -46.47), period_secs: 9500.0 },
-    FlightRoute { code: "UAL905", from: (40.64, -73.78), to: (51.47, -0.45), period_secs: 4200.0 },
-    FlightRoute { code: "AAL170", from: (25.79, -80.29), to: (40.64, -73.78), period_secs: 3800.0 },
-    FlightRoute { code: "QFA12", from: (-33.94, 151.18), to: (34.05, -118.24), period_secs: 10500.0 },
-    FlightRoute { code: "JAL701", from: (35.55, 139.78), to: (1.36, 103.99), period_secs: 5100.0 },
-    FlightRoute { code: "UAE261", from: (25.25, 55.36), to: (51.47, -0.45), period_secs: 4700.0 },
-    FlightRoute { code: "ETH506", from: (8.98, 38.79), to: (-26.13, 28.23), period_secs: 4200.0 },
-    FlightRoute { code: "SAA223", from: (-26.13, 28.23), to: (-33.94, 18.60), period_secs: 2600.0 },
-    FlightRoute { code: "ACA901", from: (43.68, -79.63), to: (49.19, -123.18), period_secs: 5300.0 },
-    FlightRoute { code: "ANZ32", from: (-36.84, 174.76), to: (-33.94, 151.18), period_secs: 2400.0 },
-    FlightRoute { code: "TAP074", from: (38.77, -9.13), to: (-23.55, -46.64), period_secs: 8800.0 },
+    FlightRoute {
+        code: "AZU2410",
+        from: (-23.55, -46.64),
+        to: (-22.91, -43.17),
+        period_secs: 2400.0,
+    },
+    FlightRoute {
+        code: "GLO2056",
+        from: (-22.81, -43.25),
+        to: (-12.97, -38.50),
+        period_secs: 4300.0,
+    },
+    FlightRoute {
+        code: "LAT3401",
+        from: (-23.43, -46.47),
+        to: (-30.03, -51.23),
+        period_secs: 5000.0,
+    },
+    FlightRoute {
+        code: "AFR459",
+        from: (48.86, 2.35),
+        to: (-23.55, -46.64),
+        period_secs: 9000.0,
+    },
+    FlightRoute {
+        code: "BAW247",
+        from: (51.47, -0.45),
+        to: (-22.91, -43.17),
+        period_secs: 8600.0,
+    },
+    FlightRoute {
+        code: "DAL105",
+        from: (33.64, -84.42),
+        to: (-23.43, -46.47),
+        period_secs: 9500.0,
+    },
+    FlightRoute {
+        code: "UAL905",
+        from: (40.64, -73.78),
+        to: (51.47, -0.45),
+        period_secs: 4200.0,
+    },
+    FlightRoute {
+        code: "AAL170",
+        from: (25.79, -80.29),
+        to: (40.64, -73.78),
+        period_secs: 3800.0,
+    },
+    FlightRoute {
+        code: "QFA12",
+        from: (-33.94, 151.18),
+        to: (34.05, -118.24),
+        period_secs: 10500.0,
+    },
+    FlightRoute {
+        code: "JAL701",
+        from: (35.55, 139.78),
+        to: (1.36, 103.99),
+        period_secs: 5100.0,
+    },
+    FlightRoute {
+        code: "UAE261",
+        from: (25.25, 55.36),
+        to: (51.47, -0.45),
+        period_secs: 4700.0,
+    },
+    FlightRoute {
+        code: "ETH506",
+        from: (8.98, 38.79),
+        to: (-26.13, 28.23),
+        period_secs: 4200.0,
+    },
+    FlightRoute {
+        code: "SAA223",
+        from: (-26.13, 28.23),
+        to: (-33.94, 18.60),
+        period_secs: 2600.0,
+    },
+    FlightRoute {
+        code: "ACA901",
+        from: (43.68, -79.63),
+        to: (49.19, -123.18),
+        period_secs: 5300.0,
+    },
+    FlightRoute {
+        code: "ANZ32",
+        from: (-36.84, 174.76),
+        to: (-33.94, 151.18),
+        period_secs: 2400.0,
+    },
+    FlightRoute {
+        code: "TAP074",
+        from: (38.77, -9.13),
+        to: (-23.55, -46.64),
+        period_secs: 8800.0,
+    },
 ];
 
 impl App {
@@ -110,8 +190,6 @@ impl App {
             }
         }
     }
-
-
 }
 
 fn route_position(route: FlightRoute, t: f64) -> (f64, f64) {
@@ -140,4 +218,3 @@ fn flight_trail(center: Pos2, angle: f32, size: f32) -> [Pos2; 2] {
     let back = Vec2::angled(angle) * size;
     [center - back * 0.35, center - back * 1.2]
 }
-

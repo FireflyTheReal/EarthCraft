@@ -113,10 +113,16 @@ impl App {
                             ui.checkbox(&mut self.show_clouds, lg.text("layers-clouds-toggle"));
                             ui.small(lg.text("layers-live-overlays-help"));
                             if self.show_clouds {
-                                ui.hyperlink_to(lg.text("sidebar-cloud-source"), "https://github.com/matteason/live-cloud-maps");
+                                ui.hyperlink_to(
+                                    lg.text("sidebar-cloud-source"),
+                                    "https://github.com/matteason/live-cloud-maps",
+                                );
                             }
                             if self.show_weather {
-                                ui.hyperlink_to(lg.text("sidebar-radar-source"), "https://www.rainviewer.com/");
+                                ui.hyperlink_to(
+                                    lg.text("sidebar-radar-source"),
+                                    "https://www.rainviewer.com/",
+                                );
                             }
                         });
 

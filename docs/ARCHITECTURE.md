@@ -37,7 +37,9 @@ CPU rasterization uses the shared Rayon pool, eight-row tile batches and `wide`
 four-lane f64 rays. Geographic conversion and LOD stay in f64; glam handles camera
 matrices/quaternions and SIMD colors. Batch-local tile handles avoid repeated cache
 reads and are released after the batch. Safe bytemuck casts describe byte pixels;
-workspace code forbids unsafe Rust.
+libraries forbid unsafe Rust. The desktop denies it except for the documented
+Windows menu attachment function, which borrows eframe's live HWND. Native menus
+stay in the desktop adapter; their callbacks queue actions and wake egui.
 
 The coordinator prepares CPU image data and matching overlay geometry before
 publication. Egui uploads textures and builds styled shapes on its own thread.

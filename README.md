@@ -32,6 +32,8 @@ An internet connection is required to download map tiles.
 ### Controls
 Drag: rotate globe · Right-drag / Shift+drag: rotate view · Wheel / +/-: zoom · Double-click: fly to point · Arrow keys: move · N: north up
 
+On Windows and macOS, the native **File** menu opens/saves KML and saves PNG screenshots. Use Ctrl (Windows) or Cmd (macOS): O to open, S to save, Shift+S for Save As, and Shift+E for a screenshot. Screenshots use the folder selected in Settings. Quit is in the application menu on macOS.
+
 ### Not implemented (would require proprietary data/infrastructure)
 
 Real 3D terrain, 3D buildings, Street View, Google Earth Studio, geotagged photos, narrated tours, icons

@@ -1,5 +1,6 @@
 //! Globe geometry, camera operations, language selection, and placemark values.
 //! No network, filesystem, windowing, or widget dependencies.
+#![forbid(unsafe_code)]
 pub mod camera;
 pub mod language;
 mod localization;

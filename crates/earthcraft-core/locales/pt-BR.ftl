@@ -280,3 +280,11 @@ sidebar-cloud-source = Dados de nuvens: Matt Eason / EUMETSAT
 sidebar-radar-source = Dados de radar: RainViewer
 live-cloud-credit = Matt Eason · Live Cloud Maps · Contém dados modificados da EUMETSAT
 live-radar-credit = Radar de precipitação: RainViewer (rainviewer.com)
+
+# Native desktop menus
+menu-file-title = Arquivo
+menu-kml-open = Abrir KML…
+menu-kml-save = Salvar KML
+menu-kml-save-as = Salvar KML como…
+menu-screenshot-save = Salvar captura de tela
+menu-quit-action = Sair do EarthCraft
