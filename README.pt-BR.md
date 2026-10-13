@@ -36,7 +36,7 @@ Duplo clique: voar · Setas: mover · N: norte para cima
 
 Use **☰** na barra de ferramentas para ocultar ou reabrir o painel lateral e dar mais espaço ao mapa.
 
-No macOS, o menu nativo **Arquivo** abre/salva KML e salva capturas PNG. Use Cmd+O para abrir, Cmd+S para salvar, Cmd+Shift+S para Salvar como e Cmd+Shift+E para uma captura. As capturas usam a pasta escolhida nas Configurações. Sair fica no menu do aplicativo. Windows e Linux usam os controles de arquivos do painel lateral.
+No macOS, o menu nativo **Arquivo** abre/salva KML e salva capturas PNG. Use Cmd+O para abrir, Cmd+S para salvar, Cmd+Shift+S para Salvar como e Cmd+Shift+E para uma captura. As capturas usam a pasta escolhida nas Configurações. Sair fica no menu do aplicativo. Windows e Linux usam os controles de arquivos do painel lateral e os mesmos atalhos com Ctrl em vez de Cmd; Ctrl+Q sai do aplicativo.
 
 ### Não implementado (exigiria dados/infra proprietários)
 Terreno 3D com relevo real, prédios 3D, Street View, Google Earth Studio,

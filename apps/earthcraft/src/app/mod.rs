@@ -18,7 +18,6 @@ mod files;
 mod globe;
 mod live_layers;
 mod live_maps;
-#[cfg(any(target_os = "macos", target_os = "windows"))]
 mod menu;
 mod navigation;
 mod overlays;
@@ -270,7 +269,7 @@ impl eframe::App for App {
         }
         #[cfg(target_os = "macos")]
         self.poll_native_menu(ctx);
-        #[cfg(target_os = "windows")]
+        #[cfg(not(target_os = "macos"))]
         self.file_shortcuts(ctx);
         self.poll_files();
         self.handle_dropped_files(ctx);

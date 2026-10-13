@@ -34,7 +34,7 @@ Drag: rotate globe · Right-drag / Shift+drag: rotate view · Wheel / +/-: zoom 
 
 Use **☰** in the toolbar to hide or reopen the sidebar and give the map more room.
 
-On macOS, the native **File** menu opens/saves KML and saves PNG screenshots. Use Cmd+O to open, Cmd+S to save, Cmd+Shift+S for Save As, and Cmd+Shift+E for a screenshot. Screenshots use the folder selected in Settings. Quit is in the application menu. Windows and Linux use the sidebar's file controls.
+On macOS, the native **File** menu opens/saves KML and saves PNG screenshots. Use Cmd+O to open, Cmd+S to save, Cmd+Shift+S for Save As, and Cmd+Shift+E for a screenshot. Screenshots use the folder selected in Settings. Quit is in the application menu. Windows and Linux use the sidebar's file controls and the same shortcuts with Ctrl instead of Cmd; Ctrl+Q quits.
 
 ### Not implemented (would require proprietary data/infrastructure)
 

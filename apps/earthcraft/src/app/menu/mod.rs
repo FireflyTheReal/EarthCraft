@@ -36,7 +36,7 @@ impl Action {
         })
         .into()
     }
-    #[cfg(target_os = "windows")]
+    #[cfg(not(target_os = "macos"))]
     pub(super) fn shortcut(self) -> egui::KeyboardShortcut {
         use egui::{Key, Modifiers};
         let key = match self {
@@ -76,9 +76,9 @@ impl App {
             self.run_file_action(action, ctx);
         }
     }
-    #[cfg(target_os = "windows")]
+    #[cfg(not(target_os = "macos"))]
     pub(super) fn file_shortcuts(&mut self, ctx: &egui::Context) {
-        // Keep file shortcuts available without a native Windows menu bar.
+        // Keep file shortcuts available on platforms without a native menu bar.
         for action in [
             Action::SaveAs,
             Action::Screenshot,

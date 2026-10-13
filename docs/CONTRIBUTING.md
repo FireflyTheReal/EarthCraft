@@ -298,7 +298,7 @@ Menu objects and handlers stay on the window thread. Callbacks enqueue actions
 and wake egui; the app opens dialogs, submits existing KML/screenshot jobs and
 closes normally. Screenshot is disabled before a frame exists. Captions follow
 language changes and AppKit handles Cmd shortcuts. Windows and Linux use the
-sidebar's file controls; Windows retains Ctrl+O/S/Shift+S/Shift+E and Ctrl+Q
+sidebar's file controls; both support Ctrl+O/S/Shift+S/Shift+E and Ctrl+Q
 without a native menu bar. All workspace code forbids unsafe Rust.
 
 Smoke check hiding/reopening the sidebar, preserving expanded sections and layer
