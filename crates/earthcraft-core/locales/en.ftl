@@ -118,6 +118,11 @@ layers-sunlight-toggle = Real-time sunlight (day/night)
 
 layers-auto-rotation-toggle = Auto-rotate
 
+layers-flights-toggle = FlightRadar-style aircraft (simulated)
+layers-weather-toggle = Live precipitation radar (RainViewer)
+layers-clouds-toggle = Satellite cloud map (Matt Eason)
+layers-live-overlays-help = Live cloud imagery every 3 hours; recent weather radar every ~10 minutes (coverage varies). Internet required.
+
 navigation-section-title = Navigation
 
 navigation-reset-north-action = 🧭 North up
@@ -220,3 +225,60 @@ statusbar-render-fps-help = Completed globe frames per second. The last measured
 
 settings-uncap-fps-toggle = Uncap FPS (restart required)
 settings-frame-sync-help = By default, presentation synchronizes with the display refresh rate. G-SYNC/FreeSync is configured in your display and graphics driver.
+
+# Explorer / Visualização e novas camadas — conteúdo bilíngue
+top-explore-action = Explore +
+top-earth = Earth
+top-moon = Moon
+top-custom-planet = Custom planet
+explorer-title = Explore · places, sky and planets
+explorer-selected-location = Selected location
+explorer-search-place = Search for a place to view information
+explorer-latlon = Latitude { $latitude } · Longitude { $longitude }
+explorer-center = Center: { $latitude }, { $longitude }
+explorer-place-photos = Place photos
+explorer-photos-opened = Photo gallery opened in browser
+explorer-view-osm = View on OpenStreetMap
+explorer-map-opened = Map opened in browser
+explorer-photo-copyright = Photos are searched on Wikimedia Commons and copyright belongs to their creators. Place details open in your browser; these are not Google Maps reviews.
+explorer-narrated-tour = Narrated tour (TTS)
+explorer-tour-default = We are exploring { $place }. Explore the location on the globe and choose points of interest to continue your tour.
+explorer-read-aloud = ▶ Read text aloud
+explorer-speech-sent = Text sent to speech synthesizer
+explorer-globe-layers = Globe layers
+explorer-layer-info = These georeferenced layers are drawn on the globe using online data (internet required).
+explorer-cloud-credit = Cloud imagery: Matt Eason / Live Cloud Maps
+explorer-cloud-source = Live Cloud Maps — author and source code
+explorer-cloud-license = Contains modified EUMETSAT data · CC0 1.0
+explorer-radar-credit = Radar source: RainViewer
+explorer-radar-source = RainViewer weather radar
+explorer-radar-explanation = Green/yellow/red indicates approximate rain intensity (radar reflectivity), not infrared satellite temperature. Coverage and freshness vary.
+explorer-bodies = Celestial bodies
+explorer-earth = 🌍 Earth
+explorer-moon = 🌙 Moon
+explorer-custom-planet = 🪐 Custom planet
+explorer-moon-fixed = The Moon is fixed and cannot be edited. The settings below apply only to the custom planet.
+explorer-name = Name:
+explorer-image = Image:
+explorer-browse = Browse
+explorer-display-planet = Display planet image
+explorer-planet-displayed = Planet displayed on the globe
+explorer-save-planet = Save planet…
+explorer-load-planet = Load planet…
+explorer-planet-loaded = Planet and sky loaded on the globe
+explorer-sky-galaxy = Custom sky and galaxy
+explorer-image-path = Image file path
+explorer-display-galaxy = Display galaxy
+explorer-sky-applied = Sky applied to the globe background
+explorer-sky-preview = The custom sky is previewed here; it is not used as the Earth renderer skybox.
+live-clouds-failed = Cloud update failed
+live-cached-image =  (cached image shown)
+live-clouds-ok = Clouds: Matt Eason (3-hour updates)
+live-clouds-loading = Clouds: loading satellite imagery…
+live-radar-failed = Radar update failed
+live-radar-age = Rain radar: observation approximately { $minutes } min old
+live-radar-loading = Rain radar: loading RainViewer data…
+sidebar-cloud-source = Cloud data: Matt Eason / EUMETSAT
+sidebar-radar-source = Radar data: RainViewer
+live-cloud-credit = Matt Eason · Live Cloud Maps · Contains modified EUMETSAT data
+live-radar-credit = Precipitation radar: RainViewer (rainviewer.com)

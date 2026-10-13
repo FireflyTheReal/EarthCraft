@@ -118,6 +118,11 @@ layers-sunlight-toggle = Luz do sol em tempo real (dia/noite)
 
 layers-auto-rotation-toggle = Girar automaticamente
 
+layers-flights-toggle = Aviões estilo FlightRadar (simulados)
+layers-weather-toggle = Mapa do clima (radar de chuva ao vivo)
+layers-clouds-toggle = Mapa das nuvens por satélite (Matt Eason)
+layers-live-overlays-help = Nuvens de satélite a cada 3 horas; radar de chuva atualizado aproximadamente a cada 10 minutos (cobertura variável). Requer internet.
+
 navigation-section-title = Navegação
 
 navigation-reset-north-action = 🧭 Norte para cima
@@ -220,3 +225,60 @@ statusbar-render-fps-help = Quadros do globo concluídos por segundo. A última 
 
 settings-uncap-fps-toggle = FPS sem limite (requer reiniciar)
 settings-frame-sync-help = Por padrão, a apresentação é sincronizada com a taxa de atualização da tela. G-SYNC/FreeSync é configurado na tela e no driver gráfico.
+
+# Explorer / Visualização e novas camadas — conteúdo bilíngue
+top-explore-action = Explorar +
+top-earth = Terra
+top-moon = Lua
+top-custom-planet = Planeta customizável
+explorer-title = Explorar · locais, céu e planetas
+explorer-selected-location = Local selecionado
+explorer-search-place = Pesquise um local para ver informações
+explorer-latlon = Latitude { $latitude } · Longitude { $longitude }
+explorer-center = Centro: { $latitude }, { $longitude }
+explorer-place-photos = Fotos do local
+explorer-photos-opened = Galeria de fotos aberta no navegador
+explorer-view-osm = Detalhes no OpenStreetMap
+explorer-map-opened = Mapa aberto no navegador
+explorer-photo-copyright = As fotos são pesquisadas no Wikimedia Commons e seus direitos pertencem aos autores. Os detalhes são exibidos no navegador, não são avaliações do Google Maps.
+explorer-narrated-tour = Passeio narrado (TTS)
+explorer-tour-default = Estamos explorando { $place }. Explore o local no globo e escolha pontos de interesse para continuar seu passeio.
+explorer-read-aloud = ▶ Narrar texto
+explorer-speech-sent = Texto enviado ao sintetizador de voz
+explorer-globe-layers = Camadas no globo
+explorer-layer-info = As camadas georreferenciadas são exibidas diretamente no globo com dados on-line (requer internet).
+explorer-cloud-credit = Imagens de nuvens: Matt Eason / Live Cloud Maps
+explorer-cloud-source = Live Cloud Maps — autor e código-fonte
+explorer-cloud-license = Contém dados modificados da EUMETSAT · CC0 1.0
+explorer-radar-credit = Fonte do radar: RainViewer
+explorer-radar-source = Radar meteorológico RainViewer
+explorer-radar-explanation = Verde/amarelo/vermelho indicam a intensidade aproximada da chuva (refletividade do radar), não a temperatura infravermelha do satélite. A cobertura e atualização variam.
+explorer-bodies = Corpos celestes
+explorer-earth = 🌍 Terra
+explorer-moon = 🌙 Lua
+explorer-custom-planet = 🪐 Planeta customizável
+explorer-moon-fixed = A Lua é fixa e não editável. As imagens abaixo pertencem exclusivamente ao planeta customizável.
+explorer-name = Nome:
+explorer-image = Imagem:
+explorer-browse = Escolher
+explorer-display-planet = Mostrar imagem do planeta
+explorer-planet-displayed = Planeta exibido no globo
+explorer-save-planet = Salvar planeta…
+explorer-load-planet = Carregar planeta…
+explorer-planet-loaded = Planeta e céu carregados no globo
+explorer-sky-galaxy = Céu e galáxia personalizados
+explorer-image-path = Caminho da imagem
+explorer-display-galaxy = Exibir galáxia
+explorer-sky-applied = Céu aplicado ao fundo do globo
+explorer-sky-preview = O céu personalizado é pré-visualizado aqui; não é usado como skybox no renderizador da Terra.
+live-clouds-failed = Falha ao atualizar nuvens
+live-cached-image =  (exibindo imagem em cache)
+live-clouds-ok = Nuvens: Matt Eason (atualização a cada 3 horas)
+live-clouds-loading = Nuvens: carregando imagem de satélite…
+live-radar-failed = Falha ao atualizar radar
+live-radar-age = Radar de chuva: observação de aproximadamente { $minutes } min atrás
+live-radar-loading = Radar de chuva: carregando dados do RainViewer…
+sidebar-cloud-source = Dados de nuvens: Matt Eason / EUMETSAT
+sidebar-radar-source = Dados de radar: RainViewer
+live-cloud-credit = Matt Eason · Live Cloud Maps · Contém dados modificados da EUMETSAT
+live-radar-credit = Radar de precipitação: RainViewer (rainviewer.com)

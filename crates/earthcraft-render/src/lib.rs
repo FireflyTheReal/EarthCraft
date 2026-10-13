@@ -1,4 +1,4 @@
-//! Globe rasterization, optional GPU acceleration and background frame coordination.
+//! Globe rasterization (CPU/GPU) and background frame coordination.
 use glam::{DVec3, Vec2, Vec4};
 pub mod backend;
 #[cfg(feature = "gpu")]

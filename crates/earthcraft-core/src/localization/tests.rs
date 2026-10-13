@@ -200,3 +200,19 @@ fn application_and_data_message_references_exist() {
     check(&root.join("apps/earthcraft/src"), &keys);
     check(&root.join("crates/earthcraft-data/src"), &keys);
 }
+
+#[test]
+fn explorer_labels_follow_selected_language_and_keep_variable_interpolation() {
+    assert_eq!(Lang::En.text("explorer-selected-location"), "Selected location");
+    assert_eq!(Lang::PtBr.text("explorer-selected-location"), "Local selecionado");
+    assert_eq!(Lang::En.text("top-explore-action"), "Explore +");
+    assert_eq!(Lang::PtBr.text("top-explore-action"), "Explorar +");
+    assert_eq!(Lang::En.text("explorer-bodies"), "Celestial bodies");
+    assert_eq!(Lang::PtBr.text("explorer-bodies"), "Corpos celestes");
+    assert_eq!(Lang::En.text("explorer-cloud-credit"), "Cloud imagery: Matt Eason / Live Cloud Maps");
+    assert_eq!(Lang::PtBr.text("explorer-cloud-credit"), "Imagens de nuvens: Matt Eason / Live Cloud Maps");
+    assert_eq!(Lang::En.format("explorer-tour-default", &[("place", "Rio de Janeiro".into())]),
+        "We are exploring Rio de Janeiro. Explore the location on the globe and choose points of interest to continue your tour.");
+    assert_eq!(Lang::PtBr.format("explorer-tour-default", &[("place", "Rio de Janeiro".into())]),
+        "Estamos explorando Rio de Janeiro. Explore o local no globo e escolha pontos de interesse para continuar seu passeio.");
+}
