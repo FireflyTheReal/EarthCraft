@@ -98,12 +98,10 @@ needed, rather than wrapping every function in a trait.
 
 ## Deliberately retained implementation constraints
 
-This is an architectural refactor, not a rewrite of the existing subsystems.
-Historical imagery still uses a synchronized process-wide release list. The desktop app owns a Tokio runtime for service tasks; workers are stopped
-when it is dropped. KML still uses the
-existing lightweight parser and supports its existing subset. App state is still
-one private owner shared by its child modules. These are future work candidates;
-changing them should be a separate change with its own behavior and lifecycle tests.
+Historical imagery still uses a synchronized process-wide release list. KML uses
+quick-xml while retaining the existing Point subset. App state remains one private
+owner shared by child modules. Feature extensions to these boundaries need their
+own behavior and lifecycle tests.
 
 Packaging metadata previously referenced `icon.icns` and
 `packaging/earthcraft.desktop`, which are absent from this repository. Paths now
@@ -126,8 +124,10 @@ remains distinct from the persisted setting's supported maximum of 2.5.
 Obvious algebraic numbers stay in the formulas; policy and model parameters get
 names without changing their values or floating-point evaluation order.
 
-See [library options](LIBRARY_OPTIONS.md) for focused ways to remove handwritten
-parsing, error and vector boilerplate in follow-up changes.
+See [library choices](LIBRARY_OPTIONS.md) for the adopted dependencies and their
+compatibility constraints. Core uses glam double-precision camera matrices,
+quaternions and vectors. Tile interpolation and renderer blending use SIMD `Vec4`;
+bytemuck supplies safe byte-aligned RGBA views without pixel copies.
 
 ## Network runtime
 
@@ -157,3 +157,13 @@ feature at a time on blocking workers. Cache files are replaced only after valid
 parsing; temporary files are cleaned up, and a writable cache is not required.
 At most two feature jobs run concurrently, and Brazilian states are processed
 sequentially. The service runtime also bounds blocking workers.
+
+## Localization
+
+Core embeds Fluent resources for `en` and `pt-BR`. Static labels are formatted
+once and cached; dynamic messages use named variables, with English fallback.
+The concurrent bundle also supports KML fallback names in background importers.
+Locale persistence and native language names retain their existing values.
+Geographic names remain service data, rather than catalog keys. Existing service
+logs and underlying error details retain their original text.
+See [localization](LOCALIZATION.md) for editing catalogs and regression fixtures.

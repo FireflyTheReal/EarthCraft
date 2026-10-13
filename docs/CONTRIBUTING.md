@@ -50,7 +50,10 @@ Camera tests call the same methods as the app. Boundary and search tests use
 local JSON/strings. KML tests use isolated temporary files. Raster regression
 fixtures were captured from the original implementation, including empty-cache
 and loaded-tile rendering; see [fixture provenance](../crates/earthcraft-render/tests/fixtures/README.md).
-Tests require no public map service or saved user configuration.
+Tests require no public map service or saved user configuration. HTTP fixtures
+bind an ephemeral loopback port; they exercise response limits, retries and disk
+cache behavior. Fluent tests verify catalog syntax, matching keys/variables and
+exact original UI output. See [localization](LOCALIZATION.md) before editing text.
 
 Prefer tests of observable behavior and invariants. Avoid copies of production
 algorithms. For a behavior-preserving refactor, retain constants, coordinate
@@ -99,3 +102,18 @@ crate when code shares the same responsibility and dependency requirements.
 Update architecture docs when ownership or dependency direction changes. Update
 both READMEs when changing user-facing setup or feature descriptions. Stage
 explicit files and keep generated output out of commits.
+
+## Library refactors and memory measurements
+
+Use separate commits for each library migration; group dependencies only when
+needed for one boundary (for example Tokio/reqwest or Fluent's supporting crates).
+Verify the affected invariants before committing, then run workspace checks.
+Use glam's double precision for geometry and SIMD float vectors for colors;
+avoid alignment assumptions when using bytemuck with pixel buffers.
+
+For memory comparisons, use the same build profile, viewport, settings, cache
+state, enabled layers and elapsed startup time. Record which memory metric was
+used. Resident memory and Activity Monitor's memory column are not interchangeable.
+The 128 MiB cache budget limits retained tile bytes, not total application memory.
+Municipal geometry is deferred rather than removed. Exercise enabling both
+municipal and metro layers after startup, and verify that loading labels finish.

@@ -14,7 +14,8 @@ Esta reorganização mantém os recursos, controles, serviços e textos existent
 
 O aplicativo depende das três bibliotecas. `data` depende de `core`; `render`
 depende de `core` e `data`. Nenhuma biblioteca depende do aplicativo.
-`core` usa apenas `emath` para tipos de geometria da tela, sem widgets ou janelas.
+`core` usa `emath` para geometria da tela, glam para matemática e Fluent para
+traduções, sem widgets ou janelas.
 `data` recebe um callback para solicitar repintura, sem depender de egui.
 
 O manifesto raiz centraliza versões, metadados, perfis e `Cargo.lock`.
@@ -47,10 +48,14 @@ de cache, arquivos `lang.txt`/`settings.json`, diretórios de saída, URLs,
 attribuições, tempos limite, atalhos e limiares de zoom foram mantidos.
 Não é necessária uma migração de dados.
 
-A lista global de imagens históricas, a duração dos workers de tiles e o parser
-KML original permanecem como antes. Uma alteração nesses comportamentos deve
-ser tratada separadamente, com testes próprios. O estado do aplicativo ainda
-pertence a uma estrutura privada, dividida em módulos por responsabilidade.
+A lista global de imagens históricas continua sincronizada. O aplicativo possui
+um único runtime Tokio para os serviços; reqwest reutiliza clientes HTTP.
+Decodificação de imagens e projeção de JSON usam workers bloqueantes limitados;
+a renderização continua no Rayon. quick-xml lê e escreve o subconjunto Point
+existente do KML. Serde mantém os padrões tolerantes das configurações e da busca;
+thiserror preserva causas estruturadas até a apresentação na interface.
+O estado do aplicativo ainda pertence a uma estrutura privada, dividida em
+módulos por responsabilidade.
 
 O empacotamento já referenciava `icon.icns` e `packaging/earthcraft.desktop`,
 que não estão no repositório. Os caminhos foram ajustados para a nova estrutura,
@@ -70,5 +75,29 @@ Nomes indicam unidades (`_KM`, `_DEG`, `_SECS`, `_PX`, `_POINTS`). Números igua
 com significados diferentes continuam separados. Os valores originais e a ordem
 de cálculo foram preservados.
 
-Veja [as opções de bibliotecas](LIBRARY_OPTIONS.md) para próximas mudanças em
-JSON, KML, erros e vetores, com verificação de compatibilidade.
+Veja [as escolhas de bibliotecas](LIBRARY_OPTIONS.md) para os usos adotados e os
+cuidados de compatibilidade. A câmera usa `DVec*`, `DMat*` e `DQuat` em precisão
+dupla. Cores usam `Vec4` com SIMD; bytemuck cria views RGBA sem cópias e sem
+presumir alinhamento de vetores SIMD.
+
+## Memória e carregamento
+
+O cache de tiles decodificados tem orçamento de 128 MiB, com remoção dos menos
+usados recentemente. Texturas, geometria e referências temporárias do renderer
+não fazem parte desse limite. Os workers mantêm referências fracas enquanto
+ociosos e preservam a política de novas tentativas.
+
+Países, estados e nomes globais carregam na inicialização. Nomes municipais do
+Brasil carregam abaixo do limite existente de 300 km; geometria municipal e
+metropolitana começa quando uma dessas camadas é ativada. As linhas usam `Arc`
+para compartilhar coordenadas. GeoJSON é baixado em arquivos temporários e
+projetado um elemento por vez com Serde; no máximo dois trabalhos ocorrem juntos,
+e os estados brasileiros são processados sequencialmente.
+
+## Traduções
+
+Os catálogos Fluent ficam em `crates/earthcraft-core/locales/en.ftl` e `pt-BR.ftl`,
+embutidos no executável. `Lang::text` fornece textos estáticos já formatados;
+`Lang::format` recebe argumentos nomeados para mensagens completas. Há fallback
+para inglês e testes de chaves, variáveis e textos originais. Os nomes geográficos
+continuam vindos dos serviços. Consulte [o guia de localização](LOCALIZATION.md).

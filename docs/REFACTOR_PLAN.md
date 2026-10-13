@@ -1,0 +1,50 @@
+# Library and memory refactor checkpoints
+
+Branch: `refactor/libraries-and-memory`, based on the workspace refactor PR.
+The migrations preserve features, controls, persistence formats and original
+renderer fixtures. Resource policy now bounds retained tile bytes and defers
+expensive municipal loading until relevant layers are visible.
+
+| Commit | Change | Verification |
+| --- | --- | --- |
+| `3325288` | glam double-precision vectors and SIMD color blending | Camera tests and original raster fixtures |
+| `79a5e0b` | bytemuck zero-copy RGBA views | Renderer regression and strict Clippy |
+| `7e8e951` | thiserror structured service failures | Error source/display test and workspace check |
+| `028a90a` | Tolerant Serde settings/search models | Partial-invalid settings, defaults, clamping and invalid response rows |
+| `2bd950c` | glam camera matrices, quaternion rotations and SIMD tile sampling | Camera invariants and unchanged original raster fixtures |
+| `e379663` | quick-xml KML reading/writing | Roundtrip, CDATA, entities, fallback names and incomplete envelopes |
+| `970d528` | Tokio/reqwest async services | Local HTTP response caps, errors, retries and cache fallback |
+| `4303123` | Tile byte budget, shared lines, deferred municipal geometry and streaming GeoJSON | LRU accounting, oversized/failed tiles, lazy state transitions and streaming parsing |
+| `f73e13e` | Embedded Fluent catalogs and whole-message arguments | Original wording/output, syntax, key/variable parity, references and fallback |
+| `7ee7719` | Boundary completion repaint and active loading label | Completion/cancellation wake-up test and focused boundary tests |
+
+Each library checkpoint ran focused tests and strict workspace Clippy. Supporting
+libraries are grouped when they implement one boundary; separate glam expansion
+has its own commit. The early disk-space blocker was resolved before proceeding.
+
+## Final local validation
+
+- `cargo fmt --all -- --check`: passed.
+- `cargo clippy --workspace --all-targets --offline --locked -- -D warnings`: passed.
+- `cargo test --workspace --offline --locked`: all 30 tests passed.
+- `cargo build --workspace --offline --locked`: passed on macOS ARM64.
+- Final desktop executable launched without startup errors.
+- Native-target dependency metadata declares no Rust minimum above 1.88. Rust
+  1.88 is not installed locally; minimum-toolchain and other-platform builds
+  remain CI validation.
+
+Local builds used `CARGO_PROFILE_DEV_DEBUG=0` and
+`CARGO_PROFILE_DEV_INCREMENTAL=false`, retaining the existing optimized dev
+profile. Cargo reports the existing transitive `block 0.1.6` future-compatibility
+warning. Full manual controls, file dialogs, language switching and live-service
+checks remain the contributor smoke checklist; launch alone does not verify them.
+
+## Memory observation
+
+One fresh launch after the memory migration reported RSS of 199,632 KiB (about
+195 MiB) through `ps`. This is a startup observation, not a controlled benchmark
+against the earlier 812.2 MB Activity Monitor screenshot. Different memory metrics,
+settings, elapsed time and enabled layers cannot establish a percentage reduction.
+The retained decoded-tile budget is 128 MiB; geometry, request bodies, temporary
+renderer references and GPU resources remain separate allocations. Use the
+comparison procedure in [contributing](CONTRIBUTING.md) for a repeatable measurement.

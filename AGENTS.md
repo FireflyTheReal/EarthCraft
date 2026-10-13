@@ -9,7 +9,7 @@ User instructions and the requested scope take precedence over these defaults.
 - `apps/earthcraft` owns desktop startup, egui widgets, input, application state,
   texture upload, native dialogs, and background-result polling.
 - `crates/earthcraft-core` owns geometry, camera operations, language selection,
-  and placemark values. It may use `emath` for screen geometry; keep network,
+  embedded localization, and placemark values. It may use `emath` for screen geometry; keep network,
   filesystem, egui widgets, and windowing out of it.
 - `crates/earthcraft-data` owns tile services, search, boundary loading, and local
   persistence. It depends on core. Report results or invoke the injected repaint
@@ -45,6 +45,32 @@ User instructions and the requested scope take precedence over these defaults.
   they encode a format or policy. Avoid a global bag of unrelated constants.
 - Use rustfmt. A module approaching 400 lines is a review signal, not a quota:
   split by responsibility, keeping related code and tests together.
+
+## Library and resource practices
+
+- Use glam for vector/matrix/rotation operations. Keep camera and geographic
+  geometry in `f64` (`DVec*`, `DMat*`, `DQuat`); use SIMD `Vec4` for color work.
+  Choose types for actual operations rather than replacing every scalar or tuple.
+  Egui screen geometry stays in `emath`; do not add conversions without a use.
+- Use safe bytemuck casts for byte-backed pixel layouts. RGBA arrays have byte
+  alignment; a byte buffer is not automatically aligned for a SIMD vector. Keep
+  channel order and padding explicit. Do not add unsafe casts or unsafe POD impls.
+- Keep structured `earthcraft_data::Error` causes until the presentation boundary.
+  Serde settings/service models must retain tolerant field defaults and existing
+  coordinate order. quick-xml supports the existing KML Point subset.
+- The app owns one `ServiceRuntime`. Inject its handle and repaint callbacks into
+  data; use pooled reqwest clients and async I/O. Keep CPU rasterization on Rayon,
+  large decoding/projection on bounded blocking workers, and UI access on egui's
+  thread. Completion must wake the UI, including the last background job.
+- Bound retained decoded tile bytes, not only tile counts. Preserve retry policy
+  and disk fallback. Stream large GeoJSON feature collections; share immutable
+  coordinate lines and request municipal data only when its layers are visible.
+  Account for temporary references and GPU textures separately when measuring.
+- UI translations live in `crates/earthcraft-core/locales/{en,pt-BR}.ftl`.
+  Add the same semantic ID and named variables to both catalogs. Use `Lang::text`
+  for static labels and `Lang::format` for whole messages; do not assemble translated
+  fragments in Rust. Preserve number precision and whitespace during refactors.
+  See `docs/LOCALIZATION.md` for fallback, fixtures and contributor examples.
 
 ## Verification and reporting
 

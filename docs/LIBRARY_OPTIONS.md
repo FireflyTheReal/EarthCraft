@@ -1,40 +1,30 @@
-# Library options
+# Library choices
 
-These are proposed follow-up refactors, not new dependencies in this change.
-Adopt a library when it removes concrete maintenance work, and test the existing
-behavior at the boundary before replacing handwritten code. Keep workspace
-versions centralized and verify Rust 1.88 compatibility for the chosen release.
+Versions are centralized in the workspace manifest and resolved in `Cargo.lock`.
+Each migration has a separate commit; supporting dependencies share a commit when
+they implement the same boundary. Keep Rust 1.88 compatibility and avoid unrelated
+updates. All original raster fixtures remain unchanged.
 
-| Library | Current maintenance burden | Proposed use |
+| Library | Current use | Compatibility constraint |
 | --- | --- | --- |
-| [Serde derives](https://serde.rs/derive.html) | Manual field extraction from `serde_json::Value` in settings and service responses | Typed settings and response structs with explicit defaults and conversions |
-| [quick-xml](https://docs.rs/quick-xml/) | Handwritten XML escaping, tag slicing and KML extraction | XML reader/writer for the existing KML subset |
-| [thiserror](https://docs.rs/thiserror/) | Service errors become strings immediately, losing structured causes | Domain error enums in data, converted to the existing localized status text at the app boundary |
-| [glam DVec3](https://docs.rs/glam/latest/glam/f64/struct.DVec3.html) | Handwritten vector arithmetic and normalization in `V3` | Double-precision vector operations in core and render |
+| Serde | Tolerant settings and Nominatim response models; feature-at-a-time GeoJSON projection | Keep valid fields when siblings have wrong types; preserve defaults, scale clamping and coordinate order |
+| quick-xml | KML event reader and writer | Preserve the existing Point subset, CDATA, entities, fallback names and incomplete-envelope compatibility |
+| thiserror | Typed data errors with source causes | Convert errors to user-facing text at presentation boundaries |
+| glam | `DVec3` globe geometry, `DMat3` camera basis, `DMat2` panning and `DQuat` rotations; SIMD color interpolation | Keep f64 geographic precision and the original camera/raster output; retain emath for egui geometry |
+| bytemuck | Safe zero-copy views of RGBA byte storage | Cast to byte-aligned pixel arrays, not aligned SIMD vectors; no unsafe code |
+| Tokio + reqwest | App-owned async runtime, pooled HTTP clients and bounded service work | Preserve provider policy, timeout values, retries, disk fallback and UI completion delivery; CPU rendering remains on Rayon |
+| Fluent | Embedded English/Portuguese catalogs with cached labels and named message arguments | Preserve wording and number precision; test syntax, parity, resolution and fallback |
 
-Serde and quick-xml address the largest parsing burden. `serde_json` already uses
-Serde internally, but the project does not yet declare Serde derives directly.
-Use explicit compatibility logic: the current settings loader accepts valid
-fields even if another field has the wrong type, retains defaults for missing or
-empty paths, and clamps scales. A plain derived struct can reject the entire
-object and would change that behavior. Search responses also mix string numbers,
-optional fields and provider-specific shapes.
+Do not introduce matrices, affine transforms or typed integer vectors just because
+glam exposes them. Use an operation/type where it removes handwritten math or
+expresses an actual domain value. The globe's ray/sphere model needs its existing
+camera conventions; a generic perspective constructor would require a deliberate
+projection change. Bytemuck does not make arbitrary buffers SIMD-aligned.
 
-For KML, test the currently supported Point coordinates, longitude-first order,
-escaping, CDATA, fallback names and malformed-input behavior. An XML library may
-accept more documents or reject documents the old slicing parser accepted;
-review that separately from this structural refactor.
+The data crate streams large boundary inputs and shares immutable coordinate
+lines. Decoded tiles have a byte budget with LRU eviction; expensive Brazilian
+municipal geometry is loaded on demand. These are resource-policy changes with
+deterministic tests, separate from the library migrations.
 
-`thiserror` provides error derives, but the meaningful change is choosing useful
-variants and preserving source errors. Keep localized UI text in the app and
-preserve existing messages during a mechanical migration. Avoid adding both
-`thiserror` and `anyhow` without a concrete need for each.
-
-`glam::DVec3` supplies dot/cross/normalization operations. Use the f64 vector type,
-retain the existing coordinate conventions, and run camera and original-raster
-regression tests. Library normalization and arithmetic may change floating-point
-rounding; do not silently update expected renderer output to accommodate it.
-
-The existing synchronous `ureq`, Rayon and egui/eframe stack already fits the
-application. A new async runtime or ECS is not needed to perform these focused
-cleanups.
+See [architecture](ARCHITECTURE.md), [localization](LOCALIZATION.md) and
+[contributing](CONTRIBUTING.md) for the ownership boundaries and verification rules.
