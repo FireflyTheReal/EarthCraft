@@ -1,4 +1,6 @@
 use super::super::App;
+use crate::app::cache::cache_size_text;
+use earthcraft_core::language::Lang;
 use earthcraft_data::settings::Settings;
 use earthcraft_data::settings::{MAX_MAP_SCALE, MIN_MAP_SCALE, MIN_UI_SCALE};
 use eframe::egui;
@@ -6,6 +8,7 @@ const MAX_UI_SLIDER_SCALE: f32 = 2.0;
 
 impl App {
     pub(in crate::app) fn settings_window(&mut self, ctx: &egui::Context) {
+        self.refresh_disk_usage(ctx);
         let lg = self.lang;
         let mut open = self.show_settings;
         egui::Window::new(lg.text("settings-title"))
@@ -79,6 +82,41 @@ impl App {
                     lg.text("settings-kml-folder-dialog-title"),
                 );
                 ui.weak(lg.text("settings-folder-creation-help"));
+                ui.separator();
+                ui.strong(lg.text("settings-cache-section-title"));
+                ui.weak(lg.text("settings-cache-clear-help"));
+                let clearing = self.cache_controls.clearing();
+                ui.horizontal(|ui| {
+                    let label = lg.text(if clearing {
+                        "settings-cache-clearing-label"
+                    } else {
+                        "settings-cache-clear-action"
+                    });
+                    if ui
+                        .add_enabled(!clearing, egui::Button::new(label))
+                        .clicked()
+                    {
+                        self.clear_disk_cache(ctx);
+                    }
+                    if clearing {
+                        ui.spinner();
+                    }
+                    match &self.cache_controls.usage {
+                        Some(Ok(bytes)) => {
+                            ui.label(lg.format(
+                                "settings-cache-disk-usage",
+                                &[("size", cache_size_text(*bytes).into())],
+                            ));
+                        }
+                        Some(Err(error)) => {
+                            ui.label(Lang::En.text("settings-cache-usage-unavailable"))
+                                .on_hover_text(error);
+                        }
+                        None => {
+                            ui.weak(lg.text("settings-cache-measuring-label"));
+                        }
+                    }
+                });
                 ui.separator();
                 if ui.button(lg.text("settings-reset-action")).clicked() {
                     self.settings = Settings::default();

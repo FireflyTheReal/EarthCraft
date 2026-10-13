@@ -40,6 +40,7 @@ update loop. Child modules extend that state through focused `impl App` blocks:
 - `search`: asynchronous search, suggestion polling, and selection.
 - `wayback`: historical imagery loading and selected release state.
 - `files`: native dialogs, KML commands, dropped files, and screenshots.
+- `cache`: disk-cache clearing commands and completion polling.
 - `globe`: viewport interaction, redraw decisions, and image presentation.
 - `rendering`: builds renderer inputs and uploads returned pixels to egui.
 - `overlays`: merges boundary patches and draws borders, labels and ruler marks.
@@ -192,6 +193,28 @@ eviction can require new loads. This removes overview fetch/decode delays, not
 CPU rasterization, texture upload or geographic-overlay work. Streets, topography
 and historical imagery are not globally prefetched. The public OSM service
 [prohibits prefetching](https://operations.osmfoundation.org/policies/tiles/).
+
+Settings offers **Clear on-disk cache** for downloaded imagery. The data-owned
+`DiskCache` removes only the four provider directories, preserving settings,
+language, boundary caches and personal files. Clearing runs asynchronously;
+the button is disabled until completion, and results reach the normal status bar.
+The adjacent usage readout sums encoded file lengths in the same provider directories,
+excluding settings, boundary data and filesystem allocation overhead. Measurement
+runs on a blocking worker, coordinated with clearing, and refreshes at most once
+every five seconds while Settings is open, plus after clearing. No scan runs in
+the UI or pixel loops, and closed Settings does not schedule further scans.
+Decoded Moka tiles remain available. The app cancels the remaining overview plan
+for that session so clearing does not trigger speculative downloads immediately.
+Future visible misses and the next startup may download tiles again.
+
+An async read/write gate coordinates this instance's disk reads/writes with
+clearing. Each request captures the disk epoch at admission; clearing advances
+it, so queued and active old jobs can complete into RAM but cannot restore deleted
+files. Provider symlinks are removed without following their targets. Cache writes
+retain best-effort behavior; clear failures are reported in English. This is
+in-process coordination, not a lock between multiple running applications.
+The current persistent cache remains individual tile files; MBTiles and a disk
+size budget are proposed later stages and are not implemented yet.
 
 Startup loads world countries, states and populated-place labels. Brazilian
 municipality labels are requested below their existing 300 km visibility limit;

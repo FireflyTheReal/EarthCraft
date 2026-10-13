@@ -128,6 +128,27 @@ Rasterização, envio da textura e desenho dos limites ainda consomem tempo.
 Ruas, topografia e imagens históricas permanecem sob demanda; o serviço público
 OSM [proíbe prefetch](https://operations.osmfoundation.org/policies/tiles/).
 
+As configurações oferecem **Limpar cache em disco** para imagens baixadas.
+`DiskCache`, na camada de dados, remove somente os diretórios dos quatro provedores.
+Configurações, idioma, cache de limites e arquivos pessoais são preservados.
+A operação é assíncrona, com botão desabilitado até a conclusão e resultado na
+barra de status. Tiles decodificados permanecem na memória; o plano de aquecimento
+é cancelado para a sessão. Novas áreas ou a próxima inicialização podem baixar
+tiles novamente.
+O tamanho ao lado do botão soma os bytes dos arquivos desses mesmos diretórios,
+excluindo configurações, limites e espaço adicional do sistema de arquivos.
+A medição usa um worker de bloqueio, coordenado com a limpeza, e atualiza no
+máximo a cada cinco segundos enquanto a janela está aberta, além de após limpar.
+Não há varredura no loop de pixels nem na thread da interface.
+
+Um bloqueio assíncrono coordena leitura, escrita e limpeza nesta instância.
+Cada requisição registra a geração do cache em disco ao entrar na fila; a limpeza
+avança essa geração, impedindo que trabalhos anteriores restaurem arquivos removidos.
+Links simbólicos dos provedores são removidos sem seguir seus destinos. Falhas
+na limpeza são exibidas em inglês. Isso não coordena múltiplas instâncias do app.
+O cache persistente ainda usa arquivos de tiles; MBTiles e um limite de tamanho
+em disco são etapas propostas, ainda não implementadas.
+
 Países, estados e nomes globais carregam na inicialização. Nomes municipais do
 Brasil carregam abaixo do limite existente de 300 km; geometria municipal e
 metropolitana começa quando uma dessas camadas é ativada. As linhas usam `Arc`

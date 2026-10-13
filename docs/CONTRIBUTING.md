@@ -70,6 +70,12 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
   opposite hemisphere. Check that overview imagery is available, close zoom
   still loads detail, and other layers remain on demand. Compare cold and warm
   disk-cache startup separately; do not promise immediate cold-network readiness.
+- In an isolated cache directory, use Settings → Clear on-disk cache. Check
+  progress/completion, retained imagery in memory, preservation of settings and
+  boundary caches, and that old queued downloads do not restore deleted files.
+  Check the usage readout beside the button before clearing and its refreshed
+  value afterward; it counts encoded tile files, excluding filesystem overhead.
+  Verify that fresh visible misses and a later startup can cache tiles again.
 - Switch satellite/streets/topography/historical imagery; verify loading,
   release selection, fallback and attribution.
 - Search by coordinates and address; select suggestions with mouse and keyboard.

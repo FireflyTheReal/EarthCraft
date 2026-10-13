@@ -1,5 +1,6 @@
 //! Manual comparison of production cached-hit throughput; no timing assertions.
 use super::*;
+use crate::tiles::Provider;
 use std::{hint::black_box, sync::Barrier};
 
 const BENCH_TILE_COUNT: usize = 256;

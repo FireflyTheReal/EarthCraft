@@ -145,3 +145,14 @@ Replace the manual accent table with Unicode normalization in its own library
 commit, testing existing Portuguese matching and international/decomposed names.
 Only after these CPU and data stages are complete and validated, begin a wgpu
 globe renderer. Switching the UI backend alone does not move ray casting to the GPU.
+
+Treat cache clearing and its disk-usage readout as one cache-controls change.
+Each rendering, spatial-index, SIMD, buffer, decoding and Unicode initiative gets
+its own logical commit; group supporting dependencies only when synergistic.
+After those higher-priority CPU/data optimizations, migrate persistent tiles to
+SQLite-backed MBTiles in a separate change, retaining the clear button and usage
+readout. Evaluate DashMap afterward only if request-lock contention measurements
+justify changing admission coordination; it does not replace the decoded Moka cache.
+After the complete series, including the later GPU renderer, passes validation,
+bump the workspace version to 0.1.0 and regenerate the lockfile. The version
+remains 0.0.2 during these intermediate stages.

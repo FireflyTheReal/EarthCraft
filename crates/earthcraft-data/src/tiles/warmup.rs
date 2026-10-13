@@ -42,4 +42,8 @@ impl TileWarmup {
         }
         false
     }
+    /// Stop speculative requests after the user explicitly clears the disk cache.
+    pub fn cancel(&mut self) {
+        self.remaining.clear();
+    }
 }

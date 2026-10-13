@@ -78,6 +78,16 @@ settings-folder-creation-help = As pastas são criadas automaticamente ao salvar
 
 settings-reset-action = Restaurar padrões
 
+settings-cache-section-title = Cache do mapa
+settings-cache-clear-action = Limpar cache em disco
+settings-cache-clear-help = Remove os tiles baixados do mapa. Eles serão baixados novamente quando necessário.
+settings-cache-clearing-label = Limpando cache…
+settings-cache-cleared-status = Cache de tiles em disco limpo.
+settings-cache-clear-error = Could not clear on-disk cache: { $error }
+settings-cache-disk-usage = { $size } em disco
+settings-cache-measuring-label = Calculando…
+settings-cache-usage-unavailable = Cache size unavailable
+
 layers-section-title = Camadas
 
 wayback-loading-status = ⏳ Carregando datas disponíveis…

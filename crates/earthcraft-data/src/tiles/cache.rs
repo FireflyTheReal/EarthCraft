@@ -1,5 +1,5 @@
-use super::{unkey, KeyBuild, Provider, Tile, TileKey};
-use crate::{paths::cache_dir, wayback::wayback_release};
+use super::{disk::DiskCache, unkey, KeyBuild, Tile, TileKey};
+use crate::paths::cache_dir;
 use moka::{policy::EvictionPolicy, sync::Cache};
 use std::{
     collections::HashMap,
@@ -17,13 +17,13 @@ const MAX_TILE_RESPONSE_BYTES: u64 = 8_000_000;
 pub const MAX_INFLIGHT: usize = 48;
 
 enum RequestState {
-    Loading,
+    Loading(u64),
     Failed(Instant),
 }
 impl RequestState {
     fn is_pending(&self) -> bool {
         match self {
-            Self::Loading => true,
+            Self::Loading(_) => true,
             Self::Failed(time) => time.elapsed() < FAILED_TILE_RETRY_DELAY,
         }
     }
@@ -39,6 +39,7 @@ pub struct TileCache {
     // Synchronizes request admission only; decoded-cache hits bypass this lock.
     requests: Mutex<HashMap<TileKey, RequestState, KeyBuild>>,
     budget: usize,
+    disk: DiskCache,
     tx: tokio::sync::mpsc::UnboundedSender<TileKey>,
     gen: AtomicU64,
     inflight: AtomicUsize,
@@ -58,6 +59,7 @@ impl TileCache {
                 .build_with_hasher(KeyBuild::default()),
             requests: Mutex::new(HashMap::default()),
             budget,
+            disk: DiskCache::new(cache_dir()),
             tx,
             gen: AtomicU64::new(0),
             inflight: AtomicUsize::new(0),
@@ -104,7 +106,7 @@ impl TileCache {
         {
             return false;
         }
-        requests.insert(key, RequestState::Loading);
+        requests.insert(key, RequestState::Loading(self.disk.epoch()));
         self.inflight.fetch_add(1, Ordering::Relaxed);
         if self.tx.send(key).is_err() {
             requests.insert(key, RequestState::Failed(Instant::now()));
@@ -126,7 +128,7 @@ impl TileCache {
         };
         // Publish the decoded tile before removing Loading to avoid duplicate requests.
         let mut requests = self.requests.lock().unwrap();
-        let was_loading = matches!(requests.remove(&key), Some(RequestState::Loading));
+        let was_loading = matches!(requests.remove(&key), Some(RequestState::Loading(_)));
         requests.retain(|_, state| state.is_pending());
         if !admitted {
             requests.insert(key, RequestState::Failed(Instant::now()));
@@ -143,26 +145,25 @@ impl TileCache {
     pub fn inflight(&self) -> usize {
         self.inflight.load(Ordering::Relaxed)
     }
+    /// Remove this instance's downloaded tile files while preserving decoded
+    /// tiles and other application data. Old jobs cannot write back afterward.
+    pub async fn clear_disk_cache(&self) -> Result<(), crate::Error> {
+        self.disk.clear().await?;
+        Ok(())
+    }
+    /// Snapshot of encoded file bytes in the managed provider directories.
+    /// Filesystem allocation overhead and other application data are excluded.
+    pub async fn disk_usage_bytes(&self) -> Result<u64, crate::Error> {
+        self.disk.usage_bytes().await
+    }
 }
 
-async fn fetch_tile(k: TileKey) -> Result<Tile, crate::Error> {
+async fn fetch_tile(k: TileKey, disk: &DiskCache, epoch: u64) -> Result<Tile, crate::Error> {
     let (p, z, x, y, rel) = unkey(k);
-    let mut base = cache_dir().join(p.dir());
-    if p == Provider::Wayback {
-        base = base.join(
-            wayback_release(rel)
-                .ok_or("wayback: release not loaded")?
-                .id
-                .to_string(),
-        );
-    }
-    let path = base
-        .join(z.to_string())
-        .join(x.to_string())
-        .join(format!("{y}.tile"));
-    let (bytes, from_disk) = match tokio::fs::read(&path).await {
-        Ok(bytes) => (bytes, true),
-        Err(_) => {
+    let path = disk.path(k)?;
+    let (bytes, from_disk) = match disk.read(&path).await {
+        Some(bytes) => (bytes, true),
+        None => {
             let url = p.url(z, x, y, rel);
             if url.is_empty() {
                 return Err("empty url".into());
@@ -181,10 +182,9 @@ async fn fetch_tile(k: TileKey) -> Result<Tile, crate::Error> {
         tokio::task::spawn_blocking(move || Tile::decode(&bytes).map(|tile| (tile, bytes)))
             .await??;
     if !from_disk {
-        if let Some(dir) = path.parent() {
-            let _ = tokio::fs::create_dir_all(dir).await;
-        }
-        let _ = tokio::fs::write(path, bytes).await;
+        // Optional persistence stays best-effort; a writable disk cache is not
+        // required to display successfully downloaded imagery.
+        let _ = disk.write(&path, &bytes, epoch).await;
     }
     Ok(tile)
 }
@@ -200,7 +200,14 @@ async fn worker(
         let Some(cache) = cache.upgrade() else {
             return;
         };
-        let result = fetch_tile(key).await;
+        let epoch = {
+            let requests = cache.requests.lock().unwrap();
+            let Some(RequestState::Loading(epoch)) = requests.get(&key) else {
+                continue;
+            };
+            *epoch
+        };
+        let result = fetch_tile(key, &cache.disk, epoch).await;
         cache.complete(key, result);
         repaint();
     }

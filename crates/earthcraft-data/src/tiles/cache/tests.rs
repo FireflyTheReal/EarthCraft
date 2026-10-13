@@ -1,5 +1,6 @@
 use super::super::make_key;
 use super::*;
+use crate::tiles::Provider;
 #[test]
 fn tile_key_roundtrip() {
     for (p, z, x, y, rel) in [
@@ -211,4 +212,31 @@ fn overview_skips_cached_loading_and_failed_tiles_without_blocking_foreground() 
     assert_ne!(first, loading);
     assert!(rx.try_recv().is_err());
     assert!(cache.request(make_key(Provider::Satellite, 12, 1, 1, 0)));
+}
+
+#[test]
+fn cancelling_overview_warmup_prevents_a_speculative_disk_refill() {
+    let (cache, mut rx) = test_cache(4096);
+    let mut warmup = crate::tiles::TileWarmup::startup_satellite();
+    warmup.cancel();
+    assert!(!warmup.pump(&cache));
+    assert!(rx.try_recv().is_err());
+    assert_eq!(cache.inflight(), 0);
+}
+
+#[tokio::test]
+async fn clearing_preserves_memory_and_the_original_epoch_of_queued_requests() {
+    let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
+    let mut cache = TileCache::with_budget(tx, 4096);
+    cache.disk = DiskCache::new(std::env::temp_dir().join(format!(
+        "earthcraft-queued-clear-test-{}",
+        std::process::id(),
+    )));
+    cache.complete(2, Ok(tiny_tile(42)));
+    assert!(cache.request(1));
+    cache.clear_disk_cache().await.unwrap();
+    assert_eq!(cache.disk.epoch(), 1);
+    assert!(matches!(cache.lookup(2), Lookup::Ready(_)));
+    let requests = cache.requests.lock().unwrap();
+    assert!(matches!(requests.get(&1), Some(RequestState::Loading(0))));
 }

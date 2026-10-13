@@ -12,6 +12,7 @@ use std::{
     sync::{mpsc, Arc, Mutex},
     time::{Duration, Instant},
 };
+mod cache;
 mod files;
 mod globe;
 mod navigation;
@@ -48,6 +49,7 @@ pub(crate) struct App {
     cam: Cam,
     fly: Option<Fly>,
     cache: Arc<TileCache>,
+    cache_controls: cache::CacheControls,
     tile_warmup: TileWarmup,
     provider: Provider,
     show_grid: bool,
@@ -137,6 +139,7 @@ impl App {
             ),
             provider: Provider::Satellite,
             tile_warmup: TileWarmup::startup_satellite(),
+            cache_controls: cache::CacheControls::default(),
             show_grid: false,
             show_country_boundaries: true,
             show_state_boundaries: true,
@@ -208,6 +211,7 @@ impl eframe::App for App {
         self.poll_wayback();
         self.poll_suggestions(ctx);
         self.poll_search();
+        self.poll_cache_clear();
         if let Some(rx) = self.boundaries_rx.take() {
             let mut finished = false;
             loop {

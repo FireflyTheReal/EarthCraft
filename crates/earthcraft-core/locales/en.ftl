@@ -78,6 +78,16 @@ settings-folder-creation-help = Folders are created automatically when saving.
 
 settings-reset-action = Restore defaults
 
+settings-cache-section-title = Map cache
+settings-cache-clear-action = Clear on-disk cache
+settings-cache-clear-help = Removes downloaded map tiles. They download again when needed.
+settings-cache-clearing-label = Clearing cache…
+settings-cache-cleared-status = On-disk tile cache cleared.
+settings-cache-clear-error = Could not clear on-disk cache: { $error }
+settings-cache-disk-usage = { $size } on disk
+settings-cache-measuring-label = Measuring…
+settings-cache-usage-unavailable = Cache size unavailable
+
 layers-section-title = Layers
 
 wayback-loading-status = ⏳ Loading available dates…
