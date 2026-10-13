@@ -1,0 +1,47 @@
+[package]
+name = "earthcraft"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "3D globe in the style of Google Earth in Rust / globo 3D estilo Google Earth em Rust (Windows, macOS, Linux)"
+license.workspace = true
+authors = ["EarthCraft"]
+
+[lints]
+workspace = true
+
+[dependencies]
+earthcraft-core.workspace = true
+earthcraft-data.workspace = true
+earthcraft-render.workspace = true
+eframe.workspace = true
+image.workspace = true
+
+# Native file/folder dialogs. On Linux we use GTK3 (works without xdg-desktop-portal).
+[target.'cfg(target_os = "linux")'.dependencies]
+rfd = { version = "0.15", default-features = false, features = ["gtk3"] }
+[target.'cfg(not(target_os = "linux"))'.dependencies]
+rfd = "0.15"
+
+[target.'cfg(windows)'.build-dependencies]
+winresource = "0.1"
+
+[package.metadata.bundle]
+name = "EarthCraft"
+identifier = "com.theri.earthcraft"
+icon = ["../../icon.icns"]
+
+# ── .deb package (cargo deb) ──
+[package.metadata.deb]
+name = "earthcraft"
+maintainer = "EarthCraft <earthcraft@localhost>"
+section = "science"
+priority = "optional"
+depends = "$auto, libgtk-3-0"
+extended-description = "3D globe in the style of Google Earth: satellite imagery, historical imagery, borders, search, KML and screenshots."
+assets = [
+    ["../../target/release/earthcraft", "usr/bin/", "755"],
+    ["../../packaging/earthcraft.desktop", "usr/share/applications/", "644"],
+    ["../../assets/icon_256.png", "usr/share/icons/hicolor/256x256/apps/earthcraft.png", "644"],
+    ["../../README.md", "usr/share/doc/earthcraft/README", "644"],
+]
