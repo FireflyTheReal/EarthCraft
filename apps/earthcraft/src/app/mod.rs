@@ -119,7 +119,10 @@ impl App {
         let settings = Settings::load();
         let boundary_log: StatusLog = Arc::new(Mutex::new(Vec::new()));
         let (boundaries_rx, boundary_loader) =
-            load_boundaries_async(boundary_log.clone(), runtime.handle());
+            load_boundaries_async(boundary_log.clone(), runtime.handle(), {
+                let ctx = cc.egui_ctx.clone();
+                move || ctx.request_repaint()
+            });
         App {
             lang,
             cam: INITIAL_CAMERA,

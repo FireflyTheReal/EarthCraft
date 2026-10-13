@@ -99,7 +99,7 @@ impl App {
                                 &mut self.show_metro_boundaries,
                                 lg.text("sidebar-metropolitan-regions-brazil-only"),
                             );
-                            if self.boundaries_rx.is_some() {
+                            if self.boundary_loader.is_loading() {
                                 ui.weak(lg.text("sidebar-loading-borders-and-names"));
                             }
                             if let Ok(log) = self.boundary_log.lock() {

@@ -7,10 +7,12 @@ use std::sync::{
 };
 const NE: &str = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson";
 
-struct ActiveJob(Arc<AtomicUsize>);
+type Repaint = Arc<dyn Fn() + Send + Sync>;
+struct ActiveJob(Arc<AtomicUsize>, Repaint);
 impl Drop for ActiveJob {
     fn drop(&mut self) {
         self.0.fetch_sub(1, Ordering::Relaxed);
+        (self.1)();
     }
 }
 #[derive(Default)]
@@ -24,6 +26,7 @@ pub struct BoundaryLoader {
     log: StatusLog,
     active: Arc<AtomicUsize>,
     requests: BrazilRequests,
+    repaint: Repaint,
 }
 impl BoundaryLoader {
     fn take_request(
@@ -67,8 +70,9 @@ impl BoundaryLoader {
         let (log, tx) = (self.log.clone(), self.tx.clone());
         let active = self.active.clone();
         active.fetch_add(1, Ordering::Relaxed);
+        let job = ActiveJob(active, self.repaint.clone());
         self.runtime.spawn(async move {
-            let _job = ActiveJob(active);
+            let _job = job;
             load_brazil(&log, &tx, geometry).await;
         });
     }
@@ -78,12 +82,14 @@ impl BoundaryLoader {
 pub fn load_boundaries_async(
     log: StatusLog,
     runtime: &tokio::runtime::Handle,
+    repaint: impl Fn() + Send + Sync + 'static,
 ) -> (mpsc::Receiver<Patch>, BoundaryLoader) {
     let (tx, rx) = mpsc::channel();
+    let repaint: Repaint = Arc::new(repaint);
     let active = Arc::new(AtomicUsize::new(3));
 
     let (t, l) = (tx.clone(), log.clone());
-    let job = ActiveJob(active.clone());
+    let job = ActiveJob(active.clone(), repaint.clone());
     runtime.spawn(async move {
         let _job = job;
         let urls = [
@@ -111,7 +117,7 @@ pub fn load_boundaries_async(
     });
 
     let (t, l) = (tx.clone(), log.clone());
-    let job = ActiveJob(active.clone());
+    let job = ActiveJob(active.clone(), repaint.clone());
     runtime.spawn(async move {
         let _job = job;
         let urls = [
@@ -137,7 +143,7 @@ pub fn load_boundaries_async(
     });
 
     let (t, l) = (tx.clone(), log.clone());
-    let job = ActiveJob(active.clone());
+    let job = ActiveJob(active.clone(), repaint.clone());
     runtime.spawn(async move {
         let _job = job;
         let urls = [
@@ -157,6 +163,7 @@ pub fn load_boundaries_async(
             log,
             active,
             requests: BrazilRequests::default(),
+            repaint,
         },
     )
 }
@@ -301,6 +308,7 @@ mod tests {
             log: Arc::new(std::sync::Mutex::new(Vec::new())),
             active: Arc::new(AtomicUsize::new(0)),
             requests: BrazilRequests::default(),
+            repaint: Arc::new(|| {}),
         };
         assert_eq!(loader.take_request(false, false, true, 14000.0), None);
         assert_eq!(loader.take_request(false, false, true, 300.0), None);
@@ -309,5 +317,27 @@ mod tests {
         assert_eq!(loader.take_request(true, false, true, 14000.0), Some(true));
         assert_eq!(loader.take_request(false, true, true, 100.0), None);
         assert!(!loader.is_loading());
+    }
+}
+
+#[cfg(test)]
+mod completion_tests {
+    use super::*;
+    #[test]
+    fn finishing_or_cancelling_a_job_wakes_the_ui_after_updating_activity() {
+        let active = Arc::new(AtomicUsize::new(1));
+        let count = active.clone();
+        let repaint = Arc::new(AtomicUsize::new(0));
+        let calls = repaint.clone();
+        let job = ActiveJob(
+            active.clone(),
+            Arc::new(move || {
+                assert_eq!(count.load(Ordering::Relaxed), 0);
+                calls.fetch_add(1, Ordering::Relaxed);
+            }),
+        );
+        drop(job);
+        assert_eq!(active.load(Ordering::Relaxed), 0);
+        assert_eq!(repaint.load(Ordering::Relaxed), 1);
     }
 }
