@@ -50,19 +50,10 @@ impl Provider {
     }
     pub fn name(self, lg: Lang) -> &'static str {
         match self {
-            Provider::Satellite => lg.pick(
-                "Satellite (Esri World Imagery)",
-                "Satélite (Esri World Imagery)",
-            ),
-            Provider::Wayback => lg.pick(
-                "Historical imagery (Esri Wayback)",
-                "Imagens históricas (Esri Wayback)",
-            ),
-            Provider::Streets => lg.pick("Streets (OpenStreetMap)", "Ruas (OpenStreetMap)"),
-            Provider::Topo => lg.pick(
-                "Terrain/Topography (OpenTopoMap)",
-                "Relevo/Topografia (OpenTopoMap)",
-            ),
+            Provider::Satellite => lg.text("tiles-satellite-esri-world-imagery"),
+            Provider::Wayback => lg.text("tiles-historical-imagery-esri-wayback"),
+            Provider::Streets => lg.text("tiles-streets-openstreetmap"),
+            Provider::Topo => lg.text("tiles-terrain-topography-opentopomap"),
         }
     }
     fn dir(self) -> &'static str {
@@ -92,14 +83,10 @@ impl Provider {
     }
     pub fn attribution(self, lg: Lang) -> &'static str {
         match self {
-            Provider::Satellite | Provider::Wayback => lg.pick(
-                "Imagery © Esri, Maxar, Earthstar Geographics",
-                "Imagens © Esri, Maxar, Earthstar Geographics",
-            ),
-            Provider::Streets => lg.pick(
-                "© OpenStreetMap contributors",
-                "© contribuidores do OpenStreetMap",
-            ),
+            Provider::Satellite | Provider::Wayback => {
+                lg.text("tiles-imagery-esri-maxar-earthstar-geographics")
+            }
+            Provider::Streets => lg.text("tiles-openstreetmap-contributors"),
             Provider::Topo => "© OpenTopoMap (CC-BY-SA), © OpenStreetMap",
         }
     }

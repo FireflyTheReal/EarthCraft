@@ -33,10 +33,7 @@ impl App {
 
                 let r = ui.add(
                     egui::TextEdit::singleline(&mut self.query)
-                        .hint_text(lg.pick(
-                            "Search a place, address or “lat, lon”",
-                            "Buscar lugar, endereço ou “lat, lon”",
-                        ))
+                        .hint_text(lg.text("bars-search-a-place-address-or-lat-lon"))
                         .desired_width(340.0 * self.settings.ui_scale.max(1.0)),
                 );
                 field_rect = r.rect;
@@ -57,7 +54,7 @@ impl App {
                         }
                     }
                 }
-                if ui.button(lg.pick("🔍 Search", "🔍 Buscar")).clicked() {
+                if ui.button(lg.text("bars-search")).clicked() {
                     self.sugg_open = false;
                     self.start_search(ctx);
                 }
@@ -66,7 +63,7 @@ impl App {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if ui
                         .button("⚙")
-                        .on_hover_text(lg.pick("Settings", "Configurações"))
+                        .on_hover_text(lg.text("bars-settings"))
                         .clicked()
                     {
                         self.show_settings = !self.show_settings;
@@ -98,22 +95,22 @@ impl App {
                     None => ui.monospace("Cursor: —"),
                 };
                 ui.separator();
-                ui.monospace(format!(
-                    "{}: {:.4}°, {:.4}°",
-                    lg.pick("Center", "Centro"),
-                    self.cam.lat,
-                    self.cam.lon
+                ui.monospace(lg.format(
+                    "camera-center",
+                    &[
+                        ("latitude", format!("{:.4}", self.cam.lat).into()),
+                        ("longitude", format!("{:.4}", self.cam.lon).into()),
+                    ],
                 ));
                 ui.separator();
-                ui.monospace(format!(
-                    "{}: {}",
-                    lg.pick("Camera altitude", "Altitude da câmera"),
-                    fmt_alt(self.cam.alt)
+                ui.monospace(lg.format(
+                    "camera-altitude",
+                    &[("distance", fmt_alt(self.cam.alt).into())],
                 ));
                 ui.separator();
                 let n = self.cache.inflight();
                 if n > 0 {
-                    ui.monospace(format!("⏳ {} {n} tiles", lg.pick("loading", "carregando")));
+                    ui.monospace(lg.format("loading-tiles", &[("count", n.to_string().into())]));
                 } else {
                     ui.monospace("✔ tiles ok");
                 }

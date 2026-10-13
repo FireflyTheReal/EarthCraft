@@ -20,12 +20,7 @@ impl App {
     pub(super) fn set_lang(&mut self, l: Lang) {
         self.lang = l;
         save_lang(l);
-        self.status = l
-            .pick(
-                "Ready. Drag to rotate, scroll to zoom.",
-                "Pronto. Arraste para girar, role para aproximar.",
-            )
-            .into();
+        self.status = l.text("app-ready-drag-to-rotate-scroll-to-zoom").into();
     }
 
     pub(super) fn touch(&mut self) {

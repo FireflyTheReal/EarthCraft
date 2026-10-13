@@ -132,17 +132,17 @@ impl App {
             Sense::click(),
         );
         if nb
-            .on_hover_text(lg.pick("Click to align north up", "Clique para alinhar ao norte"))
+            .on_hover_text(lg.text("navigation-click-to-align-north-up"))
             .clicked()
         {
             self.cam.heading = 0.0;
         }
         // arrows: left/right rotate the view, up = north up, down = flip 180°
         let names = [
-            lg.pick("North up", "Norte para cima"),
-            lg.pick("Flip view 180°", "Girar a vista 180°"),
-            lg.pick("Rotate left (hold)", "Girar para a esquerda (segure)"),
-            lg.pick("Rotate right (hold)", "Girar para a direita (segure)"),
+            lg.text("navigation-north-up"),
+            lg.text("navigation-flip-view-180"),
+            lg.text("navigation-rotate-left-hold"),
+            lg.text("navigation-rotate-right-hold"),
         ];
         for (i, d) in dirs.iter().enumerate() {
             let c = c1 + *d * 17.0 * k;
@@ -204,10 +204,10 @@ impl App {
             active = true;
         }
         let pan_names = [
-            lg.pick("Move north (hold)", "Mover para o norte (segure)"),
-            lg.pick("Move south (hold)", "Mover para o sul (segure)"),
-            lg.pick("Move west (hold)", "Mover para oeste (segure)"),
-            lg.pick("Move east (hold)", "Mover para leste (segure)"),
+            lg.text("navigation-move-north-hold"),
+            lg.text("navigation-move-south-hold"),
+            lg.text("navigation-move-west-hold"),
+            lg.text("navigation-move-east-hold"),
         ];
         for (i, d) in dirs.iter().enumerate() {
             let c = c2 + *d * 17.0 * k;
@@ -283,9 +283,9 @@ impl App {
                 );
             }
             r.on_hover_text(if plus {
-                lg.pick("Zoom in (hold)", "Aproximar (segure)")
+                lg.text("navigation-zoom-in-hold")
             } else {
-                lg.pick("Zoom out (hold)", "Afastar (segure)")
+                lg.text("navigation-zoom-out-hold")
             });
             if held {
                 self.fly = None;
@@ -327,7 +327,7 @@ impl App {
             [Pos2::new(cx - 4.5 * k, hy), Pos2::new(cx + 4.5 * k, hy)],
             Stroke::new(2.0 * k, Color32::WHITE),
         );
-        track.on_hover_text(lg.pick("Drag to zoom", "Arraste para ajustar o zoom"));
+        track.on_hover_text(lg.text("navigation-drag-to-zoom"));
 
         active
     }

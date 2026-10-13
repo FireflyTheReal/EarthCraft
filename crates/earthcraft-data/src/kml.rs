@@ -48,9 +48,7 @@ impl Draft {
             .filter_map(|s| s.trim().parse().ok())
             .collect();
         (nums.len() >= 2).then(|| Placemark {
-            name: self
-                .name
-                .unwrap_or_else(|| lg.pick("Unnamed", "Sem nome").into()),
+            name: self.name.unwrap_or_else(|| lg.text("kml-unnamed").into()),
             desc: self.desc,
             lat: nums[1],
             lon: nums[0],

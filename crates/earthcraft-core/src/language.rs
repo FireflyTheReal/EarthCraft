@@ -1,3 +1,5 @@
+pub use fluent_bundle::FluentValue;
+
 // ───────────────────────────── Languages ─────────────────────────────
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -19,12 +21,13 @@ impl Lang {
             Lang::PtBr => "Português (Brasil)",
         }
     }
-    /// Picks the text for the current language.
-    pub fn pick(self, en: &'static str, pt: &'static str) -> &'static str {
-        match self {
-            Lang::En => en,
-            Lang::PtBr => pt,
-        }
+    /// An embedded, cached label with English fallback.
+    pub fn text(self, id: &str) -> &str {
+        super::localization::text(self, id)
+    }
+    /// Format a whole translated message; use string arguments for exact legacy numbers.
+    pub fn format(self, id: &str, args: &[(&str, FluentValue<'_>)]) -> String {
+        super::localization::format(self, id, args)
     }
 }
 

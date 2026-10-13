@@ -265,11 +265,12 @@ impl App {
         let mut attribution = self.provider.attribution(lg).to_string();
         if self.provider == Provider::Wayback {
             if let Some(r) = self.wayback_list.get(self.wayback_idx) {
-                attribution = format!(
-                    "{} — {} {}",
-                    attribution,
-                    lg.pick("snapshot", "imagem de"),
-                    r.date
+                attribution = lg.format(
+                    "wayback-attribution",
+                    &[
+                        ("attribution", attribution.into()),
+                        ("date", r.date.as_str().into()),
+                    ],
                 );
             }
         }
@@ -288,46 +289,33 @@ impl App {
             Some((la, lo)) => {
                 ui.label(format!("{la:.5}, {lo:.5}"));
                 ui.separator();
-                if ui
-                    .button(lg.pick("📍 Add placemark here", "📍 Adicionar local aqui"))
-                    .clicked()
-                {
+                if ui.button(lg.text("globe-add-placemark-here")).clicked() {
                     act = Some(0);
                     ui.close_menu();
                 }
-                if ui
-                    .button(lg.pick("✈ Fly here", "✈ Voar até aqui"))
-                    .clicked()
-                {
+                if ui.button(lg.text("globe-fly-here")).clicked() {
                     act = Some(1);
                     ui.close_menu();
                 }
-                if ui
-                    .button(lg.pick("📏 Add ruler point", "📏 Adicionar ponto na régua"))
-                    .clicked()
-                {
+                if ui.button(lg.text("globe-add-ruler-point")).clicked() {
                     act = Some(2);
                     ui.close_menu();
                 }
-                if ui
-                    .button(lg.pick("📋 Copy coordinates", "📋 Copiar coordenadas"))
-                    .clicked()
-                {
+                if ui.button(lg.text("globe-copy-coordinates")).clicked() {
                     act = Some(3);
                     ui.close_menu();
                 }
             }
             None => {
-                ui.label(lg.pick("Click on the globe.", "Clique sobre o globo."));
+                ui.label(lg.text("globe-click-on-the-globe"));
             }
         });
         if let (Some(a), Some((la, lo))) = (act, pick) {
             match a {
                 0 => self.placemarks.push(Placemark {
-                    name: format!(
-                        "{} {}",
-                        lg.pick("Place", "Local"),
-                        self.placemarks.len() + 1
+                    name: lg.format(
+                        "placemark-default-name",
+                        &[("number", (self.placemarks.len() + 1).to_string().into())],
                     ),
                     desc: String::new(),
                     lat: la,

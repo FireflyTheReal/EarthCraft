@@ -1,0 +1,330 @@
+{
+  "files-open-kml": {
+    "en": "Open KML",
+    "pt-BR": "Abrir KML"
+  },
+  "files-save-kml-as": {
+    "en": "Save KML as",
+    "pt-BR": "Salvar KML como"
+  },
+  "files-nothing-to-save-yet": {
+    "en": "Nothing to save yet.",
+    "pt-BR": "Nada para salvar ainda."
+  },
+  "files-only-kml-files-can-be-dropped-here": {
+    "en": "Only .kml files can be dropped here.",
+    "pt-BR": "Só é possível soltar arquivos .kml aqui."
+  },
+  "globe-add-placemark-here": {
+    "en": "📍 Add placemark here",
+    "pt-BR": "📍 Adicionar local aqui"
+  },
+  "globe-fly-here": {
+    "en": "✈ Fly here",
+    "pt-BR": "✈ Voar até aqui"
+  },
+  "globe-add-ruler-point": {
+    "en": "📏 Add ruler point",
+    "pt-BR": "📏 Adicionar ponto na régua"
+  },
+  "globe-copy-coordinates": {
+    "en": "📋 Copy coordinates",
+    "pt-BR": "📋 Copiar coordenadas"
+  },
+  "globe-click-on-the-globe": {
+    "en": "Click on the globe.",
+    "pt-BR": "Clique sobre o globo."
+  },
+  "app-ready-drag-to-rotate-scroll-to-zoom": {
+    "en": "Ready. Drag to rotate, scroll to zoom.",
+    "pt-BR": "Pronto. Arraste para girar, role para aproximar."
+  },
+  "search-no-results-found": {
+    "en": "No results found.",
+    "pt-BR": "Nenhum resultado encontrado."
+  },
+  "search-searching": {
+    "en": "Searching…",
+    "pt-BR": "Buscando…"
+  },
+  "bars-search-a-place-address-or-lat-lon": {
+    "en": "Search a place, address or “lat, lon”",
+    "pt-BR": "Buscar lugar, endereço ou “lat, lon”"
+  },
+  "bars-search": {
+    "en": "🔍 Search",
+    "pt-BR": "🔍 Buscar"
+  },
+  "bars-settings": {
+    "en": "Settings",
+    "pt-BR": "Configurações"
+  },
+  "navigation-click-to-align-north-up": {
+    "en": "Click to align north up",
+    "pt-BR": "Clique para alinhar ao norte"
+  },
+  "navigation-north-up": {
+    "en": "North up",
+    "pt-BR": "Norte para cima"
+  },
+  "navigation-flip-view-180": {
+    "en": "Flip view 180°",
+    "pt-BR": "Girar a vista 180°"
+  },
+  "navigation-rotate-left-hold": {
+    "en": "Rotate left (hold)",
+    "pt-BR": "Girar para a esquerda (segure)"
+  },
+  "navigation-rotate-right-hold": {
+    "en": "Rotate right (hold)",
+    "pt-BR": "Girar para a direita (segure)"
+  },
+  "navigation-move-north-hold": {
+    "en": "Move north (hold)",
+    "pt-BR": "Mover para o norte (segure)"
+  },
+  "navigation-move-south-hold": {
+    "en": "Move south (hold)",
+    "pt-BR": "Mover para o sul (segure)"
+  },
+  "navigation-move-west-hold": {
+    "en": "Move west (hold)",
+    "pt-BR": "Mover para oeste (segure)"
+  },
+  "navigation-move-east-hold": {
+    "en": "Move east (hold)",
+    "pt-BR": "Mover para leste (segure)"
+  },
+  "navigation-zoom-in-hold": {
+    "en": "Zoom in (hold)",
+    "pt-BR": "Aproximar (segure)"
+  },
+  "navigation-zoom-out-hold": {
+    "en": "Zoom out (hold)",
+    "pt-BR": "Afastar (segure)"
+  },
+  "navigation-drag-to-zoom": {
+    "en": "Drag to zoom",
+    "pt-BR": "Arraste para ajustar o zoom"
+  },
+  "settings-settings": {
+    "en": "⚙ Settings",
+    "pt-BR": "⚙ Configurações"
+  },
+  "settings-text-size": {
+    "en": "Text size",
+    "pt-BR": "Tamanho do texto"
+  },
+  "settings-buttons-and-panels": {
+    "en": "Buttons and panels",
+    "pt-BR": "Botões e painéis"
+  },
+  "settings-map-text-names-ruler-scale": {
+    "en": "Map text (names, ruler, scale)",
+    "pt-BR": "Texto do mapa (nomes, régua, escala)"
+  },
+  "settings-where-to-save-files": {
+    "en": "Where to save files",
+    "pt-BR": "Onde salvar os arquivos"
+  },
+  "settings-browse": {
+    "en": "📁 Browse…",
+    "pt-BR": "📁 Procurar…"
+  },
+  "settings-screenshots-png": {
+    "en": "Screenshots (PNG):",
+    "pt-BR": "Capturas de tela (PNG):"
+  },
+  "settings-screenshots-folder": {
+    "en": "Screenshots folder",
+    "pt-BR": "Pasta das capturas"
+  },
+  "settings-kml-files": {
+    "en": "KML files:",
+    "pt-BR": "Arquivos KML:"
+  },
+  "settings-kml-folder": {
+    "en": "KML folder",
+    "pt-BR": "Pasta dos KML"
+  },
+  "settings-folders-are-created-automatically-when-saving": {
+    "en": "Folders are created automatically when saving.",
+    "pt-BR": "As pastas são criadas automaticamente ao salvar."
+  },
+  "settings-restore-defaults": {
+    "en": "Restore defaults",
+    "pt-BR": "Restaurar padrões"
+  },
+  "sidebar-layers": {
+    "en": "Layers",
+    "pt-BR": "Camadas"
+  },
+  "sidebar-loading-available-dates": {
+    "en": "⏳ Loading available dates…",
+    "pt-BR": "⏳ Carregando datas disponíveis…"
+  },
+  "sidebar-older": {
+    "en": "Older",
+    "pt-BR": "Mais antiga"
+  },
+  "sidebar-newer": {
+    "en": "Newer",
+    "pt-BR": "Mais recente"
+  },
+  "sidebar-not-every-place-has-a-snapshot-on": {
+    "en": "Not every place has a snapshot on every date; missing areas fall back to the nearest available imagery.",
+    "pt-BR": "Nem todo lugar tem imagem em todas as datas; áreas sem imagem mostram a versão mais próxima disponível."
+  },
+  "sidebar-latitude-longitude-grid": {
+    "en": "Latitude/longitude grid",
+    "pt-BR": "Grade de latitude/longitude"
+  },
+  "sidebar-country-borders-worldwide": {
+    "en": "Country borders (worldwide)",
+    "pt-BR": "Limites dos países (mundo todo)"
+  },
+  "sidebar-states-provinces-worldwide": {
+    "en": "States / provinces (worldwide)",
+    "pt-BR": "Estados / províncias (mundo todo)"
+  },
+  "sidebar-country-state-and-city-names": {
+    "en": "Country, state and city names",
+    "pt-BR": "Nomes de países, estados e cidades"
+  },
+  "sidebar-city-municipality-borders-brazil-dataset": {
+    "en": "City / municipality borders (Brazil dataset)",
+    "pt-BR": "Limites de cidades / municípios (base do Brasil)"
+  },
+  "sidebar-metropolitan-regions-brazil-only": {
+    "en": "Metropolitan regions (Brazil only)",
+    "pt-BR": "Regiões metropolitanas (disponível apenas para o Brasil)"
+  },
+  "sidebar-loading-borders-and-names": {
+    "en": "⏳ Loading borders and names…",
+    "pt-BR": "⏳ Carregando limites e nomes…"
+  },
+  "sidebar-atmosphere-and-stars": {
+    "en": "Atmosphere and stars",
+    "pt-BR": "Atmosfera e estrelas"
+  },
+  "sidebar-real-time-sunlight-day-night": {
+    "en": "Real-time sunlight (day/night)",
+    "pt-BR": "Luz do sol em tempo real (dia/noite)"
+  },
+  "sidebar-auto-rotate": {
+    "en": "Auto-rotate",
+    "pt-BR": "Girar automaticamente"
+  },
+  "sidebar-navigation": {
+    "en": "Navigation",
+    "pt-BR": "Navegação"
+  },
+  "sidebar-north-up": {
+    "en": "🧭 North up",
+    "pt-BR": "🧭 Norte para cima"
+  },
+  "sidebar-global-view": {
+    "en": "🌐 Global view",
+    "pt-BR": "🌐 Visão global"
+  },
+  "sidebar-search-results": {
+    "en": "Search results:",
+    "pt-BR": "Resultados da busca:"
+  },
+  "sidebar-placemarks": {
+    "en": "Placemarks",
+    "pt-BR": "Locais (Placemarks)"
+  },
+  "sidebar-name": {
+    "en": "Name",
+    "pt-BR": "Nome"
+  },
+  "sidebar-at-center": {
+    "en": "➕ At center",
+    "pt-BR": "➕ No centro"
+  },
+  "sidebar-go": {
+    "en": "Go",
+    "pt-BR": "Ir"
+  },
+  "sidebar-drag-a-kml-file-here": {
+    "en": "📥 Drag a .kml file here",
+    "pt-BR": "📥 Arraste um arquivo .kml aqui"
+  },
+  "sidebar-save": {
+    "en": "💾 Save",
+    "pt-BR": "💾 Salvar"
+  },
+  "sidebar-saves-into-the-kml-folder-see-settings": {
+    "en": "Saves into the KML folder (see Settings)",
+    "pt-BR": "Salva na pasta de KML (veja Configurações)"
+  },
+  "sidebar-save-as": {
+    "en": "💾 Save as…",
+    "pt-BR": "💾 Salvar como…"
+  },
+  "sidebar-open-kml": {
+    "en": "📂 Open KML…",
+    "pt-BR": "📂 Abrir KML…"
+  },
+  "sidebar-ruler": {
+    "en": "Ruler",
+    "pt-BR": "Régua"
+  },
+  "sidebar-measure-distances-click-on-the-globe": {
+    "en": "Measure distances (click on the globe)",
+    "pt-BR": "Medir distâncias (clique no globo)"
+  },
+  "sidebar-clear-ruler": {
+    "en": "Clear ruler",
+    "pt-BR": "Limpar régua"
+  },
+  "sidebar-export": {
+    "en": "Export",
+    "pt-BR": "Exportar"
+  },
+  "sidebar-save-screenshot-png": {
+    "en": "📷 Save screenshot (PNG)",
+    "pt-BR": "📷 Salvar captura (PNG)"
+  },
+  "sidebar-change-folders": {
+    "en": "⚙ Change folders…",
+    "pt-BR": "⚙ Mudar pastas…"
+  },
+  "sidebar-show-controls-help": {
+    "en": "Show controls help",
+    "pt-BR": "Mostrar ajuda de controles"
+  },
+  "sidebar-controls-help": {
+    "en": "• Drag (left): rotate the globe\n• Right-drag / Shift+drag: rotate the view\n• Wheel / pinch or +/-: zoom\n• Double-click: fly to the point\n• Arrow keys: move   • N: north up\n• Right-click: context menu",
+    "pt-BR": "• Arrastar (esq.): girar o globo\n• Botão direito/Shift+arrastar: girar a vista\n• Roda/pinça ou +/-: zoom\n• Duplo clique: voar até o ponto\n• Setas: mover   • N: norte para cima\n• Botão direito (clique): menu de contexto"
+  },
+  "kml-unnamed": {
+    "en": "Unnamed",
+    "pt-BR": "Sem nome"
+  },
+  "tiles-satellite-esri-world-imagery": {
+    "en": "Satellite (Esri World Imagery)",
+    "pt-BR": "Satélite (Esri World Imagery)"
+  },
+  "tiles-historical-imagery-esri-wayback": {
+    "en": "Historical imagery (Esri Wayback)",
+    "pt-BR": "Imagens históricas (Esri Wayback)"
+  },
+  "tiles-streets-openstreetmap": {
+    "en": "Streets (OpenStreetMap)",
+    "pt-BR": "Ruas (OpenStreetMap)"
+  },
+  "tiles-terrain-topography-opentopomap": {
+    "en": "Terrain/Topography (OpenTopoMap)",
+    "pt-BR": "Relevo/Topografia (OpenTopoMap)"
+  },
+  "tiles-imagery-esri-maxar-earthstar-geographics": {
+    "en": "Imagery © Esri, Maxar, Earthstar Geographics",
+    "pt-BR": "Imagens © Esri, Maxar, Earthstar Geographics"
+  },
+  "tiles-openstreetmap-contributors": {
+    "en": "© OpenStreetMap contributors",
+    "pt-BR": "© contribuidores do OpenStreetMap"
+  }
+}

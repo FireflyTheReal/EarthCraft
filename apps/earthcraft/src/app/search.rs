@@ -138,7 +138,9 @@ impl App {
             self.sugg_sel = None;
             self.results.clear();
             self.fly_to(s.lat, s.lon, s.alt);
-            self.status = format!("{} {}", self.lang.pick("Going to", "Indo para"), s.label);
+            self.status = self
+                .lang
+                .format("search-going", &[("destination", s.label.into())]);
         }
     }
 
@@ -148,19 +150,16 @@ impl App {
         if let Ok(res) = rx.try_recv() {
             self.search_rx = None;
             match res {
-                Ok(v) if v.is_empty() => {
-                    self.status = lg
-                        .pick("No results found.", "Nenhum resultado encontrado.")
-                        .into()
-                }
+                Ok(v) if v.is_empty() => self.status = lg.text("search-no-results-found").into(),
                 Ok(v) => {
-                    self.status = format!("{} {}", v.len(), lg.pick("result(s).", "resultado(s)."));
+                    self.status =
+                        lg.format("search-results", &[("count", v.len().to_string().into())]);
                     let first = v[0].clone();
                     self.results = v;
                     self.fly_to(first.lat, first.lon, first.alt);
                 }
                 Err(e) => {
-                    self.status = format!("{} {e}", lg.pick("Search error:", "Erro na busca:"))
+                    self.status = lg.format("search-failed", &[("error", e.to_string().into())])
                 }
             }
         }
@@ -173,15 +172,15 @@ impl App {
         }
         if let Some((lat, lon)) = parse_latlon(&q) {
             self.fly_to(lat, lon, 3.0);
-            self.status = format!(
-                "{} {lat:.5}, {lon:.5}",
-                self.lang.pick("Going to", "Indo para")
+            self.status = self.lang.format(
+                "search-going",
+                &[("destination", format!("{lat:.5}, {lon:.5}").into())],
             );
             return;
         }
         let (tx, rx) = mpsc::channel();
         self.search_rx = Some(rx);
-        self.status = self.lang.pick("Searching…", "Buscando…").into();
+        self.status = self.lang.text("search-searching").into();
         let ctx = ctx.clone();
         let lang_code = self.lang.code();
         self.runtime.spawn(async move {

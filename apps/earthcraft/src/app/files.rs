@@ -21,9 +21,12 @@ impl App {
         self.status = match save_kml(&path.to_string_lossy(), &self.placemarks) {
             Ok(_) => {
                 self.kml_path = path.to_string_lossy().into_owned();
-                format!("{} {}", lg.pick("Saved to", "Salvo em"), path.display())
+                lg.format(
+                    "files-saved",
+                    &[("path", path.display().to_string().into())],
+                )
             }
-            Err(e) => format!("{} {e}", lg.pick("Error saving:", "Erro ao salvar:")),
+            Err(e) => lg.format("files-save-error", &[("error", e.to_string().into())]),
         };
     }
 
@@ -31,11 +34,12 @@ impl App {
         let lg = self.lang;
         match load_kml(&path.to_string_lossy(), lg) {
             Ok(v) => {
-                self.status = format!(
-                    "{} {} — {}",
-                    v.len(),
-                    lg.pick("placemark(s) imported.", "local(is) importado(s)."),
-                    path.display()
+                self.status = lg.format(
+                    "files-imported",
+                    &[
+                        ("count", v.len().to_string().into()),
+                        ("path", path.display().to_string().into()),
+                    ],
                 );
                 self.kml_path = path.to_string_lossy().into_owned();
                 if let Some(first) = v.first() {
@@ -44,7 +48,9 @@ impl App {
                 }
                 self.placemarks.extend(v);
             }
-            Err(e) => self.status = format!("{} {e}", lg.pick("Error opening:", "Erro ao abrir:")),
+            Err(e) => {
+                self.status = lg.format("files-open-error", &[("error", e.to_string().into())])
+            }
         }
     }
 
@@ -52,7 +58,7 @@ impl App {
         let dir = PathBuf::from(&self.settings.kml_dir);
         let mut dlg = rfd::FileDialog::new()
             .add_filter("KML", &["kml", "KML"])
-            .set_title(self.lang.pick("Open KML", "Abrir KML"));
+            .set_title(self.lang.text("files-open-kml"));
         if dir.is_dir() {
             dlg = dlg.set_directory(&dir);
         }
@@ -71,7 +77,7 @@ impl App {
         let mut dlg = rfd::FileDialog::new()
             .add_filter("KML", &["kml"])
             .set_file_name(name)
-            .set_title(self.lang.pick("Save KML as", "Salvar KML como"));
+            .set_title(self.lang.text("files-save-kml-as"));
         if dir.is_dir() {
             dlg = dlg.set_directory(&dir);
         }
@@ -92,17 +98,16 @@ impl App {
                 let path = dir.join(format!("earthcraft_{}.png", now_unix() as u64));
                 match image::save_buffer(&path, buf, *w as u32, *h as u32, image::ColorType::Rgba8)
                 {
-                    Ok(_) => format!(
-                        "{} {}",
-                        lg.pick("Screenshot saved:", "Captura salva:"),
-                        path.display()
+                    Ok(_) => lg.format(
+                        "files-screenshot",
+                        &[("path", path.display().to_string().into())],
                     ),
-                    Err(e) => format!("{} {e}", lg.pick("Error:", "Erro:")),
+                    Err(e) => {
+                        lg.format("files-operation-error", &[("error", e.to_string().into())])
+                    }
                 }
             }
-            None => lg
-                .pick("Nothing to save yet.", "Nada para salvar ainda.")
-                .into(),
+            None => lg.text("files-nothing-to-save-yet").into(),
         };
     }
 
@@ -119,10 +124,7 @@ impl App {
             } else {
                 self.status = self
                     .lang
-                    .pick(
-                        "Only .kml files can be dropped here.",
-                        "Só é possível soltar arquivos .kml aqui.",
-                    )
+                    .text("files-only-kml-files-can-be-dropped-here")
                     .into();
             }
         }

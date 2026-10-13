@@ -2,6 +2,7 @@
 //! No network, filesystem, windowing, or widget dependencies.
 pub mod camera;
 pub mod language;
+mod localization;
 pub mod math;
 pub mod placemark;
 /// Mean Earth radius used by the original globe model, in kilometers.

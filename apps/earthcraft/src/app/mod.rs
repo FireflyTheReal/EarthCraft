@@ -154,12 +154,7 @@ impl App {
             query: String::new(),
             results: vec![],
             search_rx: None,
-            status: lang
-                .pick(
-                    "Ready. Drag to rotate, scroll to zoom.",
-                    "Pronto. Arraste para girar, role para aproximar.",
-                )
-                .into(),
+            status: lang.text("app-ready-drag-to-rotate-scroll-to-zoom").into(),
             placemarks: vec![],
             new_name: String::new(),
             kml_path: "placemarks.kml".into(),
