@@ -1,7 +1,7 @@
 //! Desktop state and orchestration; widgets live in focused child modules.
 use earthcraft_core::{camera::Cam, language::Lang, placemark::Placemark};
 use earthcraft_data::{
-    boundaries::{load_boundaries_async, BoundaryData, Patch, StatusLog},
+    boundaries::{load_boundaries_async, BoundaryData, BoundaryUpdates, StatusLog},
     search::{GeoResult, Suggestion},
     settings::{load_lang, Settings},
     tiles::{Provider, TileCache, TileWarmup},
@@ -50,9 +50,9 @@ pub(crate) struct App {
     show_city_boundaries: bool,
     show_metro_boundaries: bool,
     show_place_labels: bool,
-    boundaries: BoundaryData,
+    boundaries: Arc<BoundaryData>,
     overlay_cache: overlays::OverlayCache,
-    boundaries_rx: Option<mpsc::Receiver<Patch>>,
+    boundaries_rx: BoundaryUpdates,
     boundary_log: StatusLog,
     show_atmo: bool,
     show_sun: bool,
@@ -154,9 +154,13 @@ impl App {
             show_city_boundaries: false,
             show_metro_boundaries: false,
             show_place_labels: true,
-            boundaries: BoundaryData::default(),
+            boundaries: Arc::new(BoundaryData::default()),
             overlay_cache: overlays::OverlayCache::default(),
-            boundaries_rx: Some(boundaries_rx),
+            boundaries_rx: BoundaryUpdates::new(boundaries_rx, {
+                let ctx = cc.egui_ctx.clone();
+                move || ctx.request_repaint()
+            })
+            .expect("start boundary preparation"),
             boundary_loader,
             boundary_log,
             show_atmo: true,
@@ -228,24 +232,11 @@ impl eframe::App for App {
         }
         self.poll_search();
         self.poll_cache_clear();
-        if let Some(rx) = self.boundaries_rx.take() {
-            let mut finished = false;
-            loop {
-                match rx.try_recv() {
-                    Ok(patch) => self.merge_patch(patch),
-                    Err(mpsc::TryRecvError::Empty) => break,
-                    Err(mpsc::TryRecvError::Disconnected) => {
-                        finished = true;
-                        break;
-                    }
-                }
-            }
-            if !finished {
-                self.boundaries_rx = Some(rx);
-                if self.boundary_loader.is_loading() {
-                    ctx.request_repaint_after(BOUNDARY_POLL_INTERVAL);
-                } // keep polling while layers load
-            }
+        if let Some(snapshot) = self.boundaries_rx.take_latest() {
+            self.merge_snapshot(snapshot);
+        }
+        if self.boundary_loader.is_loading() {
+            ctx.request_repaint_after(BOUNDARY_POLL_INTERVAL);
         }
         self.step_fly(dt);
         if self.fly.is_some() {

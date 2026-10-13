@@ -3,7 +3,7 @@ use earthcraft_core::{
     camera::Basis,
     math::{fmt_dist, great_circle, haversine_km, ll_to_v3},
 };
-use earthcraft_data::boundaries::{dedupe_city_labels, Layer, Patch};
+use earthcraft_data::boundaries::BoundarySnapshot;
 use eframe::egui::{self, Align2, Color32, FontId, Pos2, Rect, Stroke, Vec2};
 #[cfg(test)]
 mod benchmarks;
@@ -15,20 +15,19 @@ use cache::{OverlayLayers, OverlayStyle, OverlayView};
 const RULER_ARC_SEGMENTS: usize = 48;
 
 impl App {
-    pub(super) fn merge_patch(&mut self, patch: Patch) {
-        let b = &mut self.boundaries;
-        match patch.layer {
-            Layer::Countries => b.countries.extend(patch.lines),
-            Layer::States => {
-                b.states.extend(patch.lines);
-                b.states_big.extend(patch.lines_big);
-            }
-            Layer::Cities => b.cities.extend(patch.lines),
-            Layer::Metro => b.metro.extend(patch.lines),
+    pub(super) fn overlay_layers(&self) -> earthcraft_render::overlays::OverlayLayers {
+        OverlayLayers {
+            countries: self.show_country_boundaries,
+            states: self.show_state_boundaries,
+            cities: self.show_city_boundaries,
+            metro: self.show_metro_boundaries,
+            labels: self.show_place_labels,
         }
-        b.labels.extend(patch.labels);
-        dedupe_city_labels(&mut b.labels);
-        if let Err(error) = self.local_search.update(&b.labels) {
+    }
+
+    pub(super) fn merge_snapshot(&mut self, snapshot: BoundarySnapshot) {
+        self.boundaries = snapshot.data;
+        if let Err(error) = self.local_search.update_shared(snapshot.names) {
             self.status = format!("Local prefix index failed: {error}");
         }
         self.overlay_cache.invalidate();
@@ -42,13 +41,7 @@ impl App {
         altitude_km: f64,
     ) {
         let style = OverlayStyle {
-            layers: OverlayLayers {
-                countries: self.show_country_boundaries,
-                states: self.show_state_boundaries,
-                cities: self.show_city_boundaries,
-                metro: self.show_metro_boundaries,
-                labels: self.show_place_labels,
-            },
+            layers: self.overlay_layers(),
             map_scale: self.settings.map_scale,
             lang: self.lang,
         };

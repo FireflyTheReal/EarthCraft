@@ -3,11 +3,13 @@ use std::sync::{Arc, Mutex};
 mod brazil;
 mod geojson;
 mod load;
+mod updates;
 pub use geojson::dedupe_city_labels;
 pub use load::{load_boundaries_async, BoundaryLoader};
+pub use updates::{BoundarySnapshot, BoundaryUpdates};
 pub type Line = Arc<Vec<(f64, f64)>>;
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct BoundaryData {
     pub countries: Vec<Line>,
     pub states: Vec<Line>, // admin-1 of "ordinary" countries (shown at medium zoom)

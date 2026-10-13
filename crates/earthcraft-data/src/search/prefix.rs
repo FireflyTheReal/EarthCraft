@@ -164,12 +164,13 @@ impl LocalSearch {
     }
     /// Coalesce pending rebuilds; one immutable name snapshot is built at a time.
     pub fn update(&self, labels: &[MapLabel]) -> Result<(), crate::Error> {
+        self.update_shared(Arc::new(labels.to_vec()))
+    }
+    /// Submit an immutable name snapshot already prepared by a background owner.
+    pub fn update_shared(&self, labels: Arc<Vec<MapLabel>>) -> Result<(), crate::Error> {
         let generation = self.generation.fetch_add(1, Ordering::AcqRel) + 1;
         self.snapshots
-            .send(Some(Arc::new(Snapshot {
-                generation,
-                labels: Arc::new(labels.to_vec()),
-            })))
+            .send(Some(Arc::new(Snapshot { generation, labels })))
             .map_err(|_| crate::Error::from("local prefix index worker is unavailable"))
     }
     /// None while a current index is being built; callers retain the original scan fallback.
