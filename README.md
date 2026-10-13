@@ -5,7 +5,7 @@
 A 3D globe in the style of Google Earth, written in pure Rust (egui + CPU ray-casting). Runs on Windows, macOS and Linux with no system dependencies beyond a graphics driver.
 
 ### Build and run
-Requires Rust 1.88+ (https://rustup.rs):
+Requires Rust 1.89+ (https://rustup.rs):
 
     cargo run --release
 

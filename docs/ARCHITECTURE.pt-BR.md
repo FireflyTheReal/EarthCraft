@@ -51,7 +51,10 @@ Não é necessária uma migração de dados.
 A lista global de imagens históricas continua sincronizada. O aplicativo possui
 um único runtime Tokio para os serviços; reqwest reutiliza clientes HTTP.
 Decodificação de imagens e projeção de JSON usam workers bloqueantes limitados;
-a renderização continua no Rayon. A biblioteca GeoRust `kml`, baseada em quick-xml,
+a renderização continua no Rayon, com `wide` calculando quatro raios `f64`
+independentes por grupo. Conversão geográfica e seleção de tiles/LOD continuam
+escalares; grupos incompletos não desenham pixels nem solicitam tiles adicionais.
+A biblioteca GeoRust `kml`, baseada em quick-xml,
 lê e escreve KML. Uma etapa privada de preparação XML remove Points vazios,
 fecha contêineres incompletos e envolve coordenadas antigas em Point, evitando
 panics e loops no EOF. Não há um parser KML antigo em paralelo. O aplicativo

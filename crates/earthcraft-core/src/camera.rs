@@ -1,10 +1,10 @@
-use crate::math::{ll_to_v3, v3_to_ll, wrap_lon, DVec3};
+use crate::math::{ll_to_v3, v3_to_ll, wrap_lon};
 use crate::{
     EARTH_RADIUS_KM, MAX_CAMERA_ALTITUDE_KM, MIN_CAMERA_ALTITUDE_KM, VERTICAL_FOV_HALF_TAN,
 };
 use crate::{MAX_CAMERA_LATITUDE_DEG, METERS_PER_KM, METERS_PER_LATITUDE_DEGREE};
 use emath::{Pos2, Rect};
-use glam::{dcamera::rh, DMat2, DMat3, DMat4, DQuat, DVec2};
+use glam::{dcamera::rh, DMat2, DMat3, DMat4, DQuat, DVec2, DVec3};
 // Numerical tolerances and pole protection retain the original camera behavior.
 const PROJECTION_DEPTH_EPSILON: f64 = 1e-9;
 const ROTATION_AXIS_EPSILON: f64 = 1e-13;
@@ -58,6 +58,13 @@ impl Cam {
 }
 
 impl Basis {
+    /// Cached view-to-world rotation for batched CPU ray construction.
+    pub fn rotation_from_view(&self) -> DMat3 {
+        self.world_from_view
+    }
+    pub fn aspect_ratio(&self) -> f64 {
+        self.aspect
+    }
     pub fn dir(&self, nx: f64, ny: f64) -> DVec3 {
         let view_ray = DVec3::new(
             nx * self.aspect * VERTICAL_FOV_HALF_TAN,

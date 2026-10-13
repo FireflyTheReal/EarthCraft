@@ -136,7 +136,7 @@ stages. Keep changes in separate logical commits and measure affected workloads:
    display. Perform texture upload on egui's thread.
 2. **Completed:** Cache unchanged overlay projections. Evaluate `rstar` for screen-space label
    overlap queries while preserving placement priority and visible labels.
-3. Use `wide` to batch independent ray calculations across pixels, preserving
+3. **Completed:** Use `wide` to batch independent ray calculations across pixels, preserving
    double-precision geometry and original raster fixture tolerances.
 4. Reuse frame buffers and reduce conversion/copy work while preserving screenshot
    output and explicit buffer ownership across workers.
@@ -250,3 +250,47 @@ See [geospatial evaluation](GEOSPATIAL.md) for the measurements, compatibility
 checks and proposed roles of geozero, MVT and geo-index. Those remain evaluation
 options without runtime dependencies; they do not replace the approved next
 wide/buffer/decoding/Unicode stages or silently change data sources.
+
+## SIMD ray checkpoint
+
+`wide` 1.7.1 now rotates, normalizes and intersects four independent `f64` rays
+at a time inside the existing eight-row Rayon batches. Geographic conversion,
+LOD selection, tile sampling and presentation retain their existing behavior.
+Each frame captures the camera transform once; short final groups shade only
+real pixels and do not generate padded tile requests. No approximate reciprocal,
+trigonometric helper or reduced geographic precision was introduced.
+
+Rust 1.89 is the new declared minimum, matching wide's requirement. CI and setup
+documentation use that minimum; unrelated dependency versions remain locked.
+The audit also removed core's unchanged glam/Fluent re-exports: imports now use
+the owning package directly, with this rule recorded in AGENTS.md.
+
+Original raster fixtures remain unchanged. Additional fixtures were captured
+from the pre-SIMD renderer at `c31bfa8` for six partial-row/provider/pole/dateline
+and altitude scenarios. They compare RGBA output within the original one-byte
+tolerance and missing-tile keys/priorities exactly. Camera-ray invariants cover
+both altitude limits and narrow/odd image dimensions. All 65 workspace tests,
+strict Clippy, formatting and the macOS ARM64 optimized-dev build passed.
+
+`cargo +1.89.0 check --workspace --all-targets --offline --locked` also passed on
+macOS ARM64, verifying the new minimum locally. The isolated native build exercised
+grid, sunlight and auto-rotation controls, opened Settings during rotation and
+exported a 2000×1488 PNG. Imagery, grid, day/night shading, atmosphere and stars
+were inspected in that export. This is not a complete native-input, live-provider
+or cross-platform smoke checklist.
+
+Three alternating comparisons used the same compiler/profile, eight Rayon
+threads, 512×384 frame, 341 warm 2×2-pixel fixtures and five rounds of 200 frames:
+
+| Comparison | Previous scalar rays | Four-lane rays |
+| --- | --- | --- |
+| 1 | 2.796 ms | 2.592 ms |
+| 2 | 2.615 ms | 2.731 ms |
+| 3 | 3.056 ms | 2.539 ms |
+
+The direction is mixed and samples are noisy; this is not a reliable improvement
+percentage or application FPS claim. The tiny texture working set excludes
+realistic tile-memory pressure, GUI conversion/upload, geographic overlays,
+network readiness and eviction. The earlier single-pass result is insufficient
+to establish a general speedup. SIMD geometry remains covered by production
+fixtures; realistic end-to-end measurement is a separate evaluation step.

@@ -41,7 +41,7 @@ Published `kml` 0.14.0 owns decoding and writing. Default features are disabled:
 EarthCraft does not need its geo-types conversions or ZIP/KMZ support. Sharing
 quick-xml 0.41 with the already-locked dependency graph removes the duplicate
 0.38 version. quick-xml declares Rust 1.79; kml 0.14 is edition 2021 and does not
-publish a Rust minimum. Minimum-toolchain coverage remains the Rust 1.88 CI job.
+publish a Rust minimum. Minimum-toolchain coverage uses the Rust 1.89 CI job.
 
 An isolated upstream probe demonstrated an empty-Point panic and an unclosed
 Placemark that did not finish within two seconds. The child process was terminated.

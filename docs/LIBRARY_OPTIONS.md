@@ -2,7 +2,7 @@
 
 Versions are centralized in the workspace manifest and resolved in `Cargo.lock`.
 Each migration has a separate commit; supporting dependencies share a commit when
-they implement the same boundary. Keep Rust 1.88 compatibility and avoid unrelated
+they implement the same boundary. Keep Rust 1.89 compatibility and avoid unrelated
 updates. All original raster fixtures remain unchanged.
 
 | Library | Current use | Compatibility constraint |
@@ -12,6 +12,7 @@ updates. All original raster fixtures remain unchanged.
 | thiserror | Typed data errors with source causes | Convert errors to user-facing text at presentation boundaries |
 | glam | `DVec3` geometry, `dcamera` view/perspective constructors, `DMat2` panning and `DQuat` rotations; SIMD colors throughout the renderer | Keep f64 geographic precision and the original camera/raster output; retain emath for egui geometry |
 | bytemuck | Safe zero-copy views of RGBA byte storage | Cast to byte-aligned pixel arrays, not aligned SIMD vectors; no unsafe code |
+| wide | Four independent f64 ray lanes for camera rotation, normalization and sphere intersection | Rust 1.89 minimum; preserve geographic precision, original fixture tolerances and missing-tile priorities; padded lanes never shade or request tiles |
 | Tokio + reqwest | App-owned async runtime, pooled HTTP clients and bounded service work | Preserve provider policy, timeout values, retries, disk fallback and UI completion delivery; CPU rendering remains on Rayon |
 | Moka | Concurrent decoded-tile storage with byte weights and LRU eviction | 256 MiB is a best-effort target; keep request admission/retries separate and do not force frame-by-frame maintenance |
 | Fluent | Embedded English/Portuguese catalogs with cached labels and named message arguments | Preserve wording and number precision; test syntax, parity, resolution and fallback |
@@ -35,10 +36,11 @@ deterministic tests, separate from the library migrations.
 See [architecture](ARCHITECTURE.md), [localization](LOCALIZATION.md) and
 [contributing](CONTRIBUTING.md) for the ownership boundaries and verification rules.
 
-Moka uses its `sync` feature because Rayon needs immediate cache reads. UUID is
-locked to 1.26.0 to preserve Rust 1.88 compatibility; newer UUID releases resolved
-by the local stable toolchain require Rust 1.89. Review transitive MSRVs when
-updating the lockfile. No extra UUID API or dependency is exposed by EarthCraft.
+Moka uses its `sync` feature because Rayon needs immediate cache reads. UUID
+remains locked to 1.26.0 from the earlier Rust 1.88 compatibility checkpoint;
+raising the minimum to 1.89 does not require unrelated dependency upgrades.
+Review transitive MSRVs when updating the lockfile. No extra UUID API or dependency
+is exposed by EarthCraft.
 
 See [geospatial evaluation](GEOSPATIAL.md) for measured `geo` comparisons and
 the proposed roles of geozero, geo-index and Mapbox Vector Tiles. Those libraries

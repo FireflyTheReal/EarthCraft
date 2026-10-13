@@ -32,7 +32,12 @@ User instructions and the requested scope take precedence over these defaults.
   Add abstractions only for a concrete dependency boundary or multiple real uses.
 - Use workspace dependency versions and shared package metadata. Keep `Cargo.lock`
   tracked. Do not update unrelated dependencies during a refactor.
-- Rust 1.88 is the declared minimum. Avoid newer language/library APIs unless
+- Import unchanged dependency types, traits, and functions directly from their
+  owning package. Do not re-export them through EarthCraft crates or hide them
+  behind equivalent aliases. Declare a direct workspace dependency when needed.
+  Re-exporting EarthCraft-owned APIs from private implementation modules is fine;
+  domain aliases must express an application concept rather than rename a dependency.
+- Rust 1.89 is the declared minimum. Avoid newer language/library APIs unless
   intentionally updating the minimum and its CI job together.
 - Write application-owned error messages and diagnostic logs in English, including
   error statuses displayed when the UI language is Portuguese. Normal UI labels
@@ -61,6 +66,11 @@ User instructions and the requested scope take precedence over these defaults.
   Check precision and singular-case behavior before replacing geographic formulas
   with approximate interpolation or rotation helpers.
   Egui screen geometry stays in `emath`; do not add conversions without a use.
+- Use `wide` for independent f64 pixel lanes in CPU ray construction and sphere
+  intersection. Preserve scalar evaluation order and geographic precision; keep
+  short final batches from shading padded pixels or generating tile requests.
+  Compare pixels and missing-tile priorities against pre-change fixtures before
+  expanding batching to other formulas. Avoid unmeasured approximate math.
 - Use safe bytemuck casts for byte-backed pixel layouts. RGBA arrays have byte
   alignment; a byte buffer is not automatically aligned for a SIMD vector. Keep
   channel order and padding explicit. Do not add unsafe casts or unsafe POD impls.

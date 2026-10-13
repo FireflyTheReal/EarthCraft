@@ -61,6 +61,9 @@ Widgets call existing app commands; camera math is tested in core directly.
    depending on widgets or a windowing backend.
 3. A dedicated app-owned coordinator calls the renderer off the UI thread. The
    renderer ray-casts eight-row batches in parallel with Rayon. Each batch
+   constructs and intersects four independent f64 rays at a time using `wide`.
+   Geographic conversion and tile/LOD selection remain scalar. Partial groups
+   shade only real pixels and never request tiles for padded lanes. Each row batch
    shares tile lookups and handles across adjacent rows, then releases them at
    completion. It samples cached tiles,
    blends imagery zoom levels, and applies the grid, atmosphere, sunlight and stars.

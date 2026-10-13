@@ -1,4 +1,4 @@
-pub use fluent_bundle::FluentValue;
+use fluent_bundle::FluentValue;
 
 // ───────────────────────────── Languages ─────────────────────────────
 

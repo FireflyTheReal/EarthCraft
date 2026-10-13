@@ -1,5 +1,6 @@
 use crate::EARTH_RADIUS_KM;
 use crate::METERS_PER_KM;
+use glam::DVec3;
 use std::time::{SystemTime, UNIX_EPOCH};
 const GREAT_CIRCLE_ANGLE_EPSILON_RAD: f64 = 1e-9;
 const SECONDS_PER_DAY: f64 = 86400.0;
@@ -17,8 +18,6 @@ const SIDEREAL_ANGLE_AT_J2000_DEG: f64 = 280.46061837;
 const SIDEREAL_RATE_DEG_PER_DAY: f64 = 360.98564736629;
 
 // ───────────────────────────── Math ─────────────────────────────
-
-pub use glam::DVec3;
 
 pub fn ll_to_v3(lat: f64, lon: f64) -> DVec3 {
     let (la, lo) = (lat.to_radians(), lon.to_radians());

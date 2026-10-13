@@ -6,9 +6,9 @@ so reviewers can distinguish behavior changes from file organization.
 
 ## Development
 
-Install Rust 1.88 or newer through rustup. The locked dependency graph includes
-packages requiring 1.88; the old README's 1.82 requirement was no longer accurate.
-The workspace declares 1.88 and CI includes that toolchain. Stable is suitable for
+Install Rust 1.89 or newer through rustup. The locked dependency graph includes
+packages requiring 1.89; the old README's 1.82 requirement was no longer accurate.
+The workspace declares 1.89 and CI includes that toolchain. Stable is suitable for
 day-to-day development; do not use APIs newer than the declared minimum.
 
 On Linux, install build prerequisites before compiling:
@@ -39,7 +39,7 @@ cargo run -p earthcraft
 
 Keep `Cargo.lock` in version control. Normal verification uses `--locked` to
 catch unintended dependency resolution changes. Intentional dependency updates
-should be reviewed separately, including compatibility with Rust 1.88.
+should be reviewed separately, including compatibility with Rust 1.89.
 CI formats, lints, tests, and builds on Linux/macOS/Windows, plus Linux with the
 minimum Rust version. GitHub Actions are pinned to commits; update the pins
 explicitly when updating CI tooling.
@@ -158,12 +158,19 @@ CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_DEV_INCREMENTAL=false RAYON_NUM_THREADS=
 Run this benchmark alone: it temporarily selects a private cache directory before
 creating worker threads, then restores the process environment and removes that
 directory. It renders 512×384 frames with grid, sunlight and atmosphere, using 341
-warm two-pixel fixture tiles. Startup warming uses production admission and disk
+warm 2×2-pixel fixture tiles. Startup warming uses production admission and disk
 workers, and rotations across hemispheres, the dateline and poles assert that
 overview frames request no new tiles. Five rounds of two hundred frames include production ray
 casting, sampling, allocation and tile lookup; they exclude GUI upload, overlays,
 network and eviction pressure. Neither benchmark is a substitute for live-app
 frame-time and memory measurements.
+
+For a SIMD comparison, alternate baseline and current executables with the same
+compiler/profile and Rayon thread count, without concurrent builds. The tiny
+fixture textures isolate CPU work; they do not establish performance with realistic
+256×256 tile working sets. Ray-batch regression fixtures separately cover partial
+rows, altitude extremes, poles/dateline and every provider, including exact
+missing-tile keys and nearest-pixel priorities.
 
 To measure overlay projection-cache reuse and label occupancy separately:
 
