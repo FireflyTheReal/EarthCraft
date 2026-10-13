@@ -1,19 +1,19 @@
 {
-  "files-saved": {
+  "kml-save-success": {
     "args": {
       "path": "a & b/locais.kml"
     },
     "en": "Saved to a & b/locais.kml",
     "pt-BR": "Salvo em a & b/locais.kml"
   },
-  "files-save-error": {
+  "kml-save-error": {
     "args": {
       "error": "HTTP 500"
     },
     "en": "Error saving: HTTP 500",
     "pt-BR": "Erro ao salvar: HTTP 500"
   },
-  "files-imported": {
+  "kml-import-success": {
     "args": {
       "count": "1234",
       "path": "a & b/locais.kml"
@@ -21,49 +21,49 @@
     "en": "1234 placemark(s) imported. — a & b/locais.kml",
     "pt-BR": "1234 local(is) importado(s). — a & b/locais.kml"
   },
-  "files-open-error": {
+  "kml-open-error": {
     "args": {
       "error": "HTTP 500"
     },
     "en": "Error opening: HTTP 500",
     "pt-BR": "Erro ao abrir: HTTP 500"
   },
-  "files-screenshot": {
+  "screenshot-save-success": {
     "args": {
       "path": "a & b/earth.png"
     },
     "en": "Screenshot saved: a & b/earth.png",
     "pt-BR": "Captura salva: a & b/earth.png"
   },
-  "files-operation-error": {
+  "screenshot-save-error": {
     "args": {
       "error": "HTTP 500"
     },
     "en": "Error: HTTP 500",
     "pt-BR": "Erro: HTTP 500"
   },
-  "search-going": {
+  "search-navigation-status": {
     "args": {
       "destination": "-23.55000, -46.63000"
     },
     "en": "Going to -23.55000, -46.63000",
     "pt-BR": "Indo para -23.55000, -46.63000"
   },
-  "search-results": {
+  "search-results-status": {
     "args": {
       "count": "1234"
     },
     "en": "1234 result(s).",
     "pt-BR": "1234 resultado(s)."
   },
-  "search-failed": {
+  "search-request-error": {
     "args": {
       "error": "HTTP 500"
     },
     "en": "Search error: HTTP 500",
     "pt-BR": "Erro na busca: HTTP 500"
   },
-  "wayback-attribution": {
+  "wayback-snapshot-attribution": {
     "args": {
       "attribution": "Imagery © Esri",
       "date": "2020-01-01"
@@ -71,28 +71,28 @@
     "en": "Imagery © Esri — snapshot 2020-01-01",
     "pt-BR": "Imagery © Esri — imagem de 2020-01-01"
   },
-  "placemark-default-name": {
+  "placemarks-generated-name": {
     "args": {
       "number": "1234"
     },
     "en": "Place 1234",
     "pt-BR": "Local 1234"
   },
-  "wayback-count": {
+  "wayback-availability-status": {
     "args": {
       "count": "1234"
     },
     "en": "1234 snapshots available",
     "pt-BR": "1234 versões disponíveis"
   },
-  "files-folder": {
+  "export-folder-label": {
     "args": {
       "path": "a & b"
     },
     "en": "Folder: a & b",
     "pt-BR": "Pasta: a & b"
   },
-  "ruler-summary": {
+  "ruler-measurement-summary": {
     "args": {
       "count": "2",
       "distance": "1.50 km"
@@ -100,14 +100,14 @@
     "en": "Points: 2   Total: 1.50 km",
     "pt-BR": "Pontos: 2   Total: 1.50 km"
   },
-  "loading-tiles": {
+  "statusbar-tiles-loading": {
     "args": {
       "count": "1234"
     },
     "en": "⏳ loading 1234 tiles",
     "pt-BR": "⏳ carregando 1234 tiles"
   },
-  "camera-center": {
+  "statusbar-camera-center": {
     "args": {
       "latitude": "-23.5500",
       "longitude": "-46.6300"
@@ -115,7 +115,7 @@
     "en": "Center: -23.5500°, -46.6300°",
     "pt-BR": "Centro: -23.5500°, -46.6300°"
   },
-  "camera-altitude": {
+  "statusbar-camera-altitude": {
     "args": {
       "distance": "3.0 km"
     },

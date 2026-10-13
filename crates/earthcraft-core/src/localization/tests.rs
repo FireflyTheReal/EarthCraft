@@ -98,29 +98,29 @@ fn dynamic_messages_preserve_counts_paths_spacing_and_precision() {
         ("path", "a & b/locais.kml".into()),
     ];
     assert_eq!(
-        Lang::En.format("files-imported", &args),
+        Lang::En.format("kml-import-success", &args),
         "1234 placemark(s) imported. — a & b/locais.kml"
     );
     assert_eq!(
-        Lang::PtBr.format("files-imported", &args),
+        Lang::PtBr.format("kml-import-success", &args),
         "1234 local(is) importado(s). — a & b/locais.kml"
     );
     assert_eq!(
         Lang::PtBr.format(
-            "search-going",
+            "search-navigation-status",
             &[("destination", "-23.55000, -46.63000".into())]
         ),
         "Indo para -23.55000, -46.63000"
     );
     assert_eq!(
         Lang::En.format(
-            "ruler-summary",
+            "ruler-measurement-summary",
             &[("count", "2".into()), ("distance", "1.50 km".into())]
         ),
         "Points: 2   Total: 1.50 km"
     );
     assert_eq!(
-        Lang::PtBr.format("search-failed", &[("error", "HTTP 500".into())]),
+        Lang::PtBr.format("search-request-error", &[("error", "HTTP 500".into())]),
         "Erro na busca: HTTP 500"
     );
 }
@@ -139,7 +139,10 @@ fn missing_or_unformattable_translations_fall_back() {
         Some("Hello EarthCraft")
     );
     assert_eq!(Lang::PtBr.text("unknown-key"), "unknown-key");
-    assert_eq!(Lang::PtBr.format("search-going", &[]), "search-going");
+    assert_eq!(
+        Lang::PtBr.format("search-navigation-status", &[]),
+        "search-navigation-status"
+    );
 }
 
 #[test]

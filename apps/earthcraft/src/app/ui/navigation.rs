@@ -132,17 +132,17 @@ impl App {
             Sense::click(),
         );
         if nb
-            .on_hover_text(lg.text("navigation-click-to-align-north-up"))
+            .on_hover_text(lg.text("navigation-compass-tooltip"))
             .clicked()
         {
             self.cam.heading = 0.0;
         }
         // arrows: left/right rotate the view, up = north up, down = flip 180°
         let names = [
-            lg.text("navigation-north-up"),
-            lg.text("navigation-flip-view-180"),
-            lg.text("navigation-rotate-left-hold"),
-            lg.text("navigation-rotate-right-hold"),
+            lg.text("navigation-north-tooltip"),
+            lg.text("navigation-reverse-tooltip"),
+            lg.text("navigation-rotate-left-tooltip"),
+            lg.text("navigation-rotate-right-tooltip"),
         ];
         for (i, d) in dirs.iter().enumerate() {
             let c = c1 + *d * 17.0 * k;
@@ -204,10 +204,10 @@ impl App {
             active = true;
         }
         let pan_names = [
-            lg.text("navigation-move-north-hold"),
-            lg.text("navigation-move-south-hold"),
-            lg.text("navigation-move-west-hold"),
-            lg.text("navigation-move-east-hold"),
+            lg.text("navigation-pan-north-tooltip"),
+            lg.text("navigation-pan-south-tooltip"),
+            lg.text("navigation-pan-west-tooltip"),
+            lg.text("navigation-pan-east-tooltip"),
         ];
         for (i, d) in dirs.iter().enumerate() {
             let c = c2 + *d * 17.0 * k;
@@ -283,9 +283,9 @@ impl App {
                 );
             }
             r.on_hover_text(if plus {
-                lg.text("navigation-zoom-in-hold")
+                lg.text("navigation-zoom-in-tooltip")
             } else {
-                lg.text("navigation-zoom-out-hold")
+                lg.text("navigation-zoom-out-tooltip")
             });
             if held {
                 self.fly = None;
@@ -327,7 +327,7 @@ impl App {
             [Pos2::new(cx - 4.5 * k, hy), Pos2::new(cx + 4.5 * k, hy)],
             Stroke::new(2.0 * k, Color32::WHITE),
         );
-        track.on_hover_text(lg.text("navigation-drag-to-zoom"));
+        track.on_hover_text(lg.text("navigation-zoom-slider-tooltip"));
 
         active
     }

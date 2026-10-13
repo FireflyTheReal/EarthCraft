@@ -1,206 +1,206 @@
 # Embedded UI catalog. Keep keys and variables in sync across locales.
 
-files-open-kml = Open KML
+kml-open-dialog-title = Open KML
 
-files-save-kml-as = Save KML as
+kml-save-dialog-title = Save KML as
 
-files-nothing-to-save-yet = Nothing to save yet.
+screenshot-empty-error = Nothing to save yet.
 
-files-only-kml-files-can-be-dropped-here = Only .kml files can be dropped here.
+kml-drop-type-error = Only .kml files can be dropped here.
 
-globe-add-placemark-here = 📍 Add placemark here
+globe-placemark-action = 📍 Add placemark here
 
-globe-fly-here = ✈ Fly here
+globe-fly-to-action = ✈ Fly here
 
-globe-add-ruler-point = 📏 Add ruler point
+globe-ruler-point-action = 📏 Add ruler point
 
-globe-copy-coordinates = 📋 Copy coordinates
+globe-copy-coordinates-action = 📋 Copy coordinates
 
-globe-click-on-the-globe = Click on the globe.
+globe-context-menu-hint = Click on the globe.
 
-app-ready-drag-to-rotate-scroll-to-zoom = Ready. Drag to rotate, scroll to zoom.
+app-ready-status = Ready. Drag to rotate, scroll to zoom.
 
-search-no-results-found = No results found.
+search-empty-status = No results found.
 
-search-searching = Searching…
+search-pending-status = Searching…
 
-bars-search-a-place-address-or-lat-lon = Search a place, address or “lat, lon”
+search-input-placeholder = Search a place, address or “lat, lon”
 
-bars-search = 🔍 Search
+search-submit-action = 🔍 Search
 
-bars-settings = Settings
+settings-open-tooltip = Settings
 
-navigation-click-to-align-north-up = Click to align north up
+navigation-compass-tooltip = Click to align north up
 
-navigation-north-up = North up
+navigation-north-tooltip = North up
 
-navigation-flip-view-180 = Flip view 180°
+navigation-reverse-tooltip = Flip view 180°
 
-navigation-rotate-left-hold = Rotate left (hold)
+navigation-rotate-left-tooltip = Rotate left (hold)
 
-navigation-rotate-right-hold = Rotate right (hold)
+navigation-rotate-right-tooltip = Rotate right (hold)
 
-navigation-move-north-hold = Move north (hold)
+navigation-pan-north-tooltip = Move north (hold)
 
-navigation-move-south-hold = Move south (hold)
+navigation-pan-south-tooltip = Move south (hold)
 
-navigation-move-west-hold = Move west (hold)
+navigation-pan-west-tooltip = Move west (hold)
 
-navigation-move-east-hold = Move east (hold)
+navigation-pan-east-tooltip = Move east (hold)
 
-navigation-zoom-in-hold = Zoom in (hold)
+navigation-zoom-in-tooltip = Zoom in (hold)
 
-navigation-zoom-out-hold = Zoom out (hold)
+navigation-zoom-out-tooltip = Zoom out (hold)
 
-navigation-drag-to-zoom = Drag to zoom
+navigation-zoom-slider-tooltip = Drag to zoom
 
-settings-settings = ⚙ Settings
+settings-title = ⚙ Settings
 
-settings-text-size = Text size
+settings-text-section-title = Text size
 
-settings-buttons-and-panels = Buttons and panels
+settings-ui-scale-label = Buttons and panels
 
-settings-map-text-names-ruler-scale = Map text (names, ruler, scale)
+settings-map-scale-label = Map text (names, ruler, scale)
 
-settings-where-to-save-files = Where to save files
+settings-folders-section-title = Where to save files
 
-settings-browse = 📁 Browse…
+settings-folder-browse-action = 📁 Browse…
 
-settings-screenshots-png = Screenshots (PNG):
+settings-screenshot-folder-label = Screenshots (PNG):
 
-settings-screenshots-folder = Screenshots folder
+settings-screenshot-folder-dialog-title = Screenshots folder
 
-settings-kml-files = KML files:
+settings-kml-folder-label = KML files:
 
-settings-kml-folder = KML folder
+settings-kml-folder-dialog-title = KML folder
 
-settings-folders-are-created-automatically-when-saving = Folders are created automatically when saving.
+settings-folder-creation-help = Folders are created automatically when saving.
 
-settings-restore-defaults = Restore defaults
+settings-reset-action = Restore defaults
 
-sidebar-layers = Layers
+layers-section-title = Layers
 
-sidebar-loading-available-dates = ⏳ Loading available dates…
+wayback-loading-status = ⏳ Loading available dates…
 
-sidebar-older = Older
+wayback-older-tooltip = Older
 
-sidebar-newer = Newer
+wayback-newer-tooltip = Newer
 
-sidebar-not-every-place-has-a-snapshot-on = Not every place has a snapshot on every date; missing areas fall back to the nearest available imagery.
+wayback-fallback-help = Not every place has a snapshot on every date; missing areas fall back to the nearest available imagery.
 
-sidebar-latitude-longitude-grid = Latitude/longitude grid
+layers-grid-toggle = Latitude/longitude grid
 
-sidebar-country-borders-worldwide = Country borders (worldwide)
+layers-country-borders-toggle = Country borders (worldwide)
 
-sidebar-states-provinces-worldwide = States / provinces (worldwide)
+layers-state-borders-toggle = States / provinces (worldwide)
 
-sidebar-country-state-and-city-names = Country, state and city names
+layers-place-labels-toggle = Country, state and city names
 
-sidebar-city-municipality-borders-brazil-dataset = City / municipality borders (Brazil dataset)
+layers-municipal-borders-toggle = City / municipality borders (Brazil dataset)
 
-sidebar-metropolitan-regions-brazil-only = Metropolitan regions (Brazil only)
+layers-metro-borders-toggle = Metropolitan regions (Brazil only)
 
-sidebar-loading-borders-and-names = ⏳ Loading borders and names…
+boundaries-loading-status = ⏳ Loading borders and names…
 
-sidebar-atmosphere-and-stars = Atmosphere and stars
+layers-atmosphere-toggle = Atmosphere and stars
 
-sidebar-real-time-sunlight-day-night = Real-time sunlight (day/night)
+layers-sunlight-toggle = Real-time sunlight (day/night)
 
-sidebar-auto-rotate = Auto-rotate
+layers-auto-rotation-toggle = Auto-rotate
 
-sidebar-navigation = Navigation
+navigation-section-title = Navigation
 
-sidebar-north-up = 🧭 North up
+navigation-reset-north-action = 🧭 North up
 
-sidebar-global-view = 🌐 Global view
+navigation-global-view-action = 🌐 Global view
 
-sidebar-search-results = Search results:
+search-results-label = Search results:
 
-sidebar-placemarks = Placemarks
+placemarks-section-title = Placemarks
 
-sidebar-name = Name
+placemarks-name-placeholder = Name
 
-sidebar-at-center = ➕ At center
+placemarks-add-center-action = ➕ At center
 
-sidebar-go = Go
+placemarks-fly-to-action = Go
 
-sidebar-drag-a-kml-file-here = 📥 Drag a .kml file here
+kml-drop-zone-hint = 📥 Drag a .kml file here
 
-sidebar-save = 💾 Save
+kml-save-action = 💾 Save
 
-sidebar-saves-into-the-kml-folder-see-settings = Saves into the KML folder (see Settings)
+kml-save-tooltip = Saves into the KML folder (see Settings)
 
-sidebar-save-as = 💾 Save as…
+kml-save-as-action = 💾 Save as…
 
-sidebar-open-kml = 📂 Open KML…
+kml-open-action = 📂 Open KML…
 
-sidebar-ruler = Ruler
+ruler-section-title = Ruler
 
-sidebar-measure-distances-click-on-the-globe = Measure distances (click on the globe)
+ruler-enable-toggle = Measure distances (click on the globe)
 
-sidebar-clear-ruler = Clear ruler
+ruler-clear-action = Clear ruler
 
-sidebar-export = Export
+export-section-title = Export
 
-sidebar-save-screenshot-png = 📷 Save screenshot (PNG)
+screenshot-save-action = 📷 Save screenshot (PNG)
 
-sidebar-change-folders = ⚙ Change folders…
+settings-folders-action = ⚙ Change folders…
 
-sidebar-show-controls-help = Show controls help
+controls-help-toggle = Show controls help
 
-sidebar-controls-help = • Drag (left): rotate the globe
+controls-help-text = • Drag (left): rotate the globe
     • Right-drag / Shift+drag: rotate the view
     • Wheel / pinch or +/-: zoom
     • Double-click: fly to the point
     • Arrow keys: move   • N: north up
     • Right-click: context menu
 
-kml-unnamed = Unnamed
+placemarks-fallback-name = Unnamed
 
-tiles-satellite-esri-world-imagery = Satellite (Esri World Imagery)
+provider-satellite-label = Satellite (Esri World Imagery)
 
-tiles-historical-imagery-esri-wayback = Historical imagery (Esri Wayback)
+provider-wayback-label = Historical imagery (Esri Wayback)
 
-tiles-streets-openstreetmap = Streets (OpenStreetMap)
+provider-streets-label = Streets (OpenStreetMap)
 
-tiles-terrain-topography-opentopomap = Terrain/Topography (OpenTopoMap)
+provider-topography-label = Terrain/Topography (OpenTopoMap)
 
-tiles-imagery-esri-maxar-earthstar-geographics = Imagery © Esri, Maxar, Earthstar Geographics
+provider-imagery-attribution = Imagery © Esri, Maxar, Earthstar Geographics
 
-tiles-openstreetmap-contributors = © OpenStreetMap contributors
+provider-streets-attribution = © OpenStreetMap contributors
 
 # Whole messages: arguments retain the original numeric formatting.
 
-files-saved = Saved to { $path }
+kml-save-success = Saved to { $path }
 
-files-save-error = Error saving: { $error }
+kml-save-error = Error saving: { $error }
 
-files-imported = { $count } placemark(s) imported. — { $path }
+kml-import-success = { $count } placemark(s) imported. — { $path }
 
-files-open-error = Error opening: { $error }
+kml-open-error = Error opening: { $error }
 
-files-screenshot = Screenshot saved: { $path }
+screenshot-save-success = Screenshot saved: { $path }
 
-files-operation-error = Error: { $error }
+screenshot-save-error = Error: { $error }
 
-search-going = Going to { $destination }
+search-navigation-status = Going to { $destination }
 
-search-results = { $count } result(s).
+search-results-status = { $count } result(s).
 
-search-failed = Search error: { $error }
+search-request-error = Search error: { $error }
 
-wayback-attribution = { $attribution } — snapshot { $date }
+wayback-snapshot-attribution = { $attribution } — snapshot { $date }
 
-placemark-default-name = Place { $number }
+placemarks-generated-name = Place { $number }
 
-wayback-count = { $count } snapshots available
+wayback-availability-status = { $count } snapshots available
 
-files-folder = Folder: { $path }
+export-folder-label = Folder: { $path }
 
-ruler-summary = Points: { $count }   Total: { $distance }
+ruler-measurement-summary = Points: { $count }   Total: { $distance }
 
-loading-tiles = ⏳ loading { $count } tiles
+statusbar-tiles-loading = ⏳ loading { $count } tiles
 
-camera-center = Center: { $latitude }°, { $longitude }°
+statusbar-camera-center = Center: { $latitude }°, { $longitude }°
 
-camera-altitude = Camera altitude: { $distance }
+statusbar-camera-altitude = Camera altitude: { $distance }

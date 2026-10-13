@@ -157,7 +157,7 @@ impl App {
             query: String::new(),
             results: vec![],
             search_rx: None,
-            status: lang.text("app-ready-drag-to-rotate-scroll-to-zoom").into(),
+            status: lang.text("app-ready-status").into(),
             placemarks: vec![],
             new_name: String::new(),
             kml_path: "placemarks.kml".into(),

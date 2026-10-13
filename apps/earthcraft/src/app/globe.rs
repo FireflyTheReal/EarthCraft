@@ -266,7 +266,7 @@ impl App {
         if self.provider == Provider::Wayback {
             if let Some(r) = self.wayback_list.get(self.wayback_idx) {
                 attribution = lg.format(
-                    "wayback-attribution",
+                    "wayback-snapshot-attribution",
                     &[
                         ("attribution", attribution.into()),
                         ("date", r.date.as_str().into()),
@@ -289,32 +289,35 @@ impl App {
             Some((la, lo)) => {
                 ui.label(format!("{la:.5}, {lo:.5}"));
                 ui.separator();
-                if ui.button(lg.text("globe-add-placemark-here")).clicked() {
+                if ui.button(lg.text("globe-placemark-action")).clicked() {
                     act = Some(0);
                     ui.close_menu();
                 }
-                if ui.button(lg.text("globe-fly-here")).clicked() {
+                if ui.button(lg.text("globe-fly-to-action")).clicked() {
                     act = Some(1);
                     ui.close_menu();
                 }
-                if ui.button(lg.text("globe-add-ruler-point")).clicked() {
+                if ui.button(lg.text("globe-ruler-point-action")).clicked() {
                     act = Some(2);
                     ui.close_menu();
                 }
-                if ui.button(lg.text("globe-copy-coordinates")).clicked() {
+                if ui
+                    .button(lg.text("globe-copy-coordinates-action"))
+                    .clicked()
+                {
                     act = Some(3);
                     ui.close_menu();
                 }
             }
             None => {
-                ui.label(lg.text("globe-click-on-the-globe"));
+                ui.label(lg.text("globe-context-menu-hint"));
             }
         });
         if let (Some(a), Some((la, lo))) = (act, pick) {
             match a {
                 0 => self.placemarks.push(Placemark {
                     name: lg.format(
-                        "placemark-default-name",
+                        "placemarks-generated-name",
                         &[("number", (self.placemarks.len() + 1).to_string().into())],
                     ),
                     desc: String::new(),

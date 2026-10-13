@@ -50,10 +50,10 @@ impl Provider {
     }
     pub fn name(self, lg: Lang) -> &'static str {
         match self {
-            Provider::Satellite => lg.text("tiles-satellite-esri-world-imagery"),
-            Provider::Wayback => lg.text("tiles-historical-imagery-esri-wayback"),
-            Provider::Streets => lg.text("tiles-streets-openstreetmap"),
-            Provider::Topo => lg.text("tiles-terrain-topography-opentopomap"),
+            Provider::Satellite => lg.text("provider-satellite-label"),
+            Provider::Wayback => lg.text("provider-wayback-label"),
+            Provider::Streets => lg.text("provider-streets-label"),
+            Provider::Topo => lg.text("provider-topography-label"),
         }
     }
     fn dir(self) -> &'static str {
@@ -83,10 +83,8 @@ impl Provider {
     }
     pub fn attribution(self, lg: Lang) -> &'static str {
         match self {
-            Provider::Satellite | Provider::Wayback => {
-                lg.text("tiles-imagery-esri-maxar-earthstar-geographics")
-            }
-            Provider::Streets => lg.text("tiles-openstreetmap-contributors"),
+            Provider::Satellite | Provider::Wayback => lg.text("provider-imagery-attribution"),
+            Provider::Streets => lg.text("provider-streets-attribution"),
             Provider::Topo => "© OpenTopoMap (CC-BY-SA), © OpenStreetMap",
         }
     }

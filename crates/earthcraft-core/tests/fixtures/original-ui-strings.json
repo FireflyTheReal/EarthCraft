@@ -1,329 +1,329 @@
 {
-  "files-open-kml": {
+  "kml-open-dialog-title": {
     "en": "Open KML",
     "pt-BR": "Abrir KML"
   },
-  "files-save-kml-as": {
+  "kml-save-dialog-title": {
     "en": "Save KML as",
     "pt-BR": "Salvar KML como"
   },
-  "files-nothing-to-save-yet": {
+  "screenshot-empty-error": {
     "en": "Nothing to save yet.",
     "pt-BR": "Nada para salvar ainda."
   },
-  "files-only-kml-files-can-be-dropped-here": {
+  "kml-drop-type-error": {
     "en": "Only .kml files can be dropped here.",
     "pt-BR": "Só é possível soltar arquivos .kml aqui."
   },
-  "globe-add-placemark-here": {
+  "globe-placemark-action": {
     "en": "📍 Add placemark here",
     "pt-BR": "📍 Adicionar local aqui"
   },
-  "globe-fly-here": {
+  "globe-fly-to-action": {
     "en": "✈ Fly here",
     "pt-BR": "✈ Voar até aqui"
   },
-  "globe-add-ruler-point": {
+  "globe-ruler-point-action": {
     "en": "📏 Add ruler point",
     "pt-BR": "📏 Adicionar ponto na régua"
   },
-  "globe-copy-coordinates": {
+  "globe-copy-coordinates-action": {
     "en": "📋 Copy coordinates",
     "pt-BR": "📋 Copiar coordenadas"
   },
-  "globe-click-on-the-globe": {
+  "globe-context-menu-hint": {
     "en": "Click on the globe.",
     "pt-BR": "Clique sobre o globo."
   },
-  "app-ready-drag-to-rotate-scroll-to-zoom": {
+  "app-ready-status": {
     "en": "Ready. Drag to rotate, scroll to zoom.",
     "pt-BR": "Pronto. Arraste para girar, role para aproximar."
   },
-  "search-no-results-found": {
+  "search-empty-status": {
     "en": "No results found.",
     "pt-BR": "Nenhum resultado encontrado."
   },
-  "search-searching": {
+  "search-pending-status": {
     "en": "Searching…",
     "pt-BR": "Buscando…"
   },
-  "bars-search-a-place-address-or-lat-lon": {
+  "search-input-placeholder": {
     "en": "Search a place, address or “lat, lon”",
     "pt-BR": "Buscar lugar, endereço ou “lat, lon”"
   },
-  "bars-search": {
+  "search-submit-action": {
     "en": "🔍 Search",
     "pt-BR": "🔍 Buscar"
   },
-  "bars-settings": {
+  "settings-open-tooltip": {
     "en": "Settings",
     "pt-BR": "Configurações"
   },
-  "navigation-click-to-align-north-up": {
+  "navigation-compass-tooltip": {
     "en": "Click to align north up",
     "pt-BR": "Clique para alinhar ao norte"
   },
-  "navigation-north-up": {
+  "navigation-north-tooltip": {
     "en": "North up",
     "pt-BR": "Norte para cima"
   },
-  "navigation-flip-view-180": {
+  "navigation-reverse-tooltip": {
     "en": "Flip view 180°",
     "pt-BR": "Girar a vista 180°"
   },
-  "navigation-rotate-left-hold": {
+  "navigation-rotate-left-tooltip": {
     "en": "Rotate left (hold)",
     "pt-BR": "Girar para a esquerda (segure)"
   },
-  "navigation-rotate-right-hold": {
+  "navigation-rotate-right-tooltip": {
     "en": "Rotate right (hold)",
     "pt-BR": "Girar para a direita (segure)"
   },
-  "navigation-move-north-hold": {
+  "navigation-pan-north-tooltip": {
     "en": "Move north (hold)",
     "pt-BR": "Mover para o norte (segure)"
   },
-  "navigation-move-south-hold": {
+  "navigation-pan-south-tooltip": {
     "en": "Move south (hold)",
     "pt-BR": "Mover para o sul (segure)"
   },
-  "navigation-move-west-hold": {
+  "navigation-pan-west-tooltip": {
     "en": "Move west (hold)",
     "pt-BR": "Mover para oeste (segure)"
   },
-  "navigation-move-east-hold": {
+  "navigation-pan-east-tooltip": {
     "en": "Move east (hold)",
     "pt-BR": "Mover para leste (segure)"
   },
-  "navigation-zoom-in-hold": {
+  "navigation-zoom-in-tooltip": {
     "en": "Zoom in (hold)",
     "pt-BR": "Aproximar (segure)"
   },
-  "navigation-zoom-out-hold": {
+  "navigation-zoom-out-tooltip": {
     "en": "Zoom out (hold)",
     "pt-BR": "Afastar (segure)"
   },
-  "navigation-drag-to-zoom": {
+  "navigation-zoom-slider-tooltip": {
     "en": "Drag to zoom",
     "pt-BR": "Arraste para ajustar o zoom"
   },
-  "settings-settings": {
+  "settings-title": {
     "en": "⚙ Settings",
     "pt-BR": "⚙ Configurações"
   },
-  "settings-text-size": {
+  "settings-text-section-title": {
     "en": "Text size",
     "pt-BR": "Tamanho do texto"
   },
-  "settings-buttons-and-panels": {
+  "settings-ui-scale-label": {
     "en": "Buttons and panels",
     "pt-BR": "Botões e painéis"
   },
-  "settings-map-text-names-ruler-scale": {
+  "settings-map-scale-label": {
     "en": "Map text (names, ruler, scale)",
     "pt-BR": "Texto do mapa (nomes, régua, escala)"
   },
-  "settings-where-to-save-files": {
+  "settings-folders-section-title": {
     "en": "Where to save files",
     "pt-BR": "Onde salvar os arquivos"
   },
-  "settings-browse": {
+  "settings-folder-browse-action": {
     "en": "📁 Browse…",
     "pt-BR": "📁 Procurar…"
   },
-  "settings-screenshots-png": {
+  "settings-screenshot-folder-label": {
     "en": "Screenshots (PNG):",
     "pt-BR": "Capturas de tela (PNG):"
   },
-  "settings-screenshots-folder": {
+  "settings-screenshot-folder-dialog-title": {
     "en": "Screenshots folder",
     "pt-BR": "Pasta das capturas"
   },
-  "settings-kml-files": {
+  "settings-kml-folder-label": {
     "en": "KML files:",
     "pt-BR": "Arquivos KML:"
   },
-  "settings-kml-folder": {
+  "settings-kml-folder-dialog-title": {
     "en": "KML folder",
     "pt-BR": "Pasta dos KML"
   },
-  "settings-folders-are-created-automatically-when-saving": {
+  "settings-folder-creation-help": {
     "en": "Folders are created automatically when saving.",
     "pt-BR": "As pastas são criadas automaticamente ao salvar."
   },
-  "settings-restore-defaults": {
+  "settings-reset-action": {
     "en": "Restore defaults",
     "pt-BR": "Restaurar padrões"
   },
-  "sidebar-layers": {
+  "layers-section-title": {
     "en": "Layers",
     "pt-BR": "Camadas"
   },
-  "sidebar-loading-available-dates": {
+  "wayback-loading-status": {
     "en": "⏳ Loading available dates…",
     "pt-BR": "⏳ Carregando datas disponíveis…"
   },
-  "sidebar-older": {
+  "wayback-older-tooltip": {
     "en": "Older",
     "pt-BR": "Mais antiga"
   },
-  "sidebar-newer": {
+  "wayback-newer-tooltip": {
     "en": "Newer",
     "pt-BR": "Mais recente"
   },
-  "sidebar-not-every-place-has-a-snapshot-on": {
+  "wayback-fallback-help": {
     "en": "Not every place has a snapshot on every date; missing areas fall back to the nearest available imagery.",
     "pt-BR": "Nem todo lugar tem imagem em todas as datas; áreas sem imagem mostram a versão mais próxima disponível."
   },
-  "sidebar-latitude-longitude-grid": {
+  "layers-grid-toggle": {
     "en": "Latitude/longitude grid",
     "pt-BR": "Grade de latitude/longitude"
   },
-  "sidebar-country-borders-worldwide": {
+  "layers-country-borders-toggle": {
     "en": "Country borders (worldwide)",
     "pt-BR": "Limites dos países (mundo todo)"
   },
-  "sidebar-states-provinces-worldwide": {
+  "layers-state-borders-toggle": {
     "en": "States / provinces (worldwide)",
     "pt-BR": "Estados / províncias (mundo todo)"
   },
-  "sidebar-country-state-and-city-names": {
+  "layers-place-labels-toggle": {
     "en": "Country, state and city names",
     "pt-BR": "Nomes de países, estados e cidades"
   },
-  "sidebar-city-municipality-borders-brazil-dataset": {
+  "layers-municipal-borders-toggle": {
     "en": "City / municipality borders (Brazil dataset)",
     "pt-BR": "Limites de cidades / municípios (base do Brasil)"
   },
-  "sidebar-metropolitan-regions-brazil-only": {
+  "layers-metro-borders-toggle": {
     "en": "Metropolitan regions (Brazil only)",
     "pt-BR": "Regiões metropolitanas (disponível apenas para o Brasil)"
   },
-  "sidebar-loading-borders-and-names": {
+  "boundaries-loading-status": {
     "en": "⏳ Loading borders and names…",
     "pt-BR": "⏳ Carregando limites e nomes…"
   },
-  "sidebar-atmosphere-and-stars": {
+  "layers-atmosphere-toggle": {
     "en": "Atmosphere and stars",
     "pt-BR": "Atmosfera e estrelas"
   },
-  "sidebar-real-time-sunlight-day-night": {
+  "layers-sunlight-toggle": {
     "en": "Real-time sunlight (day/night)",
     "pt-BR": "Luz do sol em tempo real (dia/noite)"
   },
-  "sidebar-auto-rotate": {
+  "layers-auto-rotation-toggle": {
     "en": "Auto-rotate",
     "pt-BR": "Girar automaticamente"
   },
-  "sidebar-navigation": {
+  "navigation-section-title": {
     "en": "Navigation",
     "pt-BR": "Navegação"
   },
-  "sidebar-north-up": {
+  "navigation-reset-north-action": {
     "en": "🧭 North up",
     "pt-BR": "🧭 Norte para cima"
   },
-  "sidebar-global-view": {
+  "navigation-global-view-action": {
     "en": "🌐 Global view",
     "pt-BR": "🌐 Visão global"
   },
-  "sidebar-search-results": {
+  "search-results-label": {
     "en": "Search results:",
     "pt-BR": "Resultados da busca:"
   },
-  "sidebar-placemarks": {
+  "placemarks-section-title": {
     "en": "Placemarks",
     "pt-BR": "Locais (Placemarks)"
   },
-  "sidebar-name": {
+  "placemarks-name-placeholder": {
     "en": "Name",
     "pt-BR": "Nome"
   },
-  "sidebar-at-center": {
+  "placemarks-add-center-action": {
     "en": "➕ At center",
     "pt-BR": "➕ No centro"
   },
-  "sidebar-go": {
+  "placemarks-fly-to-action": {
     "en": "Go",
     "pt-BR": "Ir"
   },
-  "sidebar-drag-a-kml-file-here": {
+  "kml-drop-zone-hint": {
     "en": "📥 Drag a .kml file here",
     "pt-BR": "📥 Arraste um arquivo .kml aqui"
   },
-  "sidebar-save": {
+  "kml-save-action": {
     "en": "💾 Save",
     "pt-BR": "💾 Salvar"
   },
-  "sidebar-saves-into-the-kml-folder-see-settings": {
+  "kml-save-tooltip": {
     "en": "Saves into the KML folder (see Settings)",
     "pt-BR": "Salva na pasta de KML (veja Configurações)"
   },
-  "sidebar-save-as": {
+  "kml-save-as-action": {
     "en": "💾 Save as…",
     "pt-BR": "💾 Salvar como…"
   },
-  "sidebar-open-kml": {
+  "kml-open-action": {
     "en": "📂 Open KML…",
     "pt-BR": "📂 Abrir KML…"
   },
-  "sidebar-ruler": {
+  "ruler-section-title": {
     "en": "Ruler",
     "pt-BR": "Régua"
   },
-  "sidebar-measure-distances-click-on-the-globe": {
+  "ruler-enable-toggle": {
     "en": "Measure distances (click on the globe)",
     "pt-BR": "Medir distâncias (clique no globo)"
   },
-  "sidebar-clear-ruler": {
+  "ruler-clear-action": {
     "en": "Clear ruler",
     "pt-BR": "Limpar régua"
   },
-  "sidebar-export": {
+  "export-section-title": {
     "en": "Export",
     "pt-BR": "Exportar"
   },
-  "sidebar-save-screenshot-png": {
+  "screenshot-save-action": {
     "en": "📷 Save screenshot (PNG)",
     "pt-BR": "📷 Salvar captura (PNG)"
   },
-  "sidebar-change-folders": {
+  "settings-folders-action": {
     "en": "⚙ Change folders…",
     "pt-BR": "⚙ Mudar pastas…"
   },
-  "sidebar-show-controls-help": {
+  "controls-help-toggle": {
     "en": "Show controls help",
     "pt-BR": "Mostrar ajuda de controles"
   },
-  "sidebar-controls-help": {
+  "controls-help-text": {
     "en": "• Drag (left): rotate the globe\n• Right-drag / Shift+drag: rotate the view\n• Wheel / pinch or +/-: zoom\n• Double-click: fly to the point\n• Arrow keys: move   • N: north up\n• Right-click: context menu",
     "pt-BR": "• Arrastar (esq.): girar o globo\n• Botão direito/Shift+arrastar: girar a vista\n• Roda/pinça ou +/-: zoom\n• Duplo clique: voar até o ponto\n• Setas: mover   • N: norte para cima\n• Botão direito (clique): menu de contexto"
   },
-  "kml-unnamed": {
+  "placemarks-fallback-name": {
     "en": "Unnamed",
     "pt-BR": "Sem nome"
   },
-  "tiles-satellite-esri-world-imagery": {
+  "provider-satellite-label": {
     "en": "Satellite (Esri World Imagery)",
     "pt-BR": "Satélite (Esri World Imagery)"
   },
-  "tiles-historical-imagery-esri-wayback": {
+  "provider-wayback-label": {
     "en": "Historical imagery (Esri Wayback)",
     "pt-BR": "Imagens históricas (Esri Wayback)"
   },
-  "tiles-streets-openstreetmap": {
+  "provider-streets-label": {
     "en": "Streets (OpenStreetMap)",
     "pt-BR": "Ruas (OpenStreetMap)"
   },
-  "tiles-terrain-topography-opentopomap": {
+  "provider-topography-label": {
     "en": "Terrain/Topography (OpenTopoMap)",
     "pt-BR": "Relevo/Topografia (OpenTopoMap)"
   },
-  "tiles-imagery-esri-maxar-earthstar-geographics": {
+  "provider-imagery-attribution": {
     "en": "Imagery © Esri, Maxar, Earthstar Geographics",
     "pt-BR": "Imagens © Esri, Maxar, Earthstar Geographics"
   },
-  "tiles-openstreetmap-contributors": {
+  "provider-streets-attribution": {
     "en": "© OpenStreetMap contributors",
     "pt-BR": "© contribuidores do OpenStreetMap"
   }

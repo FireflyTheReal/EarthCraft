@@ -37,7 +37,9 @@ impl<'de, T, F: Fn(&serde_json::Value, &mut T)> Visitor<'de> for Collection<'_, 
             }
         }
         if !found {
-            return Err(serde::de::Error::custom("arquivo sem 'features'"));
+            return Err(serde::de::Error::custom(
+                "GeoJSON document is missing 'features'",
+            ));
         }
         Ok(())
     }

@@ -110,7 +110,7 @@ async fn fetch_json_at(url: &str, path: PathBuf) -> Result<serde_json::Value, cr
                         let _ = tokio::fs::write(&path, bytes).await;
                         return Ok(value);
                     }
-                    Err(error) => last = Some(format!("JSON inválido: {error}").into()),
+                    Err(error) => last = Some(format!("Invalid JSON: {error}").into()),
                 }
             }
             Err(error) => last = Some(error),

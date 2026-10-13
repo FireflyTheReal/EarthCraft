@@ -1,5 +1,5 @@
 use super::App;
-use earthcraft_core::language::fold_name;
+use earthcraft_core::language::{fold_name, Lang};
 use earthcraft_data::boundaries::{LabelKind, MapLabel};
 use earthcraft_data::search::{geocode, parse_latlon, photon_suggest, Suggestion};
 use earthcraft_data::search::{CITY_SEARCH_ALTITUDE_KM, COUNTRY_SEARCH_ALTITUDE_KM};
@@ -138,9 +138,10 @@ impl App {
             self.sugg_sel = None;
             self.results.clear();
             self.fly_to(s.lat, s.lon, s.alt);
-            self.status = self
-                .lang
-                .format("search-going", &[("destination", s.label.into())]);
+            self.status = self.lang.format(
+                "search-navigation-status",
+                &[("destination", s.label.into())],
+            );
         }
     }
 
@@ -150,16 +151,19 @@ impl App {
         if let Ok(res) = rx.try_recv() {
             self.search_rx = None;
             match res {
-                Ok(v) if v.is_empty() => self.status = lg.text("search-no-results-found").into(),
+                Ok(v) if v.is_empty() => self.status = lg.text("search-empty-status").into(),
                 Ok(v) => {
-                    self.status =
-                        lg.format("search-results", &[("count", v.len().to_string().into())]);
+                    self.status = lg.format(
+                        "search-results-status",
+                        &[("count", v.len().to_string().into())],
+                    );
                     let first = v[0].clone();
                     self.results = v;
                     self.fly_to(first.lat, first.lon, first.alt);
                 }
                 Err(e) => {
-                    self.status = lg.format("search-failed", &[("error", e.to_string().into())])
+                    self.status =
+                        Lang::En.format("search-request-error", &[("error", e.to_string().into())])
                 }
             }
         }
@@ -173,14 +177,14 @@ impl App {
         if let Some((lat, lon)) = parse_latlon(&q) {
             self.fly_to(lat, lon, 3.0);
             self.status = self.lang.format(
-                "search-going",
+                "search-navigation-status",
                 &[("destination", format!("{lat:.5}, {lon:.5}").into())],
             );
             return;
         }
         let (tx, rx) = mpsc::channel();
         self.search_rx = Some(rx);
-        self.status = self.lang.text("search-searching").into();
+        self.status = self.lang.text("search-pending-status").into();
         let ctx = ctx.clone();
         let lang_code = self.lang.code();
         self.runtime.spawn(async move {

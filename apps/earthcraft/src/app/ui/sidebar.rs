@@ -16,7 +16,7 @@ impl App {
             .default_width(270.0)
             .show(ctx, |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| {
-                    egui::CollapsingHeader::new(lg.text("sidebar-layers"))
+                    egui::CollapsingHeader::new(lg.text("layers-section-title"))
                         .default_open(true)
                         .show(ui, |ui| {
                             for p in Provider::ALL {
@@ -25,14 +25,14 @@ impl App {
                             if self.provider == Provider::Wayback {
                                 ui.indent("wayback_ui", |ui| {
                                     if self.wayback_list.is_empty() {
-                                        ui.weak(lg.text("sidebar-loading-available-dates"));
+                                        ui.weak(lg.text("wayback-loading-status"));
                                     } else {
                                         let n = self.wayback_list.len();
                                         let mut idx = self.wayback_idx;
                                         ui.horizontal(|ui| {
                                             if ui
                                                 .small_button("◀")
-                                                .on_hover_text(lg.text("sidebar-older"))
+                                                .on_hover_text(lg.text("wayback-older-tooltip"))
                                                 .clicked()
                                                 && idx + 1 < n
                                             {
@@ -50,7 +50,7 @@ impl App {
                                                 });
                                             if ui
                                                 .small_button("▶")
-                                                .on_hover_text(lg.text("sidebar-newer"))
+                                                .on_hover_text(lg.text("wayback-newer-tooltip"))
                                                 .clicked()
                                                 && idx > 0
                                             {
@@ -58,12 +58,10 @@ impl App {
                                             }
                                         });
                                         ui.weak(lg.format(
-                                            "wayback-count",
+                                            "wayback-availability-status",
                                             &[("count", n.to_string().into())],
                                         ));
-                                        ui.weak(
-                                            lg.text("sidebar-not-every-place-has-a-snapshot-on"),
-                                        );
+                                        ui.weak(lg.text("wayback-fallback-help"));
                                         self.set_wayback(idx);
                                     }
                                     if let Some(e) = &self.wayback_err {
@@ -75,63 +73,63 @@ impl App {
                                 });
                             }
                             ui.separator();
-                            ui.checkbox(
-                                &mut self.show_grid,
-                                lg.text("sidebar-latitude-longitude-grid"),
-                            );
+                            ui.checkbox(&mut self.show_grid, lg.text("layers-grid-toggle"));
                             ui.checkbox(
                                 &mut self.show_country_boundaries,
-                                lg.text("sidebar-country-borders-worldwide"),
+                                lg.text("layers-country-borders-toggle"),
                             );
                             ui.checkbox(
                                 &mut self.show_state_boundaries,
-                                lg.text("sidebar-states-provinces-worldwide"),
+                                lg.text("layers-state-borders-toggle"),
                             );
                             ui.checkbox(
                                 &mut self.show_place_labels,
-                                lg.text("sidebar-country-state-and-city-names"),
+                                lg.text("layers-place-labels-toggle"),
                             );
                             ui.checkbox(
                                 &mut self.show_city_boundaries,
-                                lg.text("sidebar-city-municipality-borders-brazil-dataset"),
+                                lg.text("layers-municipal-borders-toggle"),
                             );
                             ui.checkbox(
                                 &mut self.show_metro_boundaries,
-                                lg.text("sidebar-metropolitan-regions-brazil-only"),
+                                lg.text("layers-metro-borders-toggle"),
                             );
                             if self.boundary_loader.is_loading() {
-                                ui.weak(lg.text("sidebar-loading-borders-and-names"));
+                                ui.weak(lg.text("boundaries-loading-status"));
                             }
                             if let Ok(log) = self.boundary_log.lock() {
                                 for line in log.iter() {
                                     ui.weak(egui::RichText::new(line).small());
                                 }
                             }
+                            ui.checkbox(&mut self.show_atmo, lg.text("layers-atmosphere-toggle"));
+                            ui.checkbox(&mut self.show_sun, lg.text("layers-sunlight-toggle"));
                             ui.checkbox(
-                                &mut self.show_atmo,
-                                lg.text("sidebar-atmosphere-and-stars"),
+                                &mut self.auto_rotate,
+                                lg.text("layers-auto-rotation-toggle"),
                             );
-                            ui.checkbox(
-                                &mut self.show_sun,
-                                lg.text("sidebar-real-time-sunlight-day-night"),
-                            );
-                            ui.checkbox(&mut self.auto_rotate, lg.text("sidebar-auto-rotate"));
                         });
 
-                    egui::CollapsingHeader::new(lg.text("sidebar-navigation"))
+                    egui::CollapsingHeader::new(lg.text("navigation-section-title"))
                         .default_open(true)
                         .show(ui, |ui| {
                             ui.horizontal(|ui| {
-                                if ui.button(lg.text("sidebar-north-up")).clicked() {
+                                if ui
+                                    .button(lg.text("navigation-reset-north-action"))
+                                    .clicked()
+                                {
                                     self.cam.heading = 0.0;
                                 }
-                                if ui.button(lg.text("sidebar-global-view")).clicked() {
+                                if ui
+                                    .button(lg.text("navigation-global-view-action"))
+                                    .clicked()
+                                {
                                     self.fly_to(self.cam.lat, self.cam.lon, 14_000.0);
                                 }
                             });
                             if !self.results.is_empty() {
                                 ui.separator();
-                                ui.label(lg.text("sidebar-search-results"));
+                                ui.label(lg.text("search-results-label"));
                                 for r in &self.results {
                                     let short: String = r.name.chars().take(48).collect();
                                     if ui.button(short).on_hover_text(&r.name).clicked() {
@@ -141,19 +139,19 @@ impl App {
                             }
                         });
 
-                    egui::CollapsingHeader::new(lg.text("sidebar-placemarks"))
+                    egui::CollapsingHeader::new(lg.text("placemarks-section-title"))
                         .default_open(true)
                         .show(ui, |ui| {
                             ui.horizontal(|ui| {
                                 ui.add(
                                     egui::TextEdit::singleline(&mut self.new_name)
-                                        .hint_text(lg.text("sidebar-name"))
+                                        .hint_text(lg.text("placemarks-name-placeholder"))
                                         .desired_width(120.0),
                                 );
-                                if ui.button(lg.text("sidebar-at-center")).clicked() {
+                                if ui.button(lg.text("placemarks-add-center-action")).clicked() {
                                     let name = if self.new_name.trim().is_empty() {
                                         lg.format(
-                                            "placemark-default-name",
+                                            "placemarks-generated-name",
                                             &[(
                                                 "number",
                                                 (self.placemarks.len() + 1).to_string().into(),
@@ -178,7 +176,7 @@ impl App {
                                             .desired_width(110.0),
                                     );
                                     if ui
-                                        .small_button(lg.text("sidebar-go"))
+                                        .small_button(lg.text("placemarks-fly-to-action"))
                                         .on_hover_text(format!("{:.5}, {:.5}", p.lat, p.lon))
                                         .clicked()
                                     {
@@ -211,7 +209,7 @@ impl App {
                                 .show(ui, |ui| {
                                     ui.set_width(ui.available_width());
                                     ui.vertical_centered(|ui| {
-                                        ui.label(lg.text("sidebar-drag-a-kml-file-here"));
+                                        ui.label(lg.text("kml-drop-zone-hint"));
                                     });
                                     let r = ui.add(
                                         egui::TextEdit::singleline(&mut self.kml_path)
@@ -224,69 +222,64 @@ impl App {
                             self.kml_drop_rect = zone.response.rect;
                             ui.horizontal_wrapped(|ui| {
                                 if ui
-                                    .button(lg.text("sidebar-save"))
-                                    .on_hover_text(
-                                        lg.text("sidebar-saves-into-the-kml-folder-see-settings"),
-                                    )
+                                    .button(lg.text("kml-save-action"))
+                                    .on_hover_text(lg.text("kml-save-tooltip"))
                                     .clicked()
                                 {
                                     save_now = true;
                                 }
-                                if ui.button(lg.text("sidebar-save-as")).clicked() {
+                                if ui.button(lg.text("kml-save-as-action")).clicked() {
                                     save_as = true;
                                 }
-                                if ui.button(lg.text("sidebar-open-kml")).clicked() {
+                                if ui.button(lg.text("kml-open-action")).clicked() {
                                     open_dialog = true;
                                 }
                             });
                             ui.weak(lg.format(
-                                "files-folder",
+                                "export-folder-label",
                                 &[("path", self.settings.kml_dir.as_str().into())],
                             ));
                         });
 
-                    egui::CollapsingHeader::new(lg.text("sidebar-ruler"))
+                    egui::CollapsingHeader::new(lg.text("ruler-section-title"))
                         .default_open(true)
                         .show(ui, |ui| {
-                            ui.checkbox(
-                                &mut self.ruler,
-                                lg.text("sidebar-measure-distances-click-on-the-globe"),
-                            );
+                            ui.checkbox(&mut self.ruler, lg.text("ruler-enable-toggle"));
                             let total: f64 = self
                                 .ruler_pts
                                 .windows(2)
                                 .map(|w| haversine_km(w[0], w[1]))
                                 .sum();
                             ui.label(lg.format(
-                                "ruler-summary",
+                                "ruler-measurement-summary",
                                 &[
                                     ("count", self.ruler_pts.len().to_string().into()),
                                     ("distance", fmt_dist(total).into()),
                                 ],
                             ));
-                            if ui.button(lg.text("sidebar-clear-ruler")).clicked() {
+                            if ui.button(lg.text("ruler-clear-action")).clicked() {
                                 self.ruler_pts.clear();
                             }
                         });
 
-                    egui::CollapsingHeader::new(lg.text("sidebar-export"))
+                    egui::CollapsingHeader::new(lg.text("export-section-title"))
                         .default_open(false)
                         .show(ui, |ui| {
-                            if ui.button(lg.text("sidebar-save-screenshot-png")).clicked() {
+                            if ui.button(lg.text("screenshot-save-action")).clicked() {
                                 shot = true;
                             }
                             ui.weak(lg.format(
-                                "files-folder",
+                                "export-folder-label",
                                 &[("path", self.settings.screenshot_dir.as_str().into())],
                             ));
-                            if ui.button(lg.text("sidebar-change-folders")).clicked() {
+                            if ui.button(lg.text("settings-folders-action")).clicked() {
                                 self.show_settings = true;
                             }
                         });
 
-                    ui.checkbox(&mut self.show_help, lg.text("sidebar-show-controls-help"));
+                    ui.checkbox(&mut self.show_help, lg.text("controls-help-toggle"));
                     if self.show_help {
-                        ui.label(lg.text("sidebar-controls-help"));
+                        ui.label(lg.text("controls-help-text"));
                     }
                 });
             });

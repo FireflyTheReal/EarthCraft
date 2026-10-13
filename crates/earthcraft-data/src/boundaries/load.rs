@@ -102,7 +102,7 @@ pub fn load_boundaries_async(
             &l,
             &urls,
             PolygonLayer {
-                what: "Países/Countries",
+                what: "Countries",
                 layer: Layer::Countries,
                 kind: LabelKind::Country,
                 en_keys: &["NAME", "ADMIN", "name"],
@@ -128,7 +128,7 @@ pub fn load_boundaries_async(
             &l,
             &urls,
             PolygonLayer {
-                what: "Estados/States",
+                what: "States",
                 layer: Layer::States,
                 kind: LabelKind::State,
                 en_keys: &["name_en", "name", "NAME_1", "gn_name"],
@@ -236,7 +236,7 @@ async fn load_polygon_layer(
     log_status(
         log,
         format!(
-            "✔ {what}: {} linhas, {} nomes",
+            "✔ {what}: {} lines, {} names",
             lines.len() + lines_big.len(),
             labels.len()
         ),
@@ -251,7 +251,7 @@ async fn load_polygon_layer(
 async fn load_places(log: &StatusLog, urls: &[String]) -> Option<Patch> {
     let labels = first_features(
         log,
-        "Cidades/Cities",
+        "Cities",
         urls,
         |f: &serde_json::Value, labels: &mut Vec<MapLabel>| {
             let coords = f
@@ -287,7 +287,7 @@ async fn load_places(log: &StatusLog, urls: &[String]) -> Option<Patch> {
         },
     )
     .await?;
-    log_status(log, format!("✔ Cidades/Cities: {} nomes", labels.len()));
+    log_status(log, format!("✔ Cities: {} names", labels.len()));
     Some(Patch {
         layer: Layer::Cities,
         lines: vec![],

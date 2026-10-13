@@ -34,6 +34,9 @@ User instructions and the requested scope take precedence over these defaults.
   tracked. Do not update unrelated dependencies during a refactor.
 - Rust 1.88 is the declared minimum. Avoid newer language/library APIs unless
   intentionally updating the minimum and its CI job together.
+- Write application-owned error messages and diagnostic logs in English, including
+  error statuses displayed when the UI language is Portuguese. Normal UI labels
+  and success messages remain localized. Preserve external names and source errors.
 - Keep new error handling explicit and user-facing where appropriate. Do not add
   blanket lint allowances or swallow new errors just to make checks pass.
 - Write explanatory code comments in English, followed by Portuguese if desired.
@@ -70,6 +73,11 @@ User instructions and the requested scope take precedence over these defaults.
   Add the same semantic ID and named variables to both catalogs. Use `Lang::text`
   for static labels and `Lang::format` for whole messages; do not assemble translated
   fragments in Rust. Preserve number precision and whitespace during refactors.
+  Name IDs after the feature and message role, such as `settings-title`,
+  `search-input-placeholder`, or `wayback-fallback-help`. Keep them concise and
+  stable when wording changes. Do not generate IDs from translated sentences,
+  repeat the feature name (`settings-settings`), or truncate prose into a key.
+  Share an ID only when the meaning and usage match, not just the displayed text.
   See `docs/LOCALIZATION.md` for fallback, fixtures and contributor examples.
 
 ## Verification and reporting

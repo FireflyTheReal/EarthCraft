@@ -60,7 +60,7 @@ struct NominatimResult {
 }
 fn parse_geocode_response(value: serde_json::Value) -> Result<Vec<GeoResult>, crate::Error> {
     let mut out = Vec::new();
-    for item in value.as_array().ok_or("resposta inválida")? {
+    for item in value.as_array().ok_or("invalid search response")? {
         let Ok(row) = serde_json::from_value::<NominatimResult>(item.clone()) else {
             continue;
         };

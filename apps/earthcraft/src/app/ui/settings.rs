@@ -8,17 +8,17 @@ impl App {
     pub(in crate::app) fn settings_window(&mut self, ctx: &egui::Context) {
         let lg = self.lang;
         let mut open = self.show_settings;
-        egui::Window::new(lg.text("settings-settings"))
+        egui::Window::new(lg.text("settings-title"))
             .open(&mut open)
             .resizable(false)
             .default_width(420.0)
             .show(ctx, |ui| {
-                ui.strong(lg.text("settings-text-size"));
+                ui.strong(lg.text("settings-text-section-title"));
                 egui::Grid::new("settings_text")
                     .num_columns(2)
                     .spacing([12.0, 8.0])
                     .show(ui, |ui| {
-                        ui.label(lg.text("settings-buttons-and-panels"));
+                        ui.label(lg.text("settings-ui-scale-label"));
                         // The window auto-sizes to its (scaled) content, so changing the scale while dragging
                         // moves the slider under the cursor and feeds back into itself (shaking).
                         // Fix: only commit the new scale when the drag ends.
@@ -34,7 +34,7 @@ impl App {
                             self.settings.ui_scale = self.ui_scale_edit;
                         }
                         ui.end_row();
-                        ui.label(lg.text("settings-map-text-names-ruler-scale"));
+                        ui.label(lg.text("settings-map-scale-label"));
                         ui.add(
                             egui::Slider::new(
                                 &mut self.settings.map_scale,
@@ -46,13 +46,16 @@ impl App {
                         ui.end_row();
                     });
                 ui.separator();
-                ui.strong(lg.text("settings-where-to-save-files"));
+                ui.strong(lg.text("settings-folders-section-title"));
                 let folder_row =
                     |ui: &mut egui::Ui, label: &str, value: &mut String, title: &str| {
                         ui.label(label);
                         ui.horizontal(|ui| {
                             ui.add(egui::TextEdit::singleline(value).desired_width(300.0));
-                            if ui.button(lg.text("settings-browse")).clicked() {
+                            if ui
+                                .button(lg.text("settings-folder-browse-action"))
+                                .clicked()
+                            {
                                 let mut dlg = rfd::FileDialog::new().set_title(title);
                                 if std::path::Path::new(value.as_str()).is_dir() {
                                     dlg = dlg.set_directory(value.as_str());
@@ -65,19 +68,19 @@ impl App {
                     };
                 folder_row(
                     ui,
-                    lg.text("settings-screenshots-png"),
+                    lg.text("settings-screenshot-folder-label"),
                     &mut self.settings.screenshot_dir,
-                    lg.text("settings-screenshots-folder"),
+                    lg.text("settings-screenshot-folder-dialog-title"),
                 );
                 folder_row(
                     ui,
-                    lg.text("settings-kml-files"),
+                    lg.text("settings-kml-folder-label"),
                     &mut self.settings.kml_dir,
-                    lg.text("settings-kml-folder"),
+                    lg.text("settings-kml-folder-dialog-title"),
                 );
-                ui.weak(lg.text("settings-folders-are-created-automatically-when-saving"));
+                ui.weak(lg.text("settings-folder-creation-help"));
                 ui.separator();
-                if ui.button(lg.text("settings-restore-defaults")).clicked() {
+                if ui.button(lg.text("settings-reset-action")).clicked() {
                     self.settings = Settings::default();
                 }
             });

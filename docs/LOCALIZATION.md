@@ -5,21 +5,27 @@ EarthCraft embeds [English](../crates/earthcraft-core/locales/en.ftl) and
 Editing them requires rebuilding; no translation files need to be installed next
 to the executable. The existing `lang.txt` preference still chooses the language.
 
+Name keys after the feature and message role: `settings-title`,
+`search-input-placeholder`, `wayback-fallback-help`. A key stays the same when
+wording changes. Keep names concise; avoid sentence slugs, duplicated feature
+names and truncated prose. Share a key when its meaning and usage are the same,
+rather than merely because two labels currently have identical text.
+
 Add the same semantic ID and named variables to both files:
 
 ```ftl
 # en.ftl
-search-going = Going to { $destination }
+search-navigation-status = Going to { $destination }
 
 # pt-BR.ftl
-search-going = Indo para { $destination }
+search-navigation-status = Indo para { $destination }
 ```
 
 Rust calls the language API in core:
 
 ```rust
-let label = lang.text("sidebar-layers");
-let status = lang.format("search-going", &[("destination", name.as_str().into())]);
+let label = lang.text("layers-section-title");
+let status = lang.format("search-navigation-status", &[("destination", name.as_str().into())]);
 ```
 
 Use `text` for parameterless labels and `format` for whole messages. Keep
@@ -38,8 +44,10 @@ Missing or unresolvable translations fall back to English. If neither locale can
 resolve the message, the ID is displayed. Embedded syntax/duplicate-key mistakes
 fail initialization; automated tests catch these before release. Catalog parity
 is required even though runtime fallback exists. Native language names and
-provider-supplied geographic names remain metadata. Existing service diagnostic
-logs and source-error details retain their original text.
+provider-supplied geographic names remain metadata. Application-owned diagnostic
+logs and error messages use English. Error statuses explicitly select `Lang::En`,
+regardless of the UI language; normal labels and success messages use the selected
+locale. External source-error details are passed through unchanged.
 
 Run `cargo test -p earthcraft-core --locked`. Tests verify syntax, matching IDs
 and variables, resolution, fallback, application/data references and exact
@@ -51,6 +59,10 @@ attribution when those areas change.
 
 ## Português
 
+Nomeie as chaves pelo recurso e pela função da mensagem, como `settings-title`
+ou `search-input-placeholder`. Mantenha nomes curtos e estáveis quando o texto
+mudar; não transforme frases traduzidas em chaves nem repita o nome do recurso.
+Compartilhe uma chave apenas quando o significado e o uso forem os mesmos.
 Adicione as mesmas chaves e variáveis nos dois arquivos FTL. Use `Lang::text`
 para rótulos estáticos e `Lang::format` para mensagens completas com argumentos.
 Pontuação e ordem das palavras pertencem ao catálogo. Os arquivos ficam embutidos
@@ -60,4 +72,6 @@ Mantenha contagens e coordenadas como strings quando precisar conservar a
 formatação original. Mensagens ausentes usam inglês como fallback; falhas nas duas
 línguas mostram a chave. Os testes verificam sintaxe, chaves, variáveis, resolução
 e os textos originais. Execute os testes de core e confira a troca de idioma na
-interface. Nomes geográficos e diagnósticos existentes continuam vindos dos serviços.
+interface. Nomes geográficos continuam vindos dos serviços. Logs e mensagens de erro do
+aplicativo usam inglês, inclusive quando a interface está em português; detalhes
+de erros externos são preservados.

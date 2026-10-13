@@ -1,5 +1,5 @@
 use super::App;
-use earthcraft_core::math::now_unix;
+use earthcraft_core::{language::Lang, math::now_unix};
 use earthcraft_data::kml::{load_kml, save_kml};
 use eframe::egui;
 use std::path::PathBuf;
@@ -22,11 +22,11 @@ impl App {
             Ok(_) => {
                 self.kml_path = path.to_string_lossy().into_owned();
                 lg.format(
-                    "files-saved",
+                    "kml-save-success",
                     &[("path", path.display().to_string().into())],
                 )
             }
-            Err(e) => lg.format("files-save-error", &[("error", e.to_string().into())]),
+            Err(e) => Lang::En.format("kml-save-error", &[("error", e.to_string().into())]),
         };
     }
 
@@ -35,7 +35,7 @@ impl App {
         match load_kml(&path.to_string_lossy(), lg) {
             Ok(v) => {
                 self.status = lg.format(
-                    "files-imported",
+                    "kml-import-success",
                     &[
                         ("count", v.len().to_string().into()),
                         ("path", path.display().to_string().into()),
@@ -49,7 +49,7 @@ impl App {
                 self.placemarks.extend(v);
             }
             Err(e) => {
-                self.status = lg.format("files-open-error", &[("error", e.to_string().into())])
+                self.status = Lang::En.format("kml-open-error", &[("error", e.to_string().into())])
             }
         }
     }
@@ -58,7 +58,7 @@ impl App {
         let dir = PathBuf::from(&self.settings.kml_dir);
         let mut dlg = rfd::FileDialog::new()
             .add_filter("KML", &["kml", "KML"])
-            .set_title(self.lang.text("files-open-kml"));
+            .set_title(self.lang.text("kml-open-dialog-title"));
         if dir.is_dir() {
             dlg = dlg.set_directory(&dir);
         }
@@ -77,7 +77,7 @@ impl App {
         let mut dlg = rfd::FileDialog::new()
             .add_filter("KML", &["kml"])
             .set_file_name(name)
-            .set_title(self.lang.text("files-save-kml-as"));
+            .set_title(self.lang.text("kml-save-dialog-title"));
         if dir.is_dir() {
             dlg = dlg.set_directory(&dir);
         }
@@ -99,15 +99,15 @@ impl App {
                 match image::save_buffer(&path, buf, *w as u32, *h as u32, image::ColorType::Rgba8)
                 {
                     Ok(_) => lg.format(
-                        "files-screenshot",
+                        "screenshot-save-success",
                         &[("path", path.display().to_string().into())],
                     ),
                     Err(e) => {
-                        lg.format("files-operation-error", &[("error", e.to_string().into())])
+                        Lang::En.format("screenshot-save-error", &[("error", e.to_string().into())])
                     }
                 }
             }
-            None => lg.text("files-nothing-to-save-yet").into(),
+            None => Lang::En.text("screenshot-empty-error").into(),
         };
     }
 
@@ -122,10 +122,7 @@ impl App {
             if is_kml {
                 self.load_kml_from(&path);
             } else {
-                self.status = self
-                    .lang
-                    .text("files-only-kml-files-can-be-dropped-here")
-                    .into();
+                self.status = Lang::En.text("kml-drop-type-error").into();
             }
         }
     }

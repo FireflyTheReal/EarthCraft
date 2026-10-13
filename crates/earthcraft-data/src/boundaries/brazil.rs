@@ -80,11 +80,11 @@ async fn load_brazil_state(uf: u32, include_geometry: bool) -> Result<Vec<Muni>,
             .await;
         match result {
             Ok(out) if !out.is_empty() => return Ok(out),
-            Ok(_) => last = "sem municípios no arquivo".into(),
+            Ok(_) => last = "no municipalities in the document".into(),
             Err(error) => last = error.to_string(),
         }
     }
-    Err(format!("UF {uf}: {last}").into())
+    Err(format!("State {uf}: {last}").into())
 }
 
 // Brazil: municipality outlines/names from IBGE (official API, GitHub mirror as fallback), and
@@ -104,7 +104,7 @@ pub(super) async fn load_brazil(log: &StatusLog, tx: &mpsc::Sender<Patch>, inclu
         }
     }
     if !errs.is_empty() {
-        log_status(log, format!("✖ Municípios: {}", errs.join("; ")));
+        log_status(log, format!("✖ Municipalities: {}", errs.join("; ")));
     }
     if munis.is_empty() {
         return;
@@ -126,7 +126,10 @@ pub(super) async fn load_brazil(log: &StatusLog, tx: &mpsc::Sender<Patch>, inclu
             });
         }
     }
-    log_status(log, format!("✔ Municípios: {} municípios", munis.len()));
+    log_status(
+        log,
+        format!("✔ Municipalities: {} municipalities", munis.len()),
+    );
     let _ = tx.send(Patch {
         layer: Layer::Cities,
         lines,
@@ -141,7 +144,7 @@ pub(super) async fn load_brazil(log: &StatusLog, tx: &mpsc::Sender<Patch>, inclu
     let json = match fetch_json(&url).await {
         Ok(j) => j,
         Err(e) => {
-            log_status(log, format!("✖ Regiões metropolitanas: {url}: {e}"));
+            log_status(log, format!("✖ Metropolitan regions: {url}: {e}"));
             return;
         }
     };
@@ -183,10 +186,10 @@ pub(super) async fn load_brazil(log: &StatusLog, tx: &mpsc::Sender<Patch>, inclu
     if mlines.is_empty() {
         log_status(
             log,
-            "✖ Regiões metropolitanas: resposta do IBGE sem municípios".into(),
+            "✖ Metropolitan regions: IBGE response contains no municipalities".into(),
         );
     } else {
-        log_status(log, format!("✔ Regiões metropolitanas: {}", mlabels.len()));
+        log_status(log, format!("✔ Metropolitan regions: {}", mlabels.len()));
         let _ = tx.send(Patch {
             layer: Layer::Metro,
             lines: mlines,

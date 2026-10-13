@@ -164,6 +164,6 @@ Core embeds Fluent resources for `en` and `pt-BR`. Static labels are formatted
 once and cached; dynamic messages use named variables, with English fallback.
 The concurrent bundle also supports KML fallback names in background importers.
 Locale persistence and native language names retain their existing values.
-Geographic names remain service data, rather than catalog keys. Existing service
-logs and underlying error details retain their original text.
+Geographic names remain service data, rather than catalog keys. Application-owned diagnostic logs and error messages use English, even in
+Portuguese mode. Underlying external error details retain their original text.
 See [localization](LOCALIZATION.md) for editing catalogs and regression fixtures.
