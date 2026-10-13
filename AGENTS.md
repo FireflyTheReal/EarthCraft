@@ -160,6 +160,16 @@ User instructions and the requested scope take precedence over these defaults.
   Share an ID only when the meaning and usage match, not just the displayed text.
   See `docs/LOCALIZATION.md` for fallback, fixtures and contributor examples.
 
+- GPU acceleration must remain optional when introduced: retain CPU rendering,
+  validate adapter capabilities/limits and precision, and fall back explicitly
+  when adapter/device initialization fails. Add a CPU-forced diagnostic mode and
+  test failure paths. Do not claim changing egui's backend accelerates the globe.
+- Performance claims need workload-specific evidence. Opt-in profiling uses a
+  bounded background recorder; never write timing logs on UI/pixel paths, mix
+  raster resolutions, or equate app-side texture submission with GPU execution.
+  Test both default and profiling builds. Keep captures and temporary caches out
+  of Git; retain concise aggregate evidence and report dropped events/outliers.
+
 ## Verification and reporting
 
 Run from the repository root:

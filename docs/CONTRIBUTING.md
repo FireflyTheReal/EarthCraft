@@ -209,3 +209,55 @@ CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_DEV_INCREMENTAL=false cargo test -p eart
 It verifies complete suggestion parity while measuring broad, narrow and missing
 prefixes over 16,000 synthetic names. Report map bytes separately from the owned
 name snapshot; compare construction separately from per-query cost.
+
+## Opt-in native profiling
+
+Normal builds compile timing capture out. To capture a native session:
+
+```sh
+CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_DEV_INCREMENTAL=false cargo build -p earthcraft --features profiling --locked
+EARTHCRAFT_PROFILE=/tmp/earthcraft-profile.csv RAYON_NUM_THREADS=8 ./target/debug/earthcraft
+python3 scripts/profile_summary.py /tmp/earthcraft-profile.csv
+```
+
+The destination must not already exist; choose a new filename for each run. File
+writing runs on a bounded background recorder (8,192 queued events). Producers
+never wait for writes; `dropped_events` reports saturation. Failures appear in
+stderr. Closing the profiling app requests a bounded final flush. Reports contain
+operation timings and dimensions/counts only, without names, tile URLs or queries.
+Profiling-enabled builds require `EARTHCRAFT_PROFILE` to select an output file.
+Do not use their timings as overhead-free measurements.
+
+Finish compilation before recording measured intervals. Fix the compiler/profile,
+Rayon thread count, window size/DPI, layers and cache state for comparisons. Warm
+rotation, coordinate flight/detail loading, municipality/metropolitan loading and
+close rotation should be separate intervals. Use an isolated copy of cached data
+when changing disk/cache controls. Keep live downloads distinguishable from warm
+CPU work; record resident-memory samples separately from decoded-cache estimates.
+
+Optional phase JSON uses microseconds since the Unix epoch:
+
+```json
+[{"phase":"warm_rotation","start_us":1791904857946195,"end_us":1791904900972873}]
+```
+
+```sh
+python3 scripts/profile_summary.py /tmp/earthcraft-profile.csv --phases /tmp/phases.json
+```
+
+The script groups raster resolutions separately and reports median, nearest-rank
+p95 and maxima. Open-ended phases are supported for inspecting a live recording.
+`frame.delivery` measures submit-to-UI-poll time, not input-to-screen latency;
+`ui.texture_submit` measures app-side submission, not driver upload. UI timings
+exclude eframe's subsequent tessellation/GPU work. `overlay.prepare` includes
+cached returns and index rebuilding when needed. Tile lock timing samples view
+admission, not every per-pixel cache miss. Avoid adding overlapping timing medians
+across threads. The [native baseline](PERFORMANCE_BASELINE.md) records limitations
+and the [GPU plan](GPU_RENDERER.md) records fallback requirements.
+
+Feature-enabled checks must accompany normal checks when changing instrumentation:
+
+```sh
+cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+cargo test --workspace --all-features --locked
+```

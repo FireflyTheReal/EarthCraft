@@ -487,3 +487,23 @@ while rotating, stationary label toggles, sunlight/grid effects, PNG export and 
 folder edit persisted to settings. Other platforms, native KML dialogs and the
 full input/provider checklist were not rerun for this follow-up. No end-to-end
 performance percentage is claimed from these ownership changes.
+
+## Native profiling checkpoint
+
+Opt-in `profiling` features now record bounded background CSV timing events for
+rasterization, frame queue/delivery, conversion, overlays, UI updates, admission
+lock waits and feature/decode work/queues. Normal builds compile instrumentation
+out. The native session and aggregate report are recorded in
+[PERFORMANCE_BASELINE.md](PERFORMANCE_BASELINE.md), with reproduction instructions
+in CONTRIBUTING.md.
+
+Full-resolution raster cost supports an optional GPU renderer, while world-view
+overlays and large index rebuilds remain separate costs. Measured view-admission
+lock waits do not justify DashMap; this is not a measurement of every miss-path
+lock. CPU fallback and a CPU-forced mode are requirements of the future backend,
+not implemented features. See [GPU_RENDERER.md](GPU_RENDERER.md).
+
+Normal workspace regressions still pass 93 tests; feature-enabled checks pass
+94, including recorder output. Strict Clippy and Rust 1.89 all-target checks also
+cover the profiling feature. GPU code, backend selection and the 0.1.0 bump remain
+pending. Raw captures and temporary native cache directories stay out of Git.
