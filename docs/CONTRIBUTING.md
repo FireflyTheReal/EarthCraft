@@ -105,6 +105,15 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
   result list and late responses must not return. Check singular/plural result
   and KML import messages in both languages.
 - Toggle borders, city/metropolitan layers, labels, grid, atmosphere and sunlight.
+  For real aircraft, enable the layer and inspect source status and attribution
+  in the sidebar/Explorer. Rotate, fly, resize and change map text scale/language;
+  icons must follow the displayed globe, labels retain order and hover stays live.
+  Check poles/dateline, empty data, one provider failing and both failing; errors
+  must be English while ordinary status/hover text follows the UI language.
+  Hide the layer or switch away from Earth: new requests and marker repaints pause.
+  Return to Earth and verify cached data/fresh results recover. Close while a
+  request/projection is busy; closing must not wait on aircraft work. These checks
+  exercise live services and must be reported separately from isolated fixtures.
   Enable the grid's indented Show numbers option, zoom and rotate through the
   dateline/poles; labels must follow the displayed lines and avoid each other.
   Toggle numbers while stationary, change map text size/language and resize.

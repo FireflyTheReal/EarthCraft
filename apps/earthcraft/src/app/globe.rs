@@ -207,7 +207,7 @@ impl App {
             need = false;
         }
         if need && !self.sidebar_animating {
-            self.request_render(w, h, render_aspect, presentation, viewport);
+            self.request_render(w, h, render_aspect, presentation, viewport, ppp);
             self.last_state = state;
             self.last_gen = generation;
             self.last_render = Instant::now();

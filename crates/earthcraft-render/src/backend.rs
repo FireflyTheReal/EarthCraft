@@ -278,6 +278,7 @@ mod native_fallback_tests {
                 sun: None,
             },
             overlays: None,
+            aircraft: None,
             presentation: 0,
         };
         let fallback = renderer.render(&request, &cache, Vec::new());
