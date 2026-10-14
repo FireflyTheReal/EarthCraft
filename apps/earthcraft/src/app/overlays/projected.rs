@@ -103,7 +103,7 @@ fn build_parts<'a>(
             if galley.is_empty() {
                 continue;
             }
-            shapes.push(painter.fonts(|fonts| {
+            shapes.push(painter.fonts_mut(|fonts| {
                 Shape::text(
                     fonts,
                     pos,
@@ -113,7 +113,7 @@ fn build_parts<'a>(
                     Color32::from_black_alpha(180),
                 )
             }));
-            shapes.push(painter.fonts(|fonts| {
+            shapes.push(painter.fonts_mut(|fonts| {
                 Shape::text(
                     fonts,
                     pos + Vec2::new(0.0, LABEL_HIGHLIGHT_OFFSET_POINTS),

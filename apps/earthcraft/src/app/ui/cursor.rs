@@ -73,7 +73,7 @@ pub(super) fn cursor_readout(ui: &mut egui::Ui, cursor: Option<(f64, f64)>, side
                     egui::Label::new(
                         egui::RichText::new(coordinate_text(cursor, precision, prefix)).font(font),
                     )
-                    .wrap(false),
+                    .extend(),
                 );
             }
         },
@@ -100,8 +100,8 @@ mod tests {
         for border_x in [120.0, 220.0, 340.0] {
             for cursor in [None, Some((-90.0, -180.0))] {
                 let ctx = egui::Context::default();
-                let output = ctx.run(egui::RawInput::default(), |ctx| {
-                    egui::TopBottomPanel::bottom("test").show(ctx, |ui| {
+                let output = crate::app::test_ui::run(&ctx, egui::RawInput::default(), |ui| {
+                    egui::Panel::bottom("test").show(ui, |ui| {
                         ui.horizontal(|ui| {
                             cursor_readout(ui, cursor, border_x);
                             let next = ui.label("Center");

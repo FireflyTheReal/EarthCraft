@@ -75,8 +75,8 @@ impl App {
             menu.update(
                 self.lang,
                 self.image.is_some(),
-                ctx.wants_keyboard_input() || self.ruler_paths.can_undo(),
-                ctx.wants_keyboard_input() || self.ruler_paths.can_redo(),
+                ctx.egui_wants_keyboard_input() || self.ruler_paths.can_undo(),
+                ctx.egui_wants_keyboard_input() || self.ruler_paths.can_redo(),
             );
         }
     }
@@ -117,7 +117,7 @@ impl App {
                 } else {
                     super::ruler_history::HistoryCommand::Redo
                 };
-                if ctx.wants_keyboard_input() {
+                if ctx.egui_wants_keyboard_input() {
                     // Native accelerators consume their key events. Hand text edits
                     // the corresponding egui event so their own undo history wins.
                     ctx.input_mut(|input| {

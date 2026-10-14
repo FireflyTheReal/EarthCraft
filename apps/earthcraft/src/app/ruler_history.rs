@@ -25,7 +25,7 @@ pub(super) fn text_shortcut_event(command: HistoryCommand) -> egui::Event {
 }
 
 fn consume_shortcut(ctx: &egui::Context) -> Option<HistoryCommand> {
-    if ctx.wants_keyboard_input() {
+    if ctx.egui_wants_keyboard_input() {
         return None;
     }
     ctx.input_mut(|input| {
@@ -80,14 +80,15 @@ mod tests {
         let ctx = egui::Context::default();
         let mut text = String::new();
         let frame = |time, events, text: &mut String| {
-            let _ = ctx.run(
+            let _ = crate::app::test_ui::run(
+                &ctx,
                 egui::RawInput {
                     time: Some(time),
                     events,
                     ..Default::default()
                 },
-                |ctx| {
-                    egui::CentralPanel::default().show(ctx, |ui| {
+                |ui| {
+                    egui::CentralPanel::default().show(ui, |ui| {
                         ui.text_edit_singleline(text).request_focus();
                     });
                 },
@@ -126,15 +127,17 @@ mod tests {
                 let mut text = "text".to_string();
                 let frame = |events, text: &mut String| {
                     let mut command = None;
-                    let _ = ctx.run(
+                    let _ = crate::app::test_ui::run(
+                        &ctx,
                         egui::RawInput {
                             events,
                             ..Default::default()
                         },
-                        |ctx| {
+                        |ui| {
+                            let ctx = &ui.ctx().clone();
                             command = consume_shortcut(ctx);
                             if text_focus {
-                                egui::CentralPanel::default().show(ctx, |ui| {
+                                egui::CentralPanel::default().show(ui, |ui| {
                                     ui.text_edit_singleline(text).request_focus();
                                 });
                             }

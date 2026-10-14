@@ -39,6 +39,7 @@ pub(super) fn relative_scale_slider(
                 }
                 position(*scale as f64, minimum, maximum)
             })
+            .handle_shape(egui::style::HandleShape::Circle)
             .show_value(false)
             .smart_aim(false),
         );
@@ -59,7 +60,7 @@ pub(super) fn relative_scale_slider(
         let mut number = ui.add(
             egui::DragValue::new(scale)
                 .speed(SCALE_STEP)
-                .clamp_range(minimum..=maximum)
+                .range(minimum..=maximum)
                 .custom_formatter(|value, _| format!("{:.0}%", value * PERCENT_PER_SCALE))
                 .custom_parser(|text| {
                     let value: f64 = text.trim().trim_end_matches('%').trim().parse().ok()?;
@@ -107,12 +108,13 @@ mod tests {
             for (key, expected) in [(egui::Key::ArrowLeft, 0.95), (egui::Key::ArrowRight, 1.05)] {
                 let ctx = egui::Context::default();
                 let mut scale = 1.0;
-                let _ = ctx.run(egui::RawInput::default(), |ctx| {
-                    egui::CentralPanel::default().show(ctx, |ui| {
+                let _ = crate::app::test_ui::run(&ctx, egui::RawInput::default(), |ui| {
+                    egui::CentralPanel::default().show(ui, |ui| {
                         relative_scale_slider(ui, &mut scale, minimum, maximum).request_focus();
                     });
                 });
-                let _ = ctx.run(
+                let _ = crate::app::test_ui::run(
+                    &ctx,
                     egui::RawInput {
                         events: vec![egui::Event::Key {
                             key,
@@ -123,8 +125,8 @@ mod tests {
                         }],
                         ..Default::default()
                     },
-                    |ctx| {
-                        egui::CentralPanel::default().show(ctx, |ui| {
+                    |ui| {
+                        egui::CentralPanel::default().show(ui, |ui| {
                             relative_scale_slider(ui, &mut scale, minimum, maximum);
                         });
                     },
@@ -136,8 +138,8 @@ mod tests {
     #[test]
     fn actual_slider_handles_align_at_one_hundred_percent() {
         let ctx = egui::Context::default();
-        let output = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        let output = crate::app::test_ui::run(&ctx, egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 relative_scale_slider(
                     ui,
                     &mut 1.0,

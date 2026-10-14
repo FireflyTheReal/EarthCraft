@@ -331,6 +331,7 @@ impl App {
             Rect::from_center_size(Pos2::new(cx, hy), Vec2::new(20.0 * k, 11.0 * k)),
             4.0 * k,
             Stroke::new(1.0_f32, edge),
+            egui::StrokeKind::Middle,
         );
         painter.line_segment(
             [Pos2::new(cx - 4.5 * k, hy), Pos2::new(cx + 4.5 * k, hy)],

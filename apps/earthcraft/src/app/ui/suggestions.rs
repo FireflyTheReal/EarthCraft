@@ -14,8 +14,8 @@ impl App {
             .fixed_pos(field.left_bottom() + Vec2::new(0.0, 3.0))
             .show(ctx, |ui| {
                 egui::Frame::popup(ui.style())
-                    .rounding(14.0)
-                    .inner_margin(egui::Margin::symmetric(4.0, 6.0))
+                    .corner_radius(14.0)
+                    .inner_margin(egui::Margin::symmetric(4, 6))
                     .show(ui, |ui| {
                         ui.set_width(width);
                         ui.spacing_mut().item_spacing.y = 0.0;
@@ -72,7 +72,7 @@ impl App {
                                     if split > 0 { strong } else { normal },
                                 ),
                             );
-                            let galley = ui.fonts(|f| f.layout_job(job));
+                            let galley = ui.fonts_mut(|f| f.layout_job(job));
                             let pos = Pos2::new(
                                 rect.left() + 40.0,
                                 rect.center().y - galley.size().y / 2.0,

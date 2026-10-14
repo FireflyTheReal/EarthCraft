@@ -1,14 +1,16 @@
 use super::super::App;
 use earthcraft_core::language::Lang;
 use eframe::egui::{self, Key, Rect};
+use emath::GuiRounding;
 impl App {
-    pub(in crate::app) fn top_bar(&mut self, ctx: &egui::Context) {
+    pub(in crate::app) fn top_bar(&mut self, ui: &mut egui::Ui) {
+        let ctx = &ui.ctx().clone();
         let lg = self.lang;
         let mut field_rect = Rect::NOTHING;
-        const BAR_MARGIN_POINTS: egui::Margin = egui::Margin::symmetric(8.0, 4.0);
-        egui::TopBottomPanel::top("top")
-            .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(BAR_MARGIN_POINTS))
-            .show(ctx, |ui| {
+        const BAR_MARGIN_POINTS: egui::Margin = egui::Margin::symmetric(8, 4);
+        egui::Panel::top("top")
+            .frame(egui::Frame::side_top_panel(&ctx.global_style()).inner_margin(BAR_MARGIN_POINTS))
+            .show(ui, |ui| {
                 ui.horizontal(|ui| {
                     let sidebar_hint = if self.sidebar_open {
                         lg.text("sidebar-hide-tooltip")
@@ -99,7 +101,7 @@ impl App {
                             self.show_settings = !self.show_settings;
                         }
                         let mut chosen = self.lang;
-                        egui::ComboBox::from_id_source("lang_select")
+                        egui::ComboBox::from_id_salt("lang_select")
                             .selected_text(format!("🌐 {}", chosen.label()))
                             .show_ui(ui, |ui| {
                                 super::selection::size_menu(
@@ -132,7 +134,7 @@ impl App {
                         let compact = super::paths::fit_tail(ui, &compact, available);
                         ui.add_sized(
                             [available, ui.spacing().interact_size.y],
-                            egui::Label::new(compact).truncate(true),
+                            egui::Label::new(compact).truncate(),
                         )
                         .on_hover_text(&self.status);
                     });
@@ -142,9 +144,10 @@ impl App {
     }
 
     /// Status below the map.
-    pub(in crate::app) fn bottom_bar(&mut self, ctx: &egui::Context) {
+    pub(in crate::app) fn bottom_bar(&mut self, ui: &mut egui::Ui) {
+        let ctx = &ui.ctx().clone();
         let lg = self.lang;
-        egui::TopBottomPanel::bottom("bottom").show(ctx, |ui| {
+        egui::Panel::bottom("bottom").show(ui, |ui| {
             let bounds = ui.available_rect_before_wrap();
             let heading = self
                 .renderer
@@ -163,21 +166,20 @@ impl App {
                 bounds.min,
                 egui::pos2(split - ui.spacing().item_spacing.x, bounds.bottom()),
             );
-            ui.allocate_ui_at_rect(left_rect, |ui| {
+            ui.scope_builder(egui::UiBuilder::new().max_rect(left_rect), |ui| {
                 ui.horizontal(|ui| {
                     ui.set_clip_rect(ui.max_rect().intersect(ui.clip_rect()));
                     let sidebar_right =
                         egui::containers::panel::PanelState::load(ctx, egui::Id::new("side"))
                             .map_or(
-                                ctx.screen_rect().left()
+                                ctx.content_rect().left()
                                     + super::sidebar::DEFAULT_SIDEBAR_WIDTH_POINTS,
-                                |state| state.rect.right(),
+                                |state| state.outer_rect.right(),
                             );
-                    // egui 0.27 paints the SidePanel separator one point inside its rect.
+                    // Keep the cursor divider on the inner edge of the sidebar separator.
                     const SIDEBAR_SEPARATOR_INSET_POINTS: f32 = 1.0;
-                    let sidebar_border_x = ui
-                        .painter()
-                        .round_to_pixel(sidebar_right - SIDEBAR_SEPARATOR_INSET_POINTS);
+                    let sidebar_border_x = (sidebar_right - SIDEBAR_SEPARATOR_INSET_POINTS)
+                        .round_to_pixels(ctx.pixels_per_point());
                     super::cursor::cursor_readout(ui, self.cursor, sidebar_border_x);
                     ui.monospace(lg.format(
                         "statusbar-camera-center",
@@ -220,7 +222,7 @@ impl App {
                     }
                 });
             });
-            ui.allocate_ui_at_rect(heading_rect, |ui| {
+            ui.scope_builder(egui::UiBuilder::new().max_rect(heading_rect), |ui| {
                 if super::compass::heading_readout(ui, heading, lg) {
                     self.cam.heading = 0.0;
                     self.fly = None;

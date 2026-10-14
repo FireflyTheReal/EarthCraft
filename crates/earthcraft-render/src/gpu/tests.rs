@@ -113,7 +113,9 @@ fn gpu_overview_matches_cpu() {
         )
         .is_err());
     gpu.device.destroy();
-    gpu.device.poll(wgpu::Maintain::Wait);
+    gpu.device
+        .poll(wgpu::PollType::wait_indefinitely())
+        .unwrap();
     assert!(
         gpu.failure.lock().unwrap().is_some(),
         "device loss must be reported for CPU fallback"

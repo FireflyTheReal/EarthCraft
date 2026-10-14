@@ -2,7 +2,7 @@
 
 All GPU globe rendering is **experimental**, on every platform. CPU rendering
 remains the default; published release downloads exclude the experimental GPU
-backend. Source builds with the `gpu` feature include a wgpu 0.19 compute renderer
+backend. Source builds with the `gpu` feature include a wgpu 30 compute renderer
 alongside the CPU renderer.
 The experimental renderer ray-casts the overview globe, calculates Mercator coordinates and LOD, samples
 imagery, blends zoom levels, and applies sunlight and atmosphere on the GPU.
@@ -129,3 +129,22 @@ coordinate fly-to at 3 km, exact-grid CPU fallback and window resizing were
 exercised. A forced-CPU instance displayed the globe without GPU initialization.
 Native device destruction also verified publication of a CPU frame and session
 fallback. Windows/Linux GPU behavior and packaging are not locally verified.
+
+## Dependency upgrade validation (2026-10-14)
+
+The wgpu 30.0.1 upgrade passed native Metal CPU/GPU parity, tile dependency
+coverage and device-loss fallback tests on Apple M1 Pro. The isolated complete-frame
+benchmark used the default optimized development profile (debug information enabled),
+eight Rayon workers and fifteen warm frames per size; initialization and first
+upload were excluded. No concurrent build ran during measurement.
+
+| Raster | CPU median | GPU complete-frame median | Maximum channel difference |
+| --- | ---: | ---: | ---: |
+| 512×384 | 2.294 ms | 1.438 ms | 1 |
+| 2000×1488 | 49.911 ms | 18.744 ms | 1 |
+
+The 597-tile residency case also preserved pixels and dependency coverage across
+three hemispheric views. These measurements use different build settings from
+the earlier baseline and do not establish an upgrade speedup or application FPS.
+Headless UI regressions passed; native desktop interaction, Windows/Linux GPU
+behavior, packaging and live map services were not rechecked for this upgrade.

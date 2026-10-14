@@ -143,15 +143,15 @@ impl App {
     }
 
     pub(super) fn handle_dropped_files(&mut self, ctx: &egui::Context) {
-        let dropped: Vec<egui::DroppedFile> = ctx.input(|i| i.raw.dropped_files.clone());
+        let dropped = ctx.input(|i| i.raw.dropped_files.clone());
         for f in dropped {
-            let Some(path) = f.path else { continue };
+            let path = f.path();
             let is_kml = path
                 .extension()
                 .and_then(|e| e.to_str())
                 .is_some_and(|e| e.eq_ignore_ascii_case("kml"));
             if is_kml {
-                self.load_kml_from(&path);
+                self.load_kml_from(path);
             } else {
                 self.status = Lang::En.text("kml-drop-type-error").into();
             }

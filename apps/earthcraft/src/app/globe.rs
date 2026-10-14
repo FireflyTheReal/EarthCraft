@@ -82,7 +82,7 @@ impl App {
                 interacting = true;
             }
         }
-        if !ctx.wants_keyboard_input() {
+        if !ctx.egui_wants_keyboard_input() {
             let dt = ctx.input(|i| i.unstable_dt).min(MAX_FRAME_DELTA_SECS) as f64;
             let sp = PAN_SPEED_POINTS_PER_SECOND * dt;
             let (mut dx, mut dy) = (0.0, 0.0);
@@ -376,22 +376,22 @@ impl App {
                 ui.separator();
                 if ui.button(lg.text("globe-placemark-action")).clicked() {
                     act = Some(0);
-                    ui.close_menu();
+                    ui.close();
                 }
                 if ui.button(lg.text("globe-fly-to-action")).clicked() {
                     act = Some(1);
-                    ui.close_menu();
+                    ui.close();
                 }
                 if ui.button(lg.text("globe-ruler-point-action")).clicked() {
                     act = Some(2);
-                    ui.close_menu();
+                    ui.close();
                 }
                 if ui
                     .button(lg.text("globe-copy-coordinates-action"))
                     .clicked()
                 {
                     act = Some(3);
-                    ui.close_menu();
+                    ui.close();
                 }
             }
             None => {

@@ -117,7 +117,7 @@ fn overlay_projection_and_label_occupancy_time() {
     let mut reuse = Vec::new();
     for round in 0..8 {
         for fresh in [true, false] {
-            ctx.begin_frame(egui::RawInput::default());
+            ctx.begin_pass(egui::RawInput::default());
             let painter = ctx.layer_painter(LayerId::background());
             if fresh {
                 cache.invalidate();
@@ -138,7 +138,9 @@ fn overlay_projection_and_label_occupancy_time() {
                     reuse.push(elapsed);
                 }
             }
-            black_box(ctx.end_frame());
+            let mut output = ctx.end_pass();
+            output.textures_delta.clear();
+            black_box(output);
         }
     }
     println!("10000 32-point lines + 8000 labels: rebuild {:.3} ms, reuse {:.3} ms (median of 7; projection/placement/shape submission only)", median(rebuild), median(reuse));

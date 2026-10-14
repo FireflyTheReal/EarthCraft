@@ -20,18 +20,19 @@ earthcraft-core.workspace = true
 earthcraft-data.workspace = true
 earthcraft-render.workspace = true
 eframe.workspace = true
+emath.workspace = true
 image.workspace = true
 rstar.workspace = true
 sys-locale.workspace = true
 
 # Native file/folder dialogs. On Linux we use GTK3 (works without xdg-desktop-portal).
 [target.'cfg(target_os = "linux")'.dependencies]
-rfd = { version = "0.15", default-features = false, features = ["gtk3"] }
+rfd = { version = "0.17.2", default-features = false, features = ["gtk3"] }
 [target.'cfg(not(target_os = "linux"))'.dependencies]
-rfd = "0.15"
+rfd = "0.17.2"
 
 [target.'cfg(windows)'.build-dependencies]
-winresource = "0.1"
+winresource = "0.1.34"
 
 [package.metadata.bundle]
 name = "EarthCraft"

@@ -27,6 +27,12 @@ package metadata and build profiles; `Cargo.lock` pins resolved dependencies.
 
 ## Rendering and UI
 
+The desktop uses eframe/egui/emath 0.36 with the OpenGL (`glow`) UI backend
+explicitly selected. Background completion polling runs in `App::logic`, including
+while hidden; panels and widgets run in `App::ui` using the root UI. The optional
+compute renderer uses wgpu 30 independently of the UI backend, with shader tests
+using its matching `wgpu::naga` re-export. The workspace requires Rust 1.95.
+
 The app captures immutable camera/style/layer inputs. A render-owned coordinator
 holds one active job, one replaceable pending request and one completed frame.
 Provider, release, size and style changes reject incompatible results; compatible

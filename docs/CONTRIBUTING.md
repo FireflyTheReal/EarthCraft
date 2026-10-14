@@ -6,9 +6,9 @@ so reviewers can distinguish behavior changes from file organization.
 
 ## Development
 
-Install Rust 1.89 or newer through rustup. The locked dependency graph includes
-packages requiring 1.89; the old README's 1.82 requirement was no longer accurate.
-The workspace declares 1.89 and CI includes that toolchain. Stable is suitable for
+Install Rust 1.95 or newer through rustup. The locked dependency graph includes
+eframe/egui 0.36, which require Rust 1.95.
+The workspace declares 1.95 and CI includes that toolchain. Stable is suitable for
 day-to-day development; do not use APIs newer than the declared minimum.
 
 On Linux, install build prerequisites before compiling:
@@ -39,7 +39,7 @@ cargo run -p earthcraft
 
 Keep `Cargo.lock` in version control. Normal verification uses `--locked` to
 catch unintended dependency resolution changes. Intentional dependency updates
-should be reviewed separately, including compatibility with Rust 1.89.
+should be reviewed separately, including compatibility with Rust 1.95.
 The `app-build-test` workflow runs on pushes and pull requests changing `apps/**`
 or `crates/**`, and can also be run manually from Actions. It formats, lints,
 tests, and builds on Linux/macOS/Windows, plus
@@ -381,7 +381,7 @@ previous frame and overlays at their original rectangle, clipped to the availabl
 map area, until a compatible frame for the settled viewport arrives. KML drops
 remain available with the sidebar hidden.
 
-macOS uses muda 0.19 (compatible with Rust 1.89) in `apps/earthcraft/src/app/menu`.
+macOS uses muda 0.21 (compatible with Rust 1.95) in `apps/earthcraft/src/app/menu`.
 Menu objects and handlers stay on the window thread. Callbacks enqueue actions
 and wake egui; the app opens dialogs, submits existing KML/screenshot jobs and
 closes normally. Screenshot is disabled before a frame exists. Captions follow

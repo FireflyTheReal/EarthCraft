@@ -16,7 +16,7 @@ pub(in crate::app) fn apply_ui_scale(ctx: &egui::Context, scale: f32) {
         FontFamily::{Monospace, Proportional},
         TextStyle,
     };
-    let mut style = (*ctx.style()).clone();
+    let mut style = (*ctx.global_style()).clone();
     style.text_styles = [
         (TextStyle::Small, FontId::new(10.0 * scale, Proportional)),
         (TextStyle::Body, FontId::new(14.0 * scale, Proportional)),
@@ -26,5 +26,5 @@ pub(in crate::app) fn apply_ui_scale(ctx: &egui::Context, scale: f32) {
     ]
     .into();
     style.spacing.interact_size.y = (20.0 * scale).max(18.0);
-    ctx.set_style(style);
+    ctx.set_global_style(style);
 }

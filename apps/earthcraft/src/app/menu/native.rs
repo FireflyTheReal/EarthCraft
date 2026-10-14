@@ -30,7 +30,7 @@ impl NativeMenu {
                 Action::Quit => Code::KeyQ,
                 Action::Undo | Action::Redo => Code::KeyZ,
             };
-            let command = Modifiers::SUPER;
+            let command = Modifiers::META;
             let modifiers = if matches!(action, Action::SaveAs | Action::Screenshot | Action::Redo)
             {
                 command | Modifiers::SHIFT
@@ -40,7 +40,7 @@ impl NativeMenu {
             let item = MenuItem::new(
                 action.label(lang),
                 !matches!(action, Action::Screenshot | Action::Undo | Action::Redo),
-                Some(Accelerator::new(Some(modifiers), key)),
+                Some(Accelerator::new(modifiers, key)),
             );
             if matches!(action, Action::Undo | Action::Redo) {
                 edit.append(&item).map_err(|e| e.to_string())?;

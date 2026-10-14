@@ -5,24 +5,27 @@ use earthcraft_data::tiles::Provider;
 use eframe::egui::{self, Color32, Key, Stroke};
 pub(super) const DEFAULT_SIDEBAR_WIDTH_POINTS: f32 = 270.0;
 impl App {
-    pub(in crate::app) fn side_panel(&mut self, ctx: &egui::Context) {
+    pub(in crate::app) fn side_panel(&mut self, ui: &mut egui::Ui) {
+        let ctx = &ui.ctx().clone();
+        let openness =
+            ctx.animate_bool_responsive(egui::Id::new("side").with("animation"), self.sidebar_open);
+        self.sidebar_animating = openness != if self.sidebar_open { 1.0 } else { 0.0 };
+        let mut expanded = self.sidebar_open;
         let lg = self.lang;
         let mut goto: Option<(f64, f64, f64)> = None;
         let mut del: Option<usize> = None;
         let (mut save_now, mut save_as, mut open_dialog, mut open_typed, mut shot) =
             (false, false, false, false, false);
         self.kml_drop_rect = egui::Rect::NOTHING;
-        egui::SidePanel::show_animated_between(
-            ctx,
-            self.sidebar_open,
-            egui::SidePanel::left("side_collapsed")
-                .frame(egui::Frame::none())
-                .exact_width(0.0),
+        egui::Panel::show_switched(
+            ui,
+            &mut expanded,
+            egui::Panel::left("side_collapsed")
+                .frame(egui::Frame::NONE)
+                .exact_size(0.0),
             expanded_sidebar_panel(),
-            |ui, openness| {
-                let settled_openness = if self.sidebar_open { 1.0 } else { 0.0 };
-                self.sidebar_animating = openness != settled_openness;
-                if openness < 1.0 {
+            |ui, _expanded| {
+                if self.sidebar_animating || !self.sidebar_open {
                     return;
                 }
                 sidebar_scroll_area().show(ui, |ui| {
@@ -48,7 +51,7 @@ impl App {
                                             {
                                                 idx += 1;
                                             }
-                                            egui::ComboBox::from_id_source("wayback_date")
+                                            egui::ComboBox::from_id_salt("wayback_date")
                                                 .selected_text(self.wayback_list[idx].date.clone())
                                                 .height(320.0)
                                                 .show_ui(ui, |ui| {
@@ -240,14 +243,14 @@ impl App {
                             } else {
                                 (Color32::from_gray(90), Color32::from_black_alpha(40))
                             };
-                            let zone = egui::Frame::none()
+                            let zone = egui::Frame::NONE
                                 .fill(fill)
                                 .stroke(Stroke::new(
                                     if hovering_file { 2.0_f32 } else { 1.0_f32 },
                                     stroke_col,
                                 ))
-                                .rounding(6.0)
-                                .inner_margin(egui::Margin::same(8.0))
+                                .corner_radius(6.0)
+                                .inner_margin(egui::Margin::same(8))
                                 .show(ui, |ui| {
                                     ui.set_width(ui.available_width());
                                     ui.vertical_centered(|ui| {
@@ -394,6 +397,7 @@ impl App {
                 });
             },
         );
+        self.sidebar_open = expanded;
         if let Some(i) = del {
             self.placemarks.remove(i);
         }
@@ -422,8 +426,8 @@ impl App {
     }
 }
 
-fn expanded_sidebar_panel() -> egui::SidePanel {
-    egui::SidePanel::left("side").default_width(DEFAULT_SIDEBAR_WIDTH_POINTS)
+fn expanded_sidebar_panel() -> egui::Panel {
+    egui::Panel::left("side").default_size(DEFAULT_SIDEBAR_WIDTH_POINTS)
 }
 fn sidebar_scroll_area() -> egui::ScrollArea {
     // Keep the allocated viewport when sections close, and scroll oversized

@@ -34,8 +34,16 @@ fn main() -> Result<(), eframe::Error> {
     }
     let options = eframe::NativeOptions {
         viewport,
-        vsync: !earthcraft_data::settings::Settings::load().uncap_fps,
+        glow_options: eframe::egui_glow::GlowConfiguration {
+            vsync: !earthcraft_data::settings::Settings::load().uncap_fps,
+            ..Default::default()
+        },
+        renderer: eframe::Renderer::Glow,
         ..Default::default()
     };
-    eframe::run_native("EarthCraft", options, Box::new(|cc| Box::new(App::new(cc))))
+    eframe::run_native(
+        "EarthCraft",
+        options,
+        Box::new(|cc| Ok(Box::new(App::new(cc)))),
+    )
 }
