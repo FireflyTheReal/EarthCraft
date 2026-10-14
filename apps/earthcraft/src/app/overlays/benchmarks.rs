@@ -96,6 +96,7 @@ fn overlay_projection_and_label_occupancy_time() {
         basis: cam.basis(16.0 / 9.0),
         rect: Rect::from_min_size(Pos2::ZERO, vec2(1920.0, 1080.0)),
         altitude_km: cam.alt,
+        grid_step_deg: None,
         pixels_per_point: 1.0,
     };
     let style = OverlayStyle {

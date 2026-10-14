@@ -18,6 +18,7 @@ pub(super) struct Renderer {
     worker: RenderWorker<PreparedFrame>,
     displayed: Option<(Cam, Basis)>,
     displayed_rect: Option<egui::Rect>,
+    displayed_grid_step: Option<f64>,
     waiting: Vec<earthcraft_data::tiles::TileKey>,
     required: Vec<earthcraft_data::tiles::TileKey>,
     retry_at: Option<std::time::Instant>,
@@ -71,6 +72,7 @@ impl Renderer {
             .expect("start frame renderer"),
             displayed: None,
             displayed_rect: None,
+            displayed_grid_step: None,
             waiting: Vec::new(),
             required: Vec::new(),
             retry_at: None,
@@ -101,6 +103,9 @@ impl Renderer {
     }
     pub(super) fn picking_basis(&self, fallback: Basis) -> Basis {
         displayed_basis(self.displayed, fallback)
+    }
+    pub(super) fn displayed_grid_step(&self) -> Option<f64> {
+        self.displayed_grid_step
     }
     pub(super) fn displayed_rect(&self) -> Option<egui::Rect> {
         self.displayed_rect
@@ -153,6 +158,8 @@ impl App {
                     basis,
                     rect,
                     altitude_km: self.cam.alt,
+                    grid_step_deg: (self.show_grid && self.settings.grid_numbers)
+                        .then_some(grid_step),
                     layers: self.overlay_layers(),
                 },
                 data: self.boundaries.clone(),
@@ -205,6 +212,11 @@ impl App {
         // Recheck dependencies even if a tile finished before frame publication.
         self.last_gen = u64::MAX;
         self.renderer.displayed_rect = frame.request.overlays.as_ref().map(|input| input.view.rect);
+        self.renderer.displayed_grid_step = frame
+            .request
+            .cfg
+            .grid
+            .then_some(frame.request.cfg.grid_step);
         self.renderer.displayed = Some((frame.request.cam, frame.request.basis));
     }
 }

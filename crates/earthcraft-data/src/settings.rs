@@ -50,6 +50,8 @@ pub struct Settings {
     pub ui_scale: f32,  // text size of buttons/panels
     pub map_scale: f32, // text size of map labels
     pub uncap_fps: bool,
+    pub navigation_compass: bool,
+    pub grid_numbers: bool,
     pub hide_navigation_controls: bool,
     pub distance_units: UnitPreference,
     #[serde(serialize_with = "serialize_ruler_unit")]
@@ -69,6 +71,8 @@ impl Default for Settings {
             ui_scale: 1.0,
             map_scale: 1.0,
             uncap_fps: false,
+            navigation_compass: false,
+            grid_numbers: false,
             hide_navigation_controls: false,
             distance_units: UnitPreference::System,
             ruler_unit: RulerUnit::Automatic,
@@ -90,6 +94,10 @@ struct SettingsInput {
     map_scale: Option<f64>,
     #[serde(default, deserialize_with = "crate::json_fields::boolean")]
     uncap_fps: Option<bool>,
+    #[serde(default, deserialize_with = "crate::json_fields::boolean")]
+    navigation_compass: Option<bool>,
+    #[serde(default, deserialize_with = "crate::json_fields::boolean")]
+    grid_numbers: Option<bool>,
     #[serde(default, deserialize_with = "crate::json_fields::boolean")]
     hide_navigation_controls: Option<bool>,
     #[serde(default, deserialize_with = "crate::json_fields::string")]
@@ -129,6 +137,12 @@ impl Settings {
         if let Some(unit) = input.ruler_unit.as_deref().and_then(RulerUnit::from_code) {
             self.ruler_unit = unit;
         }
+        if let Some(value) = input.navigation_compass {
+            self.navigation_compass = value;
+        }
+        if let Some(value) = input.grid_numbers {
+            self.grid_numbers = value;
+        }
         Ok(())
     }
     pub fn load() -> Self {
@@ -142,6 +156,31 @@ impl Settings {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn compass_and_grid_preferences_roundtrip_and_tolerate_missing_or_invalid_fields() {
+        let mut settings = Settings::default();
+        assert!(!settings.navigation_compass && !settings.grid_numbers);
+        settings
+            .apply_json(br#"{"navigation_compass":true,"grid_numbers":true}"#)
+            .unwrap();
+        for input in [
+            br#"{}"#.as_slice(),
+            br#"{"navigation_compass":"bad","grid_numbers":42}"#,
+        ] {
+            settings.apply_json(input).unwrap();
+            assert!(settings.navigation_compass && settings.grid_numbers);
+        }
+        let mut restored = Settings::default();
+        restored
+            .apply_json(&serde_json::to_vec(&settings).unwrap())
+            .unwrap();
+        assert!(restored.navigation_compass && restored.grid_numbers);
+        restored
+            .apply_json(br#"{"navigation_compass":false,"grid_numbers":false}"#)
+            .unwrap();
+        assert!(!restored.navigation_compass && !restored.grid_numbers);
+    }
+
     #[test]
     fn every_ruler_preference_roundtrips_and_invalid_values_keep_the_selection() {
         let mut settings = Settings::default();
@@ -207,6 +246,8 @@ mod tests {
             ui_scale: 1.0,
             map_scale: 1.0,
             uncap_fps: false,
+            navigation_compass: false,
+            grid_numbers: false,
             hide_navigation_controls: false,
             distance_units: UnitPreference::System,
             ruler_unit: RulerUnit::Automatic,

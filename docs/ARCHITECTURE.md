@@ -61,7 +61,11 @@ unrelated UI updates reuse unchanged projections. Stationary changes use a coale
 overlay worker; moving frames carry their matching geometry. Font measurement,
 final label occupancy and styled shapes remain on egui. Mutable `rstar` indexes
 accepted screen rectangles in priority order, including touching-edge rejection,
-padding and the 500-label limit. Placemarks and ruler edits remain immediate.
+padding and the 500-label limit. Placemarks and ruler edits remain immediate. Optional graticule label candidates
+are prepared by the same background worker using the displayed raster grid step.
+The desktop measures localized labels and rejects collisions with place names
+and other grid labels. Core owns true-north heading formatting and initial
+great-circle bearings; the desktop draws the status heading and optional compass.
 
 ## Async services and files
 

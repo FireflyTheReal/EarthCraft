@@ -79,18 +79,39 @@ impl App {
         );
         painter.circle_filled(c1, r_disc, fill);
         painter.circle_stroke(c1, r_disc, Stroke::new(1.0_f32, edge));
-        let hr = self.cam.heading.to_radians() as f32;
+        let displayed_heading = self
+            .renderer
+            .displayed_view()
+            .map_or(self.cam.heading, |(cam, _)| cam.heading);
+        if self.settings.navigation_compass {
+            super::compass::draw_cardinals(
+                &painter,
+                c1,
+                r_ring - 6.5 * k,
+                k,
+                displayed_heading,
+                lg,
+            );
+        }
+        let compass_heading = if self.settings.navigation_compass {
+            displayed_heading
+        } else {
+            self.cam.heading
+        };
+        let hr = compass_heading.to_radians() as f32;
         let nd = Vec2::new(-hr.sin(), -hr.cos()); // screen direction of north
         let n_pos = c1 + nd * (r_ring - 6.5 * k);
-        painter.circle_filled(n_pos, 8.0 * k, Color32::from_rgb(220, 50, 50));
-        painter.circle_stroke(n_pos, 8.0 * k, Stroke::new(1.0_f32, Color32::WHITE));
-        painter.text(
-            n_pos,
-            Align2::CENTER_CENTER,
-            "N",
-            FontId::proportional(10.5 * k),
-            Color32::WHITE,
-        );
+        if !self.settings.navigation_compass {
+            painter.circle_filled(n_pos, 8.0 * k, Color32::from_rgb(220, 50, 50));
+            painter.circle_stroke(n_pos, 8.0 * k, Stroke::new(1.0_f32, Color32::WHITE));
+            painter.text(
+                n_pos,
+                Align2::CENTER_CENTER,
+                "N",
+                FontId::proportional(10.5 * k),
+                Color32::WHITE,
+            );
+        }
         // eye icon
         let eye: Vec<Pos2> = (0..=EYE_OUTLINE_SEGMENTS)
             .map(|i| {
@@ -140,6 +161,8 @@ impl App {
             .clicked()
         {
             self.cam.heading = 0.0;
+            self.fly = None;
+            active = true;
         }
         // arrows: left/right rotate the view, up = north up, down = flip 180°
         let names = [
@@ -170,8 +193,16 @@ impl App {
             );
             let r = r.on_hover_text(names[i]);
             match i {
-                0 if r.clicked() => self.cam.heading = 0.0,
-                1 if r.clicked() => self.cam.heading = wrap_lon(self.cam.heading + 180.0),
+                0 if r.clicked() => {
+                    self.cam.heading = 0.0;
+                    self.fly = None;
+                    active = true;
+                }
+                1 if r.clicked() => {
+                    self.cam.heading = wrap_lon(self.cam.heading + 180.0);
+                    self.fly = None;
+                    active = true;
+                }
                 2 if held => {
                     self.cam.heading = wrap_lon(self.cam.heading + HEADING_DEG_PER_SECOND * dt);
                     active = true;

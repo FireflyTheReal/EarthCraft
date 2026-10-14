@@ -2,6 +2,7 @@
 //! No network, filesystem, windowing, or widget dependencies.
 #![forbid(unsafe_code)]
 pub mod camera;
+pub mod compass;
 pub mod language;
 mod localization;
 pub mod math;

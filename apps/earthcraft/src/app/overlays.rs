@@ -46,6 +46,11 @@ impl App {
                 basis: *basis,
                 rect,
                 altitude_km,
+                grid_step_deg: if self.show_grid && self.settings.grid_numbers {
+                    self.renderer.displayed_grid_step()
+                } else {
+                    None
+                },
                 pixels_per_point: painter.ctx().pixels_per_point(),
             },
             &self.boundaries,

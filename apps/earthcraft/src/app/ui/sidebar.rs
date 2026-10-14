@@ -86,6 +86,14 @@ impl App {
                             }
                             ui.separator();
                             ui.checkbox(&mut self.show_grid, lg.text("layers-grid-toggle"));
+                            if self.show_grid {
+                                ui.indent("grid_numbers", |ui| {
+                                    ui.checkbox(
+                                        &mut self.settings.grid_numbers,
+                                        lg.text("layers-grid-numbers-toggle"),
+                                    );
+                                });
+                            }
                             ui.checkbox(
                                 &mut self.show_country_boundaries,
                                 lg.text("layers-country-borders-toggle"),
@@ -304,6 +312,21 @@ impl App {
                                 ),
                             );
                             ui.weak(lg.text("ruler-point-edit-help"));
+                            if let Some(pair) = self.ruler_pts.windows(2).last() {
+                                let bearing =
+                                    earthcraft_core::compass::initial_bearing(pair[0], pair[1])
+                                        .map(|bearing| {
+                                            earthcraft_core::compass::heading_text(bearing, lg)
+                                        })
+                                        .unwrap_or_else(|| "—".into());
+                                ui.label(
+                                    lg.format(
+                                        "ruler-bearing-label",
+                                        &[("bearing", bearing.into())],
+                                    ),
+                                )
+                                .on_hover_text(lg.text("ruler-bearing-tooltip"));
+                            }
                             if ui.button(lg.text("ruler-clear-action")).clicked() {
                                 self.ruler_pts.clear();
                                 self.ruler_drag = None;

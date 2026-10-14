@@ -12,6 +12,7 @@ pub struct OverlayView {
     pub basis: Basis,
     pub rect: Rect,
     pub altitude_km: f64,
+    pub grid_step_deg: Option<f64>,
     pub layers: OverlayLayers,
 }
 pub struct PreparedLabel {
@@ -23,6 +24,7 @@ pub struct OverlayGeometry {
     pub data: Arc<BoundaryData>,
     pub borders: Vec<(BorderKind, [Pos2; 2])>,
     pub labels: Vec<PreparedLabel>,
+    pub grid_labels: Vec<super::grid::GridLabel>,
 }
 impl OverlayGeometry {
     pub fn matches(&self, view: OverlayView, data: &Arc<BoundaryData>) -> bool {
@@ -81,11 +83,15 @@ impl OverlayPreparer {
                 source_index: label.source_index,
             })
             .collect();
+        let grid_labels = request.view.grid_step_deg.map_or_else(Vec::new, |step| {
+            super::grid::project_grid_labels(&request.view.basis, request.view.rect, step)
+        });
         let geometry = Arc::new(OverlayGeometry {
             view: request.view,
             data: request.data,
             borders,
             labels,
+            grid_labels,
         });
         self.latest = Some(geometry.clone());
         geometry
@@ -188,6 +194,7 @@ mod tests {
             .basis(1.0),
             rect: Rect::from_min_size(Pos2::ZERO, emath::vec2(600.0, 600.0)),
             altitude_km: 1000.0,
+            grid_step_deg: None,
             layers: OverlayLayers {
                 countries: true,
                 states: true,
@@ -254,6 +261,26 @@ mod tests {
         });
         assert!(!Arc::ptr_eq(&first, &next));
         assert!(next.labels.is_empty());
+        let numbered = OverlayView {
+            grid_step_deg: Some(2.0),
+            ..view
+        };
+        worker.submit(numbered, data.clone());
+        rx.recv_timeout(Duration::from_secs(10)).unwrap();
+        let numbered_geometry = worker.take_completed().unwrap();
+        assert!(!numbered_geometry.matches(view, &data));
+        assert!(!numbered_geometry.grid_labels.is_empty());
+        assert!(first.grid_labels.is_empty());
+        assert!(!numbered_geometry.matches(
+            OverlayView {
+                grid_step_deg: Some(1.0),
+                ..numbered
+            },
+            &data
+        ));
+        worker.submit(view, data.clone());
+        rx.recv_timeout(Duration::from_secs(10)).unwrap();
+        assert!(worker.take_completed().unwrap().grid_labels.is_empty());
     }
 
     #[test]
@@ -276,6 +303,7 @@ mod tests {
             .basis(1.0),
             rect: Rect::from_min_size(Pos2::ZERO, emath::vec2(600.0, 600.0)),
             altitude_km: 1000.0,
+            grid_step_deg: None,
             layers: OverlayLayers {
                 countries: true,
                 states: true,

@@ -22,15 +22,15 @@ Anyway** for EarthCraft and confirm **Open**. See [Apple's instructions](https:/
 
 ### Features
 
-- 3D globe with orbit, zoom, view rotation (heading) and a compass; navigation controls can be hidden in Settings
+- 3D globe with orbit, zoom, view rotation, bottom-bar heading and an optional navigation compass; navigation controls can be hidden in Settings
 - Satellite imagery (Esri), streets (OSM) and topography (OpenTopoMap), with multi-level tile zoom and on-disk caching
 - Background satellite overview loading for the whole globe at the initial distance; detailed tiles load as you zoom in
 - Clear downloaded map tiles from disk through Settings
 - Place and address search (Nominatim), plus direct "lat, lon" coordinate input
 - Animated fly-to (double-click, search or list)
 - Placemarks with KML import/export
-- Geodesic distance ruler (great-circle), with selectable metric, imperial, nautical, angular and novelty units
-- Lat/lon grid, atmosphere, stars, real-time sunlight (day/night)
+- Geodesic distance ruler (great-circle), with selectable metric, imperial, nautical, angular and novelty units and initial bearing for the last segment
+- Lat/lon grid with optional coordinate labels, atmosphere, stars, real-time sunlight (day/night)
 - Scale bar, cursor coordinates, PNG screenshot, context menu
 - Background CPU rendering; experimental GPU globe renderer can be enabled via `EARTHCRAFT_RENDERER=auto` or `EARTHCRAFT_RENDERER=gpu` (with CPU fallback). See [experimental GPU rendering](docs/GPU_RENDERER.md).
 

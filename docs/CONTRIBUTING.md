@@ -105,6 +105,19 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
   result list and late responses must not return. Check singular/plural result
   and KML import messages in both languages.
 - Toggle borders, city/metropolitan layers, labels, grid, atmosphere and sunlight.
+  Enable the grid's indented Show numbers option, zoom and rotate through the
+  dateline/poles; labels must follow the displayed lines and avoid each other.
+  Toggle numbers while stationary, change map text size/language and resize.
+  Disable the grid: numbers disappear but their preference is retained.
+- Check the bottom-right heading through rotation and flight; click it to reset
+  north. In Settings enable Compass in navigation controls, then verify localized
+  cardinal directions rotate with the displayed view, clicking N resets north,
+  and the original north-up, 180° flip and held left/right rotation buttons
+  remain available inside the compass. Drag the outer ring to rotate. Disable
+  the option to restore the original north badge. Both options default off and persist.
+  Add two ruler points, check the last segment's initial true-north bearing;
+  add/remove/edit points and verify the bearing updates. Coincident or antipodal
+  points must show an undefined bearing rather than an arbitrary direction.
 - For overlay caching, toggle label/border layers while stationary, switch
   language/map text size, and resize. Verify updates without camera movement;
   late boundary patches and ruler/placemark edits must appear immediately.
