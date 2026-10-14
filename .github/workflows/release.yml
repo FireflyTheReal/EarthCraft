@@ -95,14 +95,9 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y pkg-config libgtk-3-dev libxkbcommon-dev libwayland-dev libx11-dev
       - name: Build CPU-only release binary
         run: cargo build -p earthcraft --release --no-default-features --locked --target ${{ matrix.target }}
-      - uses: actions/download-artifact@v8
+      - name: Package application
         if: runner.os != 'macOS'
-        with:
-          name: release-changelog
-          path: changelog
-      - name: Package binary and documentation
-        if: runner.os != 'macOS'
-        run: python scripts/package_release.py package --version ${{ needs.version.outputs.version }} --target ${{ matrix.target }} --binary target/${{ matrix.target }}/release/${{ matrix.executable }} --output dist --changelog changelog/CHANGELOG.md
+        run: python scripts/package_release.py package --version ${{ needs.version.outputs.version }} --target ${{ matrix.target }} --binary target/${{ matrix.target }}/release/${{ matrix.executable }} --output dist
       - name: Stage macOS architecture for the universal bundle
         if: runner.os == 'macOS'
         run: |
@@ -134,12 +129,8 @@ jobs:
           path: macos/x86_64
       - name: Combine Apple Silicon and Intel executables
         run: lipo -create macos/arm64/earthcraft macos/x86_64/earthcraft -output earthcraft-universal
-      - uses: actions/download-artifact@v8
-        with:
-          name: release-changelog
-          path: changelog
-      - name: Package universal app and documentation
-        run: python scripts/package_release.py package --version ${{ needs.version.outputs.version }} --target universal-apple-darwin --binary earthcraft-universal --output dist --changelog changelog/CHANGELOG.md
+      - name: Create universal macOS DMG
+        run: python scripts/package_release.py package --version ${{ needs.version.outputs.version }} --target universal-apple-darwin --binary earthcraft-universal --output dist
       - uses: actions/upload-artifact@v7
         with:
           name: earthcraft-universal-apple-darwin
