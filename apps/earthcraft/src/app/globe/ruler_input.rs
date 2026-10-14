@@ -20,6 +20,7 @@ impl App {
             || self.sidebar_animating
             || self.explorer.active != earthcraft_core::body::Body::Earth
         {
+            self.ruler_paths.end_move();
             self.ruler_drag = None;
             return false;
         }
@@ -59,23 +60,27 @@ impl App {
         if ctx.input(|i| i.pointer.primary_pressed()) {
             self.ruler_drag = pressed_handle(response, &basis, rect, &self.ruler_paths);
             if self.ruler_drag.is_some() {
+                self.ruler_paths.begin_move();
                 self.fly = None;
             }
         }
         let captured = self.ruler_drag.is_some();
         if let Some(index) = self.ruler_drag {
             if let Some(point) = pointer
+                .filter(|_| {
+                    response.dragged_by(egui::PointerButton::Primary)
+                        || response.drag_stopped_by(egui::PointerButton::Primary)
+                })
                 .filter(|p| rect.contains(*p))
                 .and_then(|p| basis.pick(rect, p))
             {
-                if let Some(target) = self.ruler_paths.point_mut(index) {
-                    *target = point;
-                }
+                self.ruler_paths.move_point(index, point);
             }
             ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::Grabbing);
             ctx.request_repaint();
         }
         if !ctx.input(|i| i.pointer.primary_down()) {
+            self.ruler_paths.end_move();
             self.ruler_drag = None;
         }
         captured

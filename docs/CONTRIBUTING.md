@@ -121,6 +121,12 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
   distance; a new one-point path has no bearing. Drag/delete points in either
   path and confirm they remain separate, including after deleting every point
   in the newest path and placing another. Clear ruler removes all paths.
+  Undo/redo additions, new paths, a long drag, deletion and Clear; a drag must be
+  one undo step. After undo, a new edit must disable Redo; a click without moving
+  a handle must preserve it. Verify buttons disable when unavailable.
+  Use Cmd+Z / Cmd+Shift+Z and Edit → Undo/Redo on macOS; use Ctrl+Z /
+  Ctrl+Shift+Z or Ctrl+Y on Windows/Linux. Focus a search/KML text field: its
+  undo/redo must affect text without altering ruler points.
   Add two ruler points, check the last segment's initial true-north bearing;
   add/remove/edit points and verify the bearing updates. Coincident or antipodal
   points must show an undefined bearing rather than an arbitrary direction.
@@ -352,7 +358,7 @@ The Explorer, live meteorological/aircraft layers, moon and custom planet
 remain integrated in `apps/earthcraft`. See [GPU_RENDERER.md](GPU_RENDERER.md)
 for hardware limits, performance and CPU-only build instructions.
 
-## Sidebar and native File menu
+## Sidebar and native menus
 
 The toolbar's sidebar button hides and reopens the sidebar with egui's panel
 animation. The sidebar is open at startup; toggling it does not reset layer,
@@ -371,7 +377,9 @@ macOS uses muda 0.19 (compatible with Rust 1.89) in `apps/earthcraft/src/app/men
 Menu objects and handlers stay on the window thread. Callbacks enqueue actions
 and wake egui; the app opens dialogs, submits existing KML/screenshot jobs and
 closes normally. Screenshot is disabled before a frame exists. Captions follow
-language changes and AppKit handles Cmd shortcuts. Windows and Linux use the
+language changes and AppKit handles Cmd shortcuts. Edit contains Undo/Redo;
+these commands edit focused text or the ruler otherwise. Menu availability
+tracks ruler history when text is not focused. Windows and Linux use the
 sidebar's file controls; both support Ctrl+O/S/Shift+S/Shift+E and Ctrl+Q
 without a native menu bar. All workspace code forbids unsafe Rust.
 

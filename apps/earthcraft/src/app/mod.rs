@@ -22,6 +22,7 @@ mod menu;
 mod navigation;
 mod overlays;
 mod rendering;
+mod ruler_history;
 mod search;
 mod ui;
 mod wayback;
@@ -286,6 +287,7 @@ impl eframe::App for App {
         self.poll_native_menu(ctx);
         #[cfg(not(target_os = "macos"))]
         self.file_shortcuts(ctx);
+        self.ruler_shortcuts(ctx);
         self.poll_files();
         self.handle_dropped_files(ctx);
         self.ensure_wayback(ctx);
@@ -326,6 +328,8 @@ impl eframe::App for App {
         egui::CentralPanel::default()
             .frame(egui::Frame::none())
             .show(ctx, |ui| self.globe_view(ui, ctx));
+        #[cfg(target_os = "macos")]
+        self.refresh_native_menu(ctx);
         #[cfg(feature = "profiling")]
         {
             profile.values.inflight = self.cache.inflight();

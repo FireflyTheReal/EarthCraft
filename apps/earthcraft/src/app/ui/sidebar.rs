@@ -336,6 +336,27 @@ impl App {
                                 )
                                 .on_hover_text(lg.text("ruler-bearing-tooltip"));
                             }
+                            ui.horizontal(|ui| {
+                                for (command, label, enabled) in [
+                                    (
+                                        crate::app::ruler_history::HistoryCommand::Undo,
+                                        "edit-undo-action",
+                                        self.ruler_paths.can_undo(),
+                                    ),
+                                    (
+                                        crate::app::ruler_history::HistoryCommand::Redo,
+                                        "edit-redo-action",
+                                        self.ruler_paths.can_redo(),
+                                    ),
+                                ] {
+                                    if ui
+                                        .add_enabled(enabled, egui::Button::new(lg.text(label)))
+                                        .clicked()
+                                    {
+                                        self.apply_ruler_history(command, ctx);
+                                    }
+                                }
+                            });
                             if ui.button(lg.text("ruler-clear-action")).clicked() {
                                 self.ruler_paths.clear();
                                 self.ruler_drag = None;

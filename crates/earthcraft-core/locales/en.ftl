@@ -362,3 +362,7 @@ layers-grid-numbers-toggle = Show numbers
 ruler-bearing-label = Last segment bearing: { $bearing }
 ruler-bearing-tooltip = Initial great-circle bearing from the previous point to the last point, clockwise from true north.
 grid-coordinate-label = { $degrees }° { $direction }
+
+menu-edit-title = Edit
+edit-undo-action = Undo
+edit-redo-action = Redo

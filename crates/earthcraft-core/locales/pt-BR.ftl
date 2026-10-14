@@ -362,3 +362,7 @@ layers-grid-numbers-toggle = Mostrar números
 ruler-bearing-label = Rumo do último segmento: { $bearing }
 ruler-bearing-tooltip = Rumo inicial do círculo máximo do penúltimo ao último ponto, no sentido horário a partir do norte verdadeiro.
 grid-coordinate-label = { $degrees }° { $direction }
+
+menu-edit-title = Editar
+edit-undo-action = Desfazer
+edit-redo-action = Refazer
