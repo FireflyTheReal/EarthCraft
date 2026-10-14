@@ -43,6 +43,7 @@ fn gpu_overview_matches_cpu() {
                         sun: enabled.then(|| ll_to_v3(20.0, 45.0)),
                     },
                     overlays: None,
+                    aircraft: None,
                     presentation: 0,
                 };
                 for (loaded, pending) in [(false, false), (false, true), (true, false)] {
@@ -149,6 +150,7 @@ fn unsupported_views_choose_precision_instead_of_truncating_gpu_work() {
             sun: None,
         },
         overlays: None,
+        aircraft: None,
         presentation: 0,
     };
     assert!(GpuRenderer::supports(&request));

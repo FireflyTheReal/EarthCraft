@@ -4,6 +4,48 @@ use std::{sync::mpsc, time::Duration};
 
 const TEST_TIMEOUT: Duration = Duration::from_secs(10);
 
+#[test]
+fn aircraft_geometry_is_prepared_for_the_raster_camera_before_publication() {
+    use crate::aircraft::{AircraftPreparer, ProjectionInput, ProjectionView};
+    let (wake, wakes) = mpsc::channel();
+    let ui_thread = std::thread::current().id();
+    let mut preparer = AircraftPreparer::default();
+    let worker = RenderWorker::with_prepare(
+        |_, buffer| crate::RenderedView {
+            pixels: buffer,
+            waiting: vec![],
+            requests: vec![],
+        },
+        move || {
+            let _ = wake.send(());
+        },
+        |_| {},
+        move |request, _| {
+            assert_ne!(ui_thread, std::thread::current().id());
+            preparer.prepare(request.aircraft.clone().unwrap())
+        },
+    )
+    .unwrap();
+    let mut view = request(20.0, 7);
+    let expected = ProjectionView {
+        basis: view.basis,
+        rect: emath::Rect::from_min_size(emath::Pos2::ZERO, emath::vec2(800.0, 600.0)),
+        altitude_km: view.cam.alt,
+        map_scale: 1.0,
+        pixels_per_point: 2.0,
+    };
+    view.aircraft = Some(ProjectionInput {
+        view: expected,
+        data: Arc::new(earthcraft_data::aircraft::AircraftSnapshot::default()),
+        unix_secs: 1000.0,
+    });
+    worker.submit(view);
+    wakes.recv_timeout(TEST_TIMEOUT).unwrap();
+    let frame = worker.take_completed(7).unwrap();
+    assert!(frame.prepared.view == expected);
+    assert!(frame.prepared.view.basis == frame.request.basis);
+}
+
 fn request(longitude: f64, presentation: u64) -> RenderRequest {
     let cam = Cam {
         lat: -15.0,
@@ -26,6 +68,7 @@ fn request(longitude: f64, presentation: u64) -> RenderRequest {
         },
         presentation,
         overlays: None,
+        aircraft: None,
     }
 }
 

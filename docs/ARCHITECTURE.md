@@ -139,6 +139,34 @@ file controls are disabled, and selecting another body prevents a late load from
 changing the active body. The version-1 sidecar and version-2 embedded document
 formats remain supported.
 
+Live aircraft use a data-owned asynchronous controller with one coalesced camera
+query and one latest immutable snapshot. It keeps at most one OpenSky and one
+ADSB.lol request active. JSON decoding and source merging/sorting use the bounded
+feature pool; the UI swaps shared snapshots, including shared immutable identifier
+strings. Coordinates use core validation and movement refresh uses core's mean-radius
+distance calculation. Provider URLs, response budgets, 17-minute/90-second refresh,
+three-minute failure retry and 30-second movement throttle remain unchanged.
+New requests pause when the layer or Earth body is hidden. Completed requests
+still publish and wake the UI. Cached global samples expire after 20 minutes;
+local samples retain the existing three-minute provider and 120-second position
+limits, with expiry publication coalesced to the one-second marker cadence.
+Re-enabling the layer with expired cached sources waits for background revalidation
+before displaying those positions again.
+
+Render prepares aircraft projection and ordered label candidates in a bounded
+worker for stationary views, and alongside raster frames during motion. Both use
+the same preparer and the displayed camera. Geometry is reused for unchanged
+view/data/scale/DPI within a one-second time bucket; mismatched results never draw.
+One previous tick may remain visible while refreshing, up to two seconds old;
+expired geometry and older completions cannot replace a current result. Moving
+frames timestamp aircraft preparation at completion rather than raster submission.
+The 25-second extrapolation cap, icon geometry and label priority/spacing/count
+limits remain unchanged. Core owns the spherical destination calculation. The app
+owns Fluent statuses, English diagnostics, hover and font layout. It caches icon
+meshes and text galleys for the current geometry, preserving paint order; glyph UVs
+are not baked into cached meshes. No aircraft decoding, deduplication, sorting or
+geographic projection runs in a widget callback.
+
 ## Cache ownership
 
 | Storage | Policy |
@@ -202,7 +230,7 @@ for hardware limits, performance and CPU-only build instructions.
 
 ## Frontend boundaries for EarthCraft web
 
-Core owns body selection, illustrative flight-route sampling and camera orbit/zoom
+Core owns body selection, spherical destination calculations and camera orbit/zoom
 mapping. Render owns body meshes (positions/UVs/indices), weather compositing,
 aircraft/ruler projection, scale-bar selection, raster sizing and frame keys.
 These APIs use domain values, image buffers and `emath`, with no egui widgets,

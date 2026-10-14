@@ -71,6 +71,7 @@ pub(crate) struct App {
     show_clouds: bool,
     live_maps: live_maps::LiveMaps,
     live_aircraft: earthcraft_data::aircraft::LiveAircraft,
+    aircraft_overlay: live_layers::AircraftOverlay,
 
     renderer: rendering::Renderer,
     texture: Option<egui::TextureHandle>,
@@ -202,7 +203,11 @@ impl App {
             show_weather: false,
             show_clouds: false,
             live_maps: live_maps::LiveMaps::default(),
-            live_aircraft: earthcraft_data::aircraft::LiveAircraft::default(),
+            live_aircraft: earthcraft_data::aircraft::LiveAircraft::new(runtime.handle(), {
+                let ctx = cc.egui_ctx.clone();
+                move || ctx.request_repaint()
+            }),
+            aircraft_overlay: live_layers::AircraftOverlay::new(cc.egui_ctx.clone()),
             texture: None,
             image: None,
             last_state: 0,
@@ -275,6 +280,18 @@ impl eframe::App for App {
         earthcraft_data::profiling::flush();
     }
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let aircraft_enabled =
+            self.show_flights && self.explorer.active == earthcraft_core::body::Body::Earth;
+        self.live_aircraft
+            .update(earthcraft_data::aircraft::AircraftQuery {
+                enabled: aircraft_enabled,
+                latitude: self.cam.lat,
+                longitude: self.cam.lon,
+                altitude_km: self.cam.alt,
+            });
+        if aircraft_enabled {
+            ctx.request_repaint_after(live_layers::FLIGHT_REPAINT_INTERVAL);
+        }
         self.poll_files(ctx);
         self.ensure_wayback(ctx);
         self.poll_wayback();
@@ -326,18 +343,6 @@ impl eframe::App for App {
         self.ruler_points_window(ui);
         self.live_maps
             .update(ui, &self.runtime, self.show_clouds, self.show_weather);
-        let aircraft_wake = egui::Context::clone(ui);
-        self.live_aircraft.update(
-            &self.runtime,
-            self.show_flights,
-            self.cam.lat,
-            self.cam.lon,
-            self.cam.alt,
-            move || aircraft_wake.request_repaint(),
-        );
-        if self.show_flights {
-            ui.request_repaint_after(Duration::from_secs(15));
-        }
         self.boundary_loader.request_visible_layers(
             self.show_city_boundaries,
             self.show_metro_boundaries,

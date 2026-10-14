@@ -119,6 +119,14 @@ layers-sunlight-toggle = Real-time sunlight (day/night)
 layers-auto-rotation-toggle = Auto-rotate
 
 layers-flights-toggle = Real aircraft (OpenSky + ADSB.lol)
+aircraft-summary-status = Real tracked aircraft: { $count } | OpenSky: { $global } | ADSB.lol: { $local }
+aircraft-loading-status = loading
+aircraft-zoom-in-status = zoom in
+aircraft-updated-status = { $minutes } min ago
+aircraft-source-error = { $source }: { $error }
+aircraft-hover-tooltip = { $code }  (ICAO { $hex })
+    Altitude: { $altitude }  |  Speed: { $speed }
+    Heading: { $heading }  |  Position { $age } s old
 layers-weather-toggle = Live precipitation radar (RainViewer)
 layers-clouds-toggle = Satellite cloud map (Matt Eason)
 layers-live-overlays-help = Aircraft positions come from live tracking (coverage incomplete); global updates ~17 min and nearby updates ~90 s. Cloud imagery ~3 h; rain radar ~10 min. Internet required.

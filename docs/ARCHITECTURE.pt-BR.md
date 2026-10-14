@@ -59,6 +59,16 @@ permanece no egui. As imagens originais ficam compartilhadas em memória para
 permitir salvar novamente um planeta importado sem depender de caminhos antigos
 ou recodificar JPEG/PNG. A gravação captura o nome e as fontes ao ser solicitada.
 
+Aeronaves reais usam um controlador assíncrono em data, com consultas de câmera
+coalescidas e snapshots imutáveis compartilhados. Decodificação, união das fontes
+e ordenação ficam no pool limitado de features. Render prepara a projeção e os
+candidatos de rótulos fora do egui, junto ao quadro durante movimento e em um
+worker limitado quando parado. A aplicação reutiliza malhas dos ícones e galleys
+do quadro atual; mantém fontes, hover, Fluent e diagnósticos em inglês. Resultados
+com outra câmera, escala, DPI ou conjunto de dados não são desenhados. Novas
+consultas pausam quando a camada ou a Terra estão ocultas. Mantêm-se os intervalos
+das fontes e o limite de extrapolação de 25 segundos.
+
 ## Caches e contratos
 
 - Moka mantém tiles decodificados com LRU e meta aproximada de 256 MiB; referências
@@ -103,7 +113,7 @@ for hardware limits, performance and CPU-only build instructions.
 
 ## Limites entre frontends para o EarthCraft web
 
-Core contém a seleção de corpos celestes, as rotas de voos ilustrativos e os
+Core contém a seleção de corpos celestes, o cálculo esférico de destinos e os
 cálculos de órbita e zoom. Render contém malhas dos corpos (posições, UVs e
 índices), composição meteorológica, projeção de aeronaves e régua, escala,
 resolução e chaves de compatibilidade dos quadros. Essas APIs usam valores de
