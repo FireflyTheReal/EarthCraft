@@ -1,6 +1,6 @@
 use super::*;
 use earthcraft_core::{camera::Cam, math::ll_to_v3};
-use earthcraft_data::tiles::{make_key, Lookup, Provider};
+use earthcraft_data::tiles::{Lookup, Provider, make_key};
 
 #[test]
 #[ignore = "requires a native GPU; run explicitly with --ignored --nocapture"]
@@ -81,7 +81,10 @@ fn gpu_overview_matches_cpu() {
                         .unwrap_or_else(|(error, _, _)| panic!("{error}"))
                         .view;
                     for (i, (actual, expected)) in frame.pixels.iter().zip(&cpu).enumerate() {
-                        assert!(actual.abs_diff(*expected) <= 1, "{provider:?} alt={alt} enabled={enabled}, channel {i}: {actual} != {expected}");
+                        assert!(
+                            actual.abs_diff(*expected) <= 1,
+                            "{provider:?} alt={alt} enabled={enabled}, channel {i}: {actual} != {expected}"
+                        );
                     }
                     assert_eq!(
                         frame
@@ -99,19 +102,21 @@ fn gpu_overview_matches_cpu() {
             }
         }
     }
-    assert!(gpu
-        .upload(&[(
+    assert!(
+        gpu.upload(&[(
             0,
             Arc::new(Tile::decode(include_bytes!("../../tests/fixtures/tile.png")).unwrap())
         )])
-        .is_err());
-    assert!(gpu
-        .upload(
+        .is_err()
+    );
+    assert!(
+        gpu.upload(
             &(0..MAX_ATLAS_LAYERS as u64 + 1)
                 .map(|key| (key, tile.clone()))
                 .collect::<Vec<_>>()
         )
-        .is_err());
+        .is_err()
+    );
     gpu.device.destroy();
     gpu.device
         .poll(wgpu::PollType::wait_indefinitely())

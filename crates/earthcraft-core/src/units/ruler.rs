@@ -1,6 +1,6 @@
 //! Ruler units convert the measured great-circle length without changing geometry.
 use super::{DistanceUnits, KM_PER_MILE};
-use crate::{language::Lang, EARTH_RADIUS_KM, METERS_PER_KM};
+use crate::{EARTH_RADIUS_KM, METERS_PER_KM, language::Lang};
 const METERS_PER_INCH: f64 = 0.0254;
 const INCHES_PER_FOOT: f64 = 12.0;
 const FEET_PER_YARD: f64 = 3.0;
@@ -134,7 +134,7 @@ impl RulerUnit {
                         "value",
                         format!("{:.2}", meters / (INCHES_PER_SMOOT * METERS_PER_INCH)).into(),
                     )],
-                )
+                );
             }
             Self::Degrees => ((distance_km / EARTH_RADIUS_KM).to_degrees(), "°"),
             Self::Arcseconds => (
@@ -152,7 +152,7 @@ impl RulerUnit {
                         )
                         .into(),
                     )],
-                )
+                );
             }
         };
         format!("{value:.2} {suffix}")
@@ -248,9 +248,11 @@ mod tests {
                 assert!(!unit.label(lang).starts_with("ruler-unit-"));
                 assert!(!unit.help(lang).starts_with("ruler-unit-"));
                 for us_locale in [true, false] {
-                    assert!(!unit
-                        .selector_label(lang, us_locale)
-                        .starts_with("ruler-unit-"));
+                    assert!(
+                        !unit
+                            .selector_label(lang, us_locale)
+                            .starts_with("ruler-unit-")
+                    );
                     if unit != RulerUnit::FootballFields {
                         assert_eq!(unit.selector_label(lang, us_locale), unit.label(lang));
                     }

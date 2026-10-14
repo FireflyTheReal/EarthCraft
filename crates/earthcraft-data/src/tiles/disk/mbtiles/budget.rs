@@ -1,5 +1,5 @@
 //! Aggregate file-byte accounting and age-based eviction, including legacy tiles.
-use super::{with_database, Address, FORMATS};
+use super::{Address, FORMATS, with_database};
 use rusqlite::OptionalExtension;
 use std::{
     collections::HashMap,

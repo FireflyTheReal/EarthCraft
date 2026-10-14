@@ -2,8 +2,8 @@
 use super::Action;
 use earthcraft_core::language::Lang;
 use muda::{
-    accelerator::{Accelerator, Code, Modifiers},
     Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu,
+    accelerator::{Accelerator, Code, Modifiers},
 };
 use std::sync::mpsc;
 pub(in crate::app) struct NativeMenu {
@@ -79,10 +79,10 @@ impl NativeMenu {
         let (send, events) = mpsc::channel();
         let ctx = cc.egui_ctx.clone();
         MenuEvent::set_event_handler(Some(move |event: MenuEvent| {
-            if let Some((_, action)) = ids.iter().find(|(id, _)| *id == event.id) {
-                if send.send(*action).is_ok() {
-                    ctx.request_repaint();
-                }
+            if let Some((_, action)) = ids.iter().find(|(id, _)| *id == event.id)
+                && send.send(*action).is_ok()
+            {
+                ctx.request_repaint();
             }
         }));
         Ok(Self {

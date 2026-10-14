@@ -31,7 +31,12 @@ The desktop uses eframe/egui/emath 0.36 with the OpenGL (`glow`) UI backend
 explicitly selected. Background completion polling runs in `App::logic`, including
 while hidden; panels and widgets run in `App::ui` using the root UI. The optional
 compute renderer uses wgpu 30 independently of the UI backend, with shader tests
-using its matching `wgpu::naga` re-export. The workspace requires Rust 1.95.
+using its matching `wgpu::naga` re-export. The workspace requires Rust 1.95 and uses Edition 2024 with Cargo resolver 3.
+Fixed-size geographic segments use array windows without changing arithmetic
+order. Render benchmarks and device-loss fixtures inject private cache roots;
+normal startup retains the existing platform cache path and limits. App-owned
+frame timing gives repeated layout passes a zero movement delta, preventing held
+navigation controls from advancing twice in a presented frame.
 
 The app captures immutable camera/style/layer inputs. A render-owned coordinator
 holds one active job, one replaceable pending request and one completed frame.

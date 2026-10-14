@@ -16,15 +16,15 @@ pub(in crate::app) fn apply_ui_scale(ctx: &egui::Context, scale: f32) {
         FontFamily::{Monospace, Proportional},
         TextStyle,
     };
-    let mut style = (*ctx.global_style()).clone();
-    style.text_styles = [
-        (TextStyle::Small, FontId::new(10.0 * scale, Proportional)),
-        (TextStyle::Body, FontId::new(14.0 * scale, Proportional)),
-        (TextStyle::Button, FontId::new(14.0 * scale, Proportional)),
-        (TextStyle::Heading, FontId::new(19.0 * scale, Proportional)),
-        (TextStyle::Monospace, FontId::new(13.0 * scale, Monospace)),
-    ]
-    .into();
-    style.spacing.interact_size.y = (20.0 * scale).max(18.0);
-    ctx.set_global_style(style);
+    ctx.global_style_mut(|style| {
+        style.text_styles = [
+            (TextStyle::Small, FontId::new(10.0 * scale, Proportional)),
+            (TextStyle::Body, FontId::new(14.0 * scale, Proportional)),
+            (TextStyle::Button, FontId::new(14.0 * scale, Proportional)),
+            (TextStyle::Heading, FontId::new(19.0 * scale, Proportional)),
+            (TextStyle::Monospace, FontId::new(13.0 * scale, Monospace)),
+        ]
+        .into();
+        style.spacing.interact_size.y = (20.0 * scale).max(18.0);
+    });
 }

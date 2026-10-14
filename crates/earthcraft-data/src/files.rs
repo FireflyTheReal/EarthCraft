@@ -2,7 +2,7 @@
 use earthcraft_core::{language::Lang, placemark::Placemark};
 use std::{
     path::PathBuf,
-    sync::{mpsc, Arc},
+    sync::{Arc, mpsc},
 };
 const PENDING_FILE_JOBS: usize = 4;
 

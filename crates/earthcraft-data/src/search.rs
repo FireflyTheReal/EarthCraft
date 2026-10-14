@@ -125,10 +125,10 @@ fn parse_photon_response(v: serde_json::Value) -> Vec<Suggestion> {
         });
         parts.extend(first);
         for k in ["district", "city", "state", "country"] {
-            if let Some(x) = g(k) {
-                if !parts.contains(&x) {
-                    parts.push(x);
-                }
+            if let Some(x) = g(k)
+                && !parts.contains(&x)
+            {
+                parts.push(x);
             }
         }
         if parts.is_empty() {

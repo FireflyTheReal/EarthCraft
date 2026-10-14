@@ -82,15 +82,21 @@ fn hidden_and_offscreen_lines_are_rejected_without_reordering_survivors() {
     .basis(1.0);
     let rect = Rect::from_min_size(emath::Pos2::ZERO, emath::vec2(600.0, 600.0));
     let visible = index.visible(&basis, rect);
-    assert!(visible
-        .ids
-        .contains(&(Arc::as_ptr(&data.countries[0]) as usize)));
-    assert!(!visible
-        .ids
-        .contains(&(Arc::as_ptr(&data.countries[1]) as usize)));
-    assert!(!visible
-        .ids
-        .contains(&(Arc::as_ptr(&data.countries[2]) as usize)));
+    assert!(
+        visible
+            .ids
+            .contains(&(Arc::as_ptr(&data.countries[0]) as usize))
+    );
+    assert!(
+        !visible
+            .ids
+            .contains(&(Arc::as_ptr(&data.countries[1]) as usize))
+    );
+    assert!(
+        !visible
+            .ids
+            .contains(&(Arc::as_ptr(&data.countries[2]) as usize))
+    );
 }
 
 #[test]
@@ -169,5 +175,13 @@ fn static_boundary_index_time() {
         assert_eq!(result.ids, expected);
         assert_eq!(result.ids, reference_result);
     }
-    println!("10k lines: bounds+geo-index build {:.3} ms / rstar index-only build {:.3} ms; moving-view query geo-index+planes {:.3} ms / linear planes {:.3} ms / rstar+planes {:.3} ms; packed index {} bytes (bounds/IDs separate)",construction.as_secs_f64()*1000.0,reference_construction.as_secs_f64()*1000.0,indexed.as_secs_f64()*1000.0/360.0,linear.as_secs_f64()*1000.0/360.0,reference_query.as_secs_f64()*1000.0/360.0,index.tree.as_ref().unwrap().as_ref().len());
+    println!(
+        "10k lines: bounds+geo-index build {:.3} ms / rstar index-only build {:.3} ms; moving-view query geo-index+planes {:.3} ms / linear planes {:.3} ms / rstar+planes {:.3} ms; packed index {} bytes (bounds/IDs separate)",
+        construction.as_secs_f64() * 1000.0,
+        reference_construction.as_secs_f64() * 1000.0,
+        indexed.as_secs_f64() * 1000.0 / 360.0,
+        linear.as_secs_f64() * 1000.0 / 360.0,
+        reference_query.as_secs_f64() * 1000.0 / 360.0,
+        index.tree.as_ref().unwrap().as_ref().len()
+    );
 }

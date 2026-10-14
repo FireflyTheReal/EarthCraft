@@ -7,16 +7,16 @@ mod gpu;
 pub mod overlays;
 mod pixel;
 mod rays;
-use pixel::{sky, surface, Surface};
+use pixel::{Surface, sky, surface};
 mod tuning;
 pub mod worker;
-use earthcraft_core::{camera::Basis, math::v3_to_ll, EARTH_RADIUS_M, VERTICAL_FOV_HALF_TAN};
+use earthcraft_core::{EARTH_RADIUS_M, VERTICAL_FOV_HALF_TAN, camera::Basis, math::v3_to_ll};
 use earthcraft_core::{METERS_PER_KM, METERS_PER_LATITUDE_DEGREE};
 use earthcraft_data::tiles::{
-    make_key, unkey, KeyBuild, Lookup, Provider, Tile, TileCache, TileKey,
+    KeyBuild, Lookup, Provider, Tile, TileCache, TileKey, make_key, unkey,
 };
 use rayon::prelude::*;
-use rays::{RayCaster, RAY_LANES};
+use rays::{RAY_LANES, RayCaster};
 use std::{collections::HashMap, f64::consts::PI, sync::Arc};
 use tuning::{
     ATMOSPHERE_BLEND, ATMOSPHERE_COLOR, ATMOSPHERE_HEIGHT_RATIO, ATMOSPHERE_RADIUS_RATIO,

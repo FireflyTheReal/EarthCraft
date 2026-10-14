@@ -94,10 +94,10 @@ pub(crate) async fn fetch_json(url: &str) -> Result<serde_json::Value, crate::Er
     fetch_json_at(url, geo_cache_path(url)).await
 }
 async fn fetch_json_at(url: &str, path: PathBuf) -> Result<serde_json::Value, crate::Error> {
-    if let Ok(bytes) = tokio::fs::read(&path).await {
-        if let Ok(value) = parse_json(bytes).await {
-            return Ok(value);
-        }
+    if let Ok(bytes) = tokio::fs::read(&path).await
+        && let Ok(value) = parse_json(bytes).await
+    {
+        return Ok(value);
     }
     let client = client(Policy::Boundary)?;
     let mut last = None;

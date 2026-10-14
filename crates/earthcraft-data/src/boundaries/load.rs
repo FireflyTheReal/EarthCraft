@@ -1,9 +1,10 @@
 use super::brazil::load_brazil;
 use super::geojson::{collect_geojson_lines, feature_name, label_center};
-use super::{is_big_country, log_status, LabelKind, Layer, Line, MapLabel, Patch, StatusLog};
+use super::{LabelKind, Layer, Line, MapLabel, Patch, StatusLog, is_big_country, log_status};
 use std::sync::{
+    Arc,
     atomic::{AtomicUsize, Ordering},
-    mpsc, Arc,
+    mpsc,
 };
 const NE: &str = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson";
 

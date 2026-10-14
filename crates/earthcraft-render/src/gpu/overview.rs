@@ -2,7 +2,7 @@
 use super::*;
 use crate::tuning;
 use earthcraft_core::{EARTH_RADIUS_M, VERTICAL_FOV_HALF_TAN};
-use earthcraft_data::tiles::{make_key, unkey, Lookup};
+use earthcraft_data::tiles::{Lookup, make_key, unkey};
 const MIN_GPU_ALTITUDE_KM: f64 = 1000.0;
 const MAX_TRACKED_ZOOM: u8 = 10;
 const TILE_TABLE_SIZE: usize = 2048;

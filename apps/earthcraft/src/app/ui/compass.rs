@@ -78,9 +78,11 @@ mod tests {
             assert_eq!(labels.len(), 4);
             let north = labels.iter().find(|t| t.galley.job.text == "N").unwrap();
             assert!(north.pos.x + north.galley.size().x < 100.0);
-            assert!(labels
-                .iter()
-                .any(|t| t.galley.job.text == lang.text("compass-west")));
+            assert!(
+                labels
+                    .iter()
+                    .any(|t| t.galley.job.text == lang.text("compass-west"))
+            );
         }
     }
     #[test]

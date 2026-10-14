@@ -1,8 +1,8 @@
 use super::super::App;
 use crate::app::cache::cache_size_text;
 use earthcraft_core::language::Lang;
-use earthcraft_data::settings::{Settings, UnitPreference};
 use earthcraft_data::settings::{MAX_MAP_SCALE, MIN_MAP_SCALE, MIN_UI_SCALE};
+use earthcraft_data::settings::{Settings, UnitPreference};
 use eframe::egui;
 pub(super) const MAX_UI_SLIDER_SCALE: f32 = 2.0;
 const FOOTER_MARGIN_POINTS: i8 = 8;

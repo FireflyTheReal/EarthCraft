@@ -1,8 +1,8 @@
 //! Prepare XML for kml 0.14: its Point reader assumes a coordinate and some
 //! container loops do not stop at EOF. KmlReader owns all KML decoding.
 use quick_xml::{
-    events::{BytesStart, Event},
     Reader, Writer,
+    events::{BytesStart, Event},
 };
 
 const MAX_XML_DEPTH: usize = 128;
@@ -50,12 +50,12 @@ fn close(stack: &mut Vec<Frame>, writer: &mut Writer<Vec<u8>>) -> Result<(), cra
     } else {
         writer.write_event(Event::End(frame.tag.to_end()))?;
     }
-    if frame.is("coordinates") {
-        if let Some(point) = stack.last_mut().filter(|f| f.is("Point")) {
-            point.has_coordinates = frame.coordinate_text;
-            if point.synthetic {
-                close(stack, writer)?;
-            }
+    if frame.is("coordinates")
+        && let Some(point) = stack.last_mut().filter(|f| f.is("Point"))
+    {
+        point.has_coordinates = frame.coordinate_text;
+        if point.synthetic {
+            close(stack, writer)?;
         }
     }
     Ok(())

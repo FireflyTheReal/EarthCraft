@@ -1,6 +1,6 @@
 //! Bounded background geometry preparation; font metrics remain backend-owned.
 use super::{
-    project_borders, project_labels, BorderKind, BoundaryIndex, OverlayLayers, OverlayProjection,
+    BorderKind, BoundaryIndex, OverlayLayers, OverlayProjection, project_borders, project_labels,
 };
 use earthcraft_core::camera::Basis;
 use earthcraft_data::boundaries::BoundaryData;

@@ -4,7 +4,7 @@ mod repair;
 mod shader;
 #[cfg(test)]
 mod tests;
-use crate::{worker::RenderRequest, RenderedView};
+use crate::{RenderedView, worker::RenderRequest};
 use earthcraft_data::tiles::{Tile, TileCache, TileKey};
 use std::{
     collections::HashMap,

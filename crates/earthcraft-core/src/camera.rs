@@ -4,7 +4,7 @@ use crate::{
 };
 use crate::{MAX_CAMERA_LATITUDE_DEG, METERS_PER_KM, METERS_PER_LATITUDE_DEGREE};
 use emath::{Pos2, Rect};
-use glam::{dcamera::rh, DMat2, DMat3, DMat4, DQuat, DVec2, DVec3};
+use glam::{DMat2, DMat3, DMat4, DQuat, DVec2, DVec3, dcamera::rh};
 // Reject near-zero projection depths and rotation axes; bound pan amplification near poles.
 const PROJECTION_DEPTH_EPSILON: f64 = 1e-9;
 const ROTATION_AXIS_EPSILON: f64 = 1e-13;
@@ -154,10 +154,10 @@ impl Cam {
     pub fn zoom_at(&mut self, factor: f64, cursor: Option<Pos2>, rect: Rect, aspect: f64) {
         let before = cursor.and_then(|c| self.basis(aspect).pick(rect, c));
         self.zoom(factor);
-        if let (Some(p0), Some(c)) = (before, cursor) {
-            if let Some(p1) = self.basis(aspect).pick(rect, c) {
-                self.rotate(ll_to_v3(p1.0, p1.1), ll_to_v3(p0.0, p0.1));
-            }
+        if let (Some(p0), Some(c)) = (before, cursor)
+            && let Some(p1) = self.basis(aspect).pick(rect, c)
+        {
+            self.rotate(ll_to_v3(p1.0, p1.1), ll_to_v3(p0.0, p0.1));
         }
     }
 }
@@ -294,7 +294,10 @@ mod projection_tests {
                     let projected = basis
                         .project(ll_to_v3(latitude, longitude), rect)
                         .expect("picked point remains visible");
-                    assert!(projected.distance(cursor) < 0.01, "{lat}, {lon}, heading {heading}, alt {alt}, aspect {aspect}: {projected:?} != {cursor:?}");
+                    assert!(
+                        projected.distance(cursor) < 0.01,
+                        "{lat}, {lon}, heading {heading}, alt {alt}, aspect {aspect}: {projected:?} != {cursor:?}"
+                    );
                 }
             }
         }

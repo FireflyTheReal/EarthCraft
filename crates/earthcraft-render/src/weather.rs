@@ -23,23 +23,24 @@ pub fn project_live_maps(
                 continue;
             };
             let i = (y * width + x) * 4;
-            if cloud.is_some() {
-                if let Some(img) = cloud {
-                    let c = equirect_pixel(img, lat, lon);
-                    over(
-                        &mut rgba[i..i + 4],
-                        [c[0], c[1], c[2], (c[3] as f32 * CLOUD_OPACITY) as u8],
-                    );
-                }
+            if cloud.is_some()
+                && let Some(img) = cloud
+            {
+                let c = equirect_pixel(img, lat, lon);
+                over(
+                    &mut rgba[i..i + 4],
+                    [c[0], c[1], c[2], (c[3] as f32 * CLOUD_OPACITY) as u8],
+                );
             }
-            if radar.is_some() && lat.abs() < RADAR_LATITUDE_LIMIT_DEG {
-                if let Some(img) = radar {
-                    let r = mercator_pixel(img, lat, lon);
-                    over(
-                        &mut rgba[i..i + 4],
-                        [r[0], r[1], r[2], (r[3] as f32 * RADAR_OPACITY) as u8],
-                    );
-                }
+            if radar.is_some()
+                && lat.abs() < RADAR_LATITUDE_LIMIT_DEG
+                && let Some(img) = radar
+            {
+                let r = mercator_pixel(img, lat, lon);
+                over(
+                    &mut rgba[i..i + 4],
+                    [r[0], r[1], r[2], (r[3] as f32 * RADAR_OPACITY) as u8],
+                );
             }
         }
     }

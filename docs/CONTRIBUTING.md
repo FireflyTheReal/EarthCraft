@@ -8,7 +8,7 @@ so reviewers can distinguish behavior changes from file organization.
 
 Install Rust 1.95 or newer through rustup. The locked dependency graph includes
 eframe/egui 0.36, which require Rust 1.95.
-The workspace declares 1.95; CI checks the current stable toolchain on Linux,
+The workspace uses Edition 2024 and declares Rust 1.95; CI checks stable on Linux,
 macOS and Windows. Stable is suitable for day-to-day development; do not use APIs
 newer than the declared minimum.
 
@@ -236,9 +236,9 @@ To compare complete warm CPU frames using isolated disk fixtures:
 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_DEV_INCREMENTAL=false RAYON_NUM_THREADS=8 cargo test -p earthcraft-render warm_cpu_frame_time --locked -- --ignored --nocapture --test-threads=1
 ```
 
-Run this benchmark alone: it temporarily selects a private cache directory before
-creating worker threads, then restores the process environment and removes that
-directory. It renders 512×384 frames with grid, sunlight and atmosphere, using 341
+Run this benchmark alone: it injects a private imagery directory into the cache
+constructor, then removes that directory after its workers stop. It does not
+modify the process environment. It renders 512×384 frames with grid, sunlight and atmosphere, using 341
 warm 256×256-pixel fixture tiles (85.25 MiB decoded). Startup warming uses production admission and disk
 workers, and rotations across hemispheres, the dateline and poles assert that
 overview frames request no new tiles. Five rounds of two hundred frames include production ray

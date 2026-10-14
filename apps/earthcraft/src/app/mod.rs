@@ -3,20 +3,21 @@
 mod test_ui;
 use earthcraft_core::{camera::Cam, language::Lang, placemark::Placemark};
 use earthcraft_data::{
-    boundaries::{load_boundaries_async, BoundaryData, BoundaryUpdates, StatusLog},
+    boundaries::{BoundaryData, BoundaryUpdates, StatusLog, load_boundaries_async},
     search::{GeoResult, Suggestion},
-    settings::{load_lang, Settings},
+    settings::{Settings, load_lang},
     tiles::{Provider, TileCache, TileWarmup},
     wayback::WaybackRelease,
 };
 use eframe::egui::{self, Rect};
 use std::{
-    sync::{mpsc, Arc, Mutex},
+    sync::{Arc, Mutex, mpsc},
     time::{Duration, Instant},
 };
 mod cache;
 mod explorer;
 mod files;
+mod frame_timing;
 mod globe;
 mod live_layers;
 mod live_maps;
@@ -34,8 +35,6 @@ const INITIAL_CAMERA: Cam = Cam {
     heading: 0.0,
     alt: 14_000.0,
 };
-// Bound animation steps after slow frames to prevent sudden camera jumps.
-const MAX_FRAME_DELTA_SECS: f32 = 0.1;
 const PAN_SPEED_POINTS_PER_SECOND: f64 = 350.0;
 const BOUNDARY_POLL_INTERVAL: Duration = Duration::from_millis(300);
 
@@ -293,7 +292,7 @@ impl eframe::App for App {
         let ctx = &ui.ctx().clone();
         #[cfg(feature = "profiling")]
         let mut profile = earthcraft_data::profiling::Span::new("ui.update");
-        let dt = ctx.input(|i| i.unstable_dt).min(MAX_FRAME_DELTA_SECS) as f64;
+        let dt = frame_timing::animation_delta_secs(ctx);
         if (self.settings.ui_scale - self.applied_ui_scale).abs() > 1e-4 {
             ui::apply_ui_scale(ctx, self.settings.ui_scale);
             self.applied_ui_scale = self.settings.ui_scale;

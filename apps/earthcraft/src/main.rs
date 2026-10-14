@@ -12,10 +12,10 @@ mod app;
 use app::App;
 use eframe::egui;
 const INITIAL_WINDOW_SIZE_POINTS: [f32; 2] = [1280.0, 800.0];
-#[cfg(target_os = "macos")]
-const APP_ICON_PNG: &[u8] = include_bytes!("../../../assets/macos/icon.png");
-#[cfg(not(target_os = "macos"))]
-const APP_ICON_PNG: &[u8] = include_bytes!("../../../assets/icon_256.png");
+const APP_ICON_PNG: &[u8] = std::cfg_select! {
+    target_os = "macos" => include_bytes!("../../../assets/macos/icon.png"),
+    _ => include_bytes!("../../../assets/icon_256.png"),
+};
 
 fn main() -> Result<(), eframe::Error> {
     #[cfg(feature = "profiling")]

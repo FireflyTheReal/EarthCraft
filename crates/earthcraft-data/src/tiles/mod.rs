@@ -175,7 +175,7 @@ impl Tile {
 
 mod cache;
 mod disk;
-pub use cache::{Lookup, TileCache, DEFAULT_TILE_CACHE_BUDGET_BYTES, MAX_INFLIGHT};
+pub use cache::{DEFAULT_TILE_CACHE_BUDGET_BYTES, Lookup, MAX_INFLIGHT, TileCache};
 mod warmup;
 pub use warmup::TileWarmup;
 

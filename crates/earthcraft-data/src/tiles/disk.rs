@@ -1,5 +1,5 @@
 //! Tile-only disk persistence and coordination with explicit cache clearing.
-use super::{unkey, Provider, TileKey};
+use super::{Provider, TileKey, unkey};
 use crate::wayback::wayback_release;
 use std::{
     io,

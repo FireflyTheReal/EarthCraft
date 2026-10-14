@@ -1,8 +1,8 @@
 //! Camera flight interpolation, independent of UI timing and input.
 use crate::{
+    MAX_CAMERA_ALTITUDE_KM, MAX_CAMERA_LATITUDE_DEG, MIN_CAMERA_ALTITUDE_KM,
     camera::Cam,
     math::{haversine_km, wrap_lon},
-    MAX_CAMERA_ALTITUDE_KM, MAX_CAMERA_LATITUDE_DEG, MIN_CAMERA_ALTITUDE_KM,
 };
 use std::f64::consts::PI;
 const FLY_ARC_ALTITUDE_RATIO: f64 = 0.7;

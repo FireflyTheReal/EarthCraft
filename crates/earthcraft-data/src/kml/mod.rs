@@ -1,12 +1,12 @@
 //! Read and write EarthCraft placemarks through GeoRust KML.
 use ::kml::{
-    types::{Coord, Element, Geometry, KmlDocument, KmlVersion, Placemark as KmlPlacemark, Point},
     Kml, KmlReader, KmlWriter,
+    types::{Coord, Element, Geometry, KmlDocument, KmlVersion, Placemark as KmlPlacemark, Point},
 };
 use earthcraft_core::{language::Lang, placemark::Placemark};
 use quick_xml::{
-    events::{BytesDecl, Event},
     Writer,
+    events::{BytesDecl, Event},
 };
 
 mod guard;

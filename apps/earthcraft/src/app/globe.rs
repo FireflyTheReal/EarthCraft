@@ -1,5 +1,5 @@
 use super::App;
-use super::{INITIAL_CAMERA, MAX_FRAME_DELTA_SECS, PAN_SPEED_POINTS_PER_SECOND};
+use super::{INITIAL_CAMERA, PAN_SPEED_POINTS_PER_SECOND};
 use earthcraft_core::{
     math::{now_unix, wrap_lon},
     placemark::Placemark,
@@ -83,7 +83,7 @@ impl App {
             }
         }
         if !ctx.egui_wants_keyboard_input() {
-            let dt = ctx.input(|i| i.unstable_dt).min(MAX_FRAME_DELTA_SECS) as f64;
+            let dt = super::frame_timing::animation_delta_secs(ctx);
             let sp = PAN_SPEED_POINTS_PER_SECOND * dt;
             let (mut dx, mut dy) = (0.0, 0.0);
             ctx.input(|i| {
@@ -150,7 +150,7 @@ impl App {
         }
         .keys(now_unix());
         let state = keys.state;
-        let gen = self.cache.generation();
+        let generation = self.cache.generation();
         let presentation = keys.presentation;
         // Keep the displayed view stable while the sidebar changes the viewport.
         // A running job may finish, but publication/submission resume only at rest.
@@ -178,14 +178,15 @@ impl App {
                     (self.cam.alt * POINT_FLY_ALTITUDE_RATIO).max(MIN_POINT_FLY_ALTITUDE_KM),
                 );
             }
-        } else if !ruler_captured && resp.clicked() && self.ruler {
-            if let Some(pt) = resp
+        } else if !ruler_captured
+            && resp.clicked()
+            && self.ruler
+            && let Some(pt) = resp
                 .interact_pointer_pos()
                 .filter(|p| rect.contains(*p))
                 .and_then(|p| pick_basis.pick(rect, p))
-            {
-                self.ruler_paths.add_point(pt, start_ruler_path);
-            }
+        {
+            self.ruler_paths.add_point(pt, start_ruler_path);
         }
         if resp.secondary_clicked() {
             self.menu_pick = resp
@@ -195,7 +196,7 @@ impl App {
         }
 
         let mut need = state != self.last_state
-            || (gen != self.last_gen && self.renderer.tiles_changed(&self.cache))
+            || (generation != self.last_gen && self.renderer.tiles_changed(&self.cache))
             || (self.texture.is_none() && self.renderer.is_idle());
         if need
             && state == self.last_state
@@ -208,15 +209,15 @@ impl App {
         if need && !self.sidebar_animating {
             self.request_render(w, h, render_aspect, presentation, viewport);
             self.last_state = state;
-            self.last_gen = gen;
+            self.last_gen = generation;
             self.last_render = Instant::now();
         }
         if state == self.last_state && self.renderer.is_idle() {
             self.renderer
-                .refill_requests(&self.cache, gen != self.last_gen, ctx);
+                .refill_requests(&self.cache, generation != self.last_gen, ctx);
         }
         if !self.sidebar_animating {
-            self.last_gen = gen;
+            self.last_gen = generation;
         }
         if !idle {
             ctx.request_repaint();
@@ -289,7 +290,7 @@ impl App {
         }
 
         // Google Earth style navigation controls (rotate / move / zoom)
-        let dt_nav = ctx.input(|i| i.stable_dt).min(MAX_FRAME_DELTA_SECS) as f64;
+        let dt_nav = super::frame_timing::navigation_delta_secs(ctx);
         if self.nav_controls(ui, rect, dt_nav) {
             self.touch();
             ctx.request_repaint();
@@ -322,16 +323,16 @@ impl App {
             );
         }
         let mut attribution = self.provider.attribution(lg).to_string();
-        if self.provider == Provider::Wayback {
-            if let Some(r) = self.wayback_list.get(self.wayback_idx) {
-                attribution = lg.format(
-                    "wayback-snapshot-attribution",
-                    &[
-                        ("attribution", attribution.into()),
-                        ("date", r.date.as_str().into()),
-                    ],
-                );
-            }
+        if self.provider == Provider::Wayback
+            && let Some(r) = self.wayback_list.get(self.wayback_idx)
+        {
+            attribution = lg.format(
+                "wayback-snapshot-attribution",
+                &[
+                    ("attribution", attribution.into()),
+                    ("date", r.date.as_str().into()),
+                ],
+            );
         }
         painter.text(
             rect.right_bottom() - Vec2::new(8.0, 6.0),
@@ -424,7 +425,7 @@ impl App {
 
         // auto-rotate (keeps repainting)
         if self.auto_rotate && self.fly.is_none() && !ruler_captured {
-            let dt = ctx.input(|i| i.unstable_dt).min(MAX_FRAME_DELTA_SECS) as f64;
+            let dt = super::frame_timing::animation_delta_secs(ctx);
             self.cam.lon = wrap_lon(self.cam.lon + AUTO_ROTATE_DEG_PER_SECOND * dt);
             self.touch();
             ctx.request_repaint();

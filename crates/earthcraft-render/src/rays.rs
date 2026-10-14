@@ -1,5 +1,5 @@
 //! Independent f64 ray lanes; geographic/trigonometric sampling stays scalar.
-use earthcraft_core::{camera::Basis, VERTICAL_FOV_HALF_TAN};
+use earthcraft_core::{VERTICAL_FOV_HALF_TAN, camera::Basis};
 use glam::{DMat3, DVec3};
 use wide::f64x4;
 
@@ -102,7 +102,7 @@ impl RayCaster {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use earthcraft_core::{camera::Cam, MAX_CAMERA_ALTITUDE_KM, MIN_CAMERA_ALTITUDE_KM};
+    use earthcraft_core::{MAX_CAMERA_ALTITUDE_KM, MIN_CAMERA_ALTITUDE_KM, camera::Cam};
 
     #[test]
     fn packed_rays_match_scalar_camera_directions_and_sphere_geometry() {
@@ -154,9 +154,9 @@ mod tests {
                                 if ray.discriminant >= 0.0 && ray.camera_dot < 0.0 {
                                     assert!(ray.distance >= 0.0);
                                     assert!((ray.point.length_squared() - 1.0).abs() < 1e-10);
-                                    assert!((ray.point - basis.c)
-                                        .normalize()
-                                        .abs_diff_eq(scalar, 1e-9));
+                                    assert!(
+                                        (ray.point - basis.c).normalize().abs_diff_eq(scalar, 1e-9)
+                                    );
                                     assert!((ray.incidence + scalar.dot(ray.point)).abs() < 1e-12);
                                 }
                             }

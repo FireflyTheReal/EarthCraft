@@ -3,7 +3,7 @@ use super::cache::*;
 use earthcraft_core::{camera::Cam, language::Lang};
 use earthcraft_data::boundaries::{BoundaryData, LabelKind, MapLabel};
 use earthcraft_render::overlays::LabelIndex;
-use eframe::egui::{self, pos2, vec2, LayerId, Pos2, Rect};
+use eframe::egui::{self, LayerId, Pos2, Rect, pos2, vec2};
 use std::{hint::black_box, sync::Arc, time::Instant};
 
 fn median(mut values: Vec<f64>) -> f64 {
@@ -52,10 +52,10 @@ fn overlay_projection_and_label_occupancy_time() {
             assert_eq!(reference, actual);
         }
         println!(
-        "{width}x{height}, 8000 label rectangles, {admitted} admitted: linear {:.3} ms, rstar {:.3} ms (median of 7)",
-        median(linear),
-        median(indexed)
-    );
+            "{width}x{height}, 8000 label rectangles, {admitted} admitted: linear {:.3} ms, rstar {:.3} ms (median of 7)",
+            median(linear),
+            median(indexed)
+        );
     }
 
     let data = BoundaryData {
@@ -143,5 +143,9 @@ fn overlay_projection_and_label_occupancy_time() {
             black_box(output);
         }
     }
-    println!("10000 32-point lines + 8000 labels: rebuild {:.3} ms, reuse {:.3} ms (median of 7; projection/placement/shape submission only)", median(rebuild), median(reuse));
+    println!(
+        "10000 32-point lines + 8000 labels: rebuild {:.3} ms, reuse {:.3} ms (median of 7; projection/placement/shape submission only)",
+        median(rebuild),
+        median(reuse)
+    );
 }

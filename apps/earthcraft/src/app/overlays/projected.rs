@@ -5,7 +5,7 @@ use super::OverlayView;
 #[cfg(test)]
 use earthcraft_data::boundaries::BoundaryData;
 use earthcraft_data::boundaries::LabelKind;
-use earthcraft_render::overlays::{BorderKind, LabelIndex, OverlayGeometry, MAX_VISIBLE_LABELS};
+use earthcraft_render::overlays::{BorderKind, LabelIndex, MAX_VISIBLE_LABELS, OverlayGeometry};
 use eframe::egui::{self, Align2, Color32, FontId, Rect, Shape, Stroke, Vec2};
 const LABEL_PADDING_POINTS: f32 = 2.0;
 const LABEL_HIGHLIGHT_OFFSET_POINTS: f32 = -0.5;

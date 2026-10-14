@@ -224,18 +224,20 @@ mod tests {
             }
         }
         for step in [0.0, -1.0, f64::NAN, f64::INFINITY] {
-            assert!(project_grid_labels(
-                &Cam {
-                    lat: 0.0,
-                    lon: 0.0,
-                    heading: 0.0,
-                    alt: 100.0
-                }
-                .basis(1.0),
-                rect,
-                step
-            )
-            .is_empty());
+            assert!(
+                project_grid_labels(
+                    &Cam {
+                        lat: 0.0,
+                        lon: 0.0,
+                        heading: 0.0,
+                        alt: 100.0
+                    }
+                    .basis(1.0),
+                    rect,
+                    step
+                )
+                .is_empty()
+            );
         }
     }
 }

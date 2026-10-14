@@ -1,7 +1,7 @@
 use super::*;
 use earthcraft_core::camera::Cam;
 use earthcraft_data::boundaries::{LabelKind, MapLabel};
-use eframe::egui::{pos2, vec2, Color32, LayerId, Pos2};
+use eframe::egui::{Color32, LayerId, Pos2, pos2, vec2};
 use std::sync::Arc;
 
 fn scene() -> (OverlayView, OverlayStyle, BoundaryData) {

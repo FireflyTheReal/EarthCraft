@@ -64,11 +64,13 @@ fn jobs_preserve_order_snapshot_inputs_and_wake_after_success_and_failure() {
     };
     assert_eq!(path, kml);
     assert_eq!(placemarks[0].name, "Saved snapshot");
-    assert!(results
-        .recv_timeout(Duration::from_secs(10))
-        .unwrap()
-        .result
-        .is_err());
+    assert!(
+        results
+            .recv_timeout(Duration::from_secs(10))
+            .unwrap()
+            .result
+            .is_err()
+    );
     for _ in 0..3 {
         wakes.recv_timeout(Duration::from_secs(10)).unwrap();
     }

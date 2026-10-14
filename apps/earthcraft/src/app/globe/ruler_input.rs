@@ -47,15 +47,15 @@ impl App {
                 }
             });
         }
-        if let Some(index) = hovered.filter(|_| !ctx.egui_wants_keyboard_input()) {
-            if ctx.input_mut(|i| {
+        if let Some(index) = hovered.filter(|_| !ctx.egui_wants_keyboard_input())
+            && ctx.input_mut(|i| {
                 i.consume_key(egui::Modifiers::NONE, Key::Delete)
                     || i.consume_key(egui::Modifiers::NONE, Key::Backspace)
-            }) {
-                self.ruler_paths.remove_point(index);
-                self.ruler_drag = None;
-                return true;
-            }
+            })
+        {
+            self.ruler_paths.remove_point(index);
+            self.ruler_drag = None;
+            return true;
         }
         if ctx.input(|i| i.pointer.primary_pressed()) {
             self.ruler_drag = pressed_handle(response, &basis, rect, &self.ruler_paths);

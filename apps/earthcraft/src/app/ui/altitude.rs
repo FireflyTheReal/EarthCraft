@@ -1,9 +1,9 @@
 //! The desktop owns altitude-entry timing; core owns conversion and validation.
 use super::super::App;
 use earthcraft_core::{
+    MAX_CAMERA_ALTITUDE_KM, MIN_CAMERA_ALTITUDE_KM,
     language::Lang,
     units::{AltitudeUnit, DistanceUnits},
-    MAX_CAMERA_ALTITUDE_KM, MIN_CAMERA_ALTITUDE_KM,
 };
 use eframe::egui;
 const EDITOR_ANCHOR_GAP_POINTS: f32 = 8.0;
