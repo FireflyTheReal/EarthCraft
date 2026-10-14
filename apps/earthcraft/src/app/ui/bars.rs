@@ -155,18 +155,18 @@ impl App {
                         self.distance_units().altitude(self.cam.alt).into(),
                     )],
                 );
-                if ui
+                let altitude_response = ui
                     .add(
                         egui::Label::new(egui::RichText::new(altitude).monospace())
                             .sense(egui::Sense::click()),
                     )
                     .on_hover_cursor(egui::CursorIcon::PointingHand)
-                    .on_hover_text(lg.text("altitude-edit-tooltip"))
-                    .clicked()
-                {
+                    .on_hover_text(lg.text("altitude-edit-tooltip"));
+                if altitude_response.clicked() {
                     self.altitude_editor = Some(super::altitude::AltitudeEditor::new(
                         self.cam.alt,
                         self.distance_units(),
+                        altitude_response.rect.left_top(),
                     ));
                 }
                 ui.separator();

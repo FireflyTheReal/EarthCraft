@@ -6,12 +6,15 @@ use earthcraft_core::{
     MAX_CAMERA_ALTITUDE_KM, MIN_CAMERA_ALTITUDE_KM,
 };
 use eframe::egui;
+const EDITOR_ANCHOR_GAP_POINTS: f32 = 8.0;
+const BUTTON_TOP_MARGIN_POINTS: f32 = 8.0;
 
 pub(in crate::app) struct AltitudeEditor {
     text: String,
     unit: AltitudeUnit,
     focus: bool,
     invalid: bool,
+    anchor: egui::Pos2,
 }
 enum Action {
     Pending,
@@ -19,13 +22,14 @@ enum Action {
     Apply { altitude_km: f64 },
 }
 impl AltitudeEditor {
-    pub(super) fn new(altitude_km: f64, units: DistanceUnits) -> Self {
+    pub(super) fn new(altitude_km: f64, units: DistanceUnits, anchor: egui::Pos2) -> Self {
         let unit = AltitudeUnit::for_altitude(altitude_km, units);
         Self {
             text: unit.value(altitude_km).to_string(),
             unit,
             focus: true,
             invalid: false,
+            anchor,
         }
     }
     fn show(&mut self, ctx: &egui::Context, lang: Lang) -> Action {
@@ -33,6 +37,8 @@ impl AltitudeEditor {
         let mut open = true;
         egui::Window::new(lang.text("altitude-edit-title"))
             .id(egui::Id::new("camera_altitude_editor"))
+            .pivot(egui::Align2::LEFT_BOTTOM)
+            .fixed_pos(self.anchor - egui::vec2(0.0, EDITOR_ANCHOR_GAP_POINTS))
             .open(&mut open)
             .collapsible(false)
             .resizable(false)
@@ -80,6 +86,7 @@ impl AltitudeEditor {
                         ),
                     );
                 }
+                ui.add_space(BUTTON_TOP_MARGIN_POINTS);
                 ui.horizontal(|ui| {
                     if ui.button(lang.text("altitude-apply-action")).clicked() || enter {
                         match self.unit.parse_km(&self.text) {
@@ -123,7 +130,8 @@ mod tests {
     use super::*;
     fn submit(text: &str) -> (AltitudeEditor, Action) {
         let ctx = egui::Context::default();
-        let mut editor = AltitudeEditor::new(14000.0, DistanceUnits::Metric);
+        let mut editor =
+            AltitudeEditor::new(14000.0, DistanceUnits::Metric, egui::pos2(100.0, 300.0));
         let _ = ctx.run(egui::RawInput::default(), |ctx| {
             editor.show(ctx, Lang::En);
         });
@@ -159,7 +167,8 @@ mod tests {
         assert!(matches!(result, Action::Pending));
         assert!(editor.invalid);
         let ctx = egui::Context::default();
-        let mut editor = AltitudeEditor::new(14000.0, DistanceUnits::Metric);
+        let mut editor =
+            AltitudeEditor::new(14000.0, DistanceUnits::Metric, egui::pos2(100.0, 300.0));
         let mut result = Action::Pending;
         let _ = ctx.run(
             egui::RawInput {
