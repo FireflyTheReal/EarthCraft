@@ -165,7 +165,8 @@ impl App {
             .filter(|p| rect.contains(*p))
             .and_then(|p| pick_basis.pick(rect, p));
 
-        if !ruler_captured && resp.double_clicked() {
+        let start_ruler_path = self.ruler && ruler_input::starts_new_path(&resp);
+        if !ruler_captured && !start_ruler_path && resp.double_clicked() {
             if let Some((la, lo)) = resp
                 .interact_pointer_pos()
                 .filter(|p| rect.contains(*p))
@@ -183,7 +184,7 @@ impl App {
                 .filter(|p| rect.contains(*p))
                 .and_then(|p| pick_basis.pick(rect, p))
             {
-                self.ruler_pts.push(pt);
+                self.ruler_paths.add_point(pt, start_ruler_path);
             }
         }
         if resp.secondary_clicked() {
@@ -415,7 +416,7 @@ impl App {
                 ),
                 2 => {
                     self.ruler = true;
-                    self.ruler_pts.push((la, lo));
+                    self.ruler_paths.add_point((la, lo), false);
                 }
                 _ => ctx.copy_text(format!("{la:.6}, {lo:.6}")),
             }

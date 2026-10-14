@@ -1,6 +1,6 @@
 use super::super::App;
 use super::paths::short_folder;
-use earthcraft_core::{math::haversine_km, placemark::Placemark};
+use earthcraft_core::placemark::Placemark;
 use earthcraft_data::tiles::Provider;
 use eframe::egui::{self, Color32, Key, Stroke};
 pub(super) const DEFAULT_SIDEBAR_WIDTH_POINTS: f32 = 270.0;
@@ -291,16 +291,15 @@ impl App {
                             if selected != self.settings.ruler_unit {
                                 self.settings.ruler_unit = selected;
                             }
-                            let total: f64 = self
-                                .ruler_pts
-                                .windows(2)
-                                .map(|w| haversine_km(w[0], w[1]))
-                                .sum();
+                            let total = self.ruler_paths.total_distance_km();
                             ui.label(
                                 lg.format(
                                     "ruler-measurement-summary",
                                     &[
-                                        ("count", self.ruler_pts.len().to_string().into()),
+                                        (
+                                            "count",
+                                            self.ruler_paths.point_count().to_string().into(),
+                                        ),
                                         (
                                             "distance",
                                             self.settings
@@ -312,7 +311,7 @@ impl App {
                                 ),
                             );
                             ui.weak(lg.text("ruler-point-edit-help"));
-                            if let Some(pair) = self.ruler_pts.windows(2).last() {
+                            if let Some(pair) = self.ruler_paths.last_leg() {
                                 let bearing =
                                     earthcraft_core::compass::initial_bearing(pair[0], pair[1])
                                         .map(|bearing| {
@@ -328,7 +327,7 @@ impl App {
                                 .on_hover_text(lg.text("ruler-bearing-tooltip"));
                             }
                             if ui.button(lg.text("ruler-clear-action")).clicked() {
-                                self.ruler_pts.clear();
+                                self.ruler_paths.clear();
                                 self.ruler_drag = None;
                             }
                         });

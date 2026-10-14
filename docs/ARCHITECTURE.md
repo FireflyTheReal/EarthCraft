@@ -65,8 +65,8 @@ padding and the 500-label limit. Placemarks and ruler edits remain immediate. Op
 are prepared by the same background worker using the displayed raster grid step.
 Render aligns candidates on shared column/row guides inside the visible globe,
 swapping axes with view orientation. The desktop measures monospaced labels,
-anchors them consistently and rejects collisions with place names and other grid labels. Core owns true-north heading formatting and initial
-great-circle bearings; the desktop draws the status heading and optional compass.
+anchors them consistently and rejects collisions with place names and other grid labels. Core owns disconnected ruler paths, path-aware distance totals, true-north
+heading formatting and initial great-circle bearings; the desktop draws the status heading and optional compass.
 
 ## Async services and files
 

@@ -116,6 +116,11 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
   rotate. The combined control is always used when navigation controls are visible.
   Grid labels should share a left column and bottom row inside the visible globe;
   their axes swap as the view rotates. Grid numbers default off and persist.
+  Alt-click (Option-click on macOS) to start a disconnected ruler path, then
+  use normal clicks to extend it. Gaps must not draw connecting segments or add
+  distance; a new one-point path has no bearing. Drag/delete points in either
+  path and confirm they remain separate, including after deleting every point
+  in the newest path and placing another. Clear ruler removes all paths.
   Add two ruler points, check the last segment's initial true-north bearing;
   add/remove/edit points and verify the bearing updates. Coincident or antipodal
   points must show an undefined bearing rather than an arbitrary direction.

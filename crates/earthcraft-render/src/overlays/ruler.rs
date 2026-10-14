@@ -2,6 +2,7 @@
 use earthcraft_core::{
     camera::Basis,
     math::{great_circle, haversine_km, ll_to_v3},
+    ruler::{Ruler, RulerPointId},
 };
 use emath::{Pos2, Rect};
 const ARC_SEGMENTS: usize = 48;
@@ -10,9 +11,10 @@ pub struct RulerLeg {
     pub label_position: Option<Pos2>,
     pub distance_km: f64,
 }
-pub fn project_ruler(basis: &Basis, rect: Rect, points: &[(f64, f64)]) -> Vec<RulerLeg> {
+pub fn project_ruler(basis: &Basis, rect: Rect, points: &Ruler) -> Vec<RulerLeg> {
     points
-        .windows(2)
+        .paths()
+        .flat_map(|path| path.windows(2))
         .map(|pair| {
             let projected: Vec<_> = great_circle(pair[0], pair[1], ARC_SEGMENTS)
                 .into_iter()
@@ -42,13 +44,19 @@ pub fn project_ruler(basis: &Basis, rect: Rect, points: &[(f64, f64)]) -> Vec<Ru
 pub fn point_at(
     basis: &Basis,
     rect: Rect,
-    points: &[(f64, f64)],
+    points: &Ruler,
     pointer: Pos2,
     radius_points: f32,
-) -> Option<usize> {
+) -> Option<RulerPointId> {
     points
-        .iter()
+        .paths()
         .enumerate()
+        .flat_map(|(path, points)| {
+            points
+                .iter()
+                .enumerate()
+                .map(move |(point, position)| (RulerPointId { path, point }, position))
+        })
         .filter_map(|(index, point)| {
             let screen = basis.project(ll_to_v3(point.0, point.1), rect)?;
             let distance = screen.distance_sq(pointer);
@@ -66,6 +74,34 @@ mod tests {
     use emath::Vec2;
 
     #[test]
+    fn separate_paths_have_no_projected_leg_between_them() {
+        let basis = Cam {
+            lat: 0.0,
+            lon: 0.0,
+            heading: 0.0,
+            alt: 14000.0,
+        }
+        .basis(1.0);
+        let rect = Rect::from_min_size(Pos2::ZERO, Vec2::splat(600.0));
+        let mut ruler = Ruler::default();
+        ruler.add_point((0.0, 0.0), false);
+        ruler.add_point((0.0, 1.0), false);
+        ruler.add_point((20.0, 20.0), true);
+        ruler.add_point((20.0, 21.0), false);
+        let legs = project_ruler(&basis, rect, &ruler);
+        assert_eq!(legs.len(), 2);
+        assert_eq!(
+            legs.iter().map(|leg| leg.distance_km).sum::<f64>(),
+            ruler.total_distance_km()
+        );
+        let handle = basis.project(ll_to_v3(20.0, 21.0), rect).unwrap();
+        assert_eq!(
+            point_at(&basis, rect, &ruler, handle, 10.0),
+            Some(RulerPointId { path: 1, point: 1 })
+        );
+    }
+
+    #[test]
     fn handles_are_nearest_visible_and_within_hit_radius() {
         let basis = Cam {
             lat: 0.0,
@@ -75,14 +111,33 @@ mod tests {
         }
         .basis(1.0);
         let rect = Rect::from_min_size(Pos2::ZERO, Vec2::splat(600.0));
-        let points = [(0.0, 0.0), (0.0, 2.0), (0.0, 180.0)];
+        let mut points = Ruler::default();
+        for point in [(0.0, 0.0), (0.0, 2.0), (0.0, 180.0)] {
+            points.add_point(point, false);
+        }
         let second = basis.project(ll_to_v3(0.0, 2.0), rect).unwrap();
-        assert_eq!(point_at(&basis, rect, &points, second, 10.0), Some(1));
+        assert_eq!(
+            point_at(&basis, rect, &points, second, 10.0),
+            Some(RulerPointId { path: 0, point: 1 })
+        );
         assert_eq!(point_at(&basis, rect, &points, Pos2::ZERO, 10.0), None);
         assert_eq!(
-            point_at(&basis, rect, &points[2..], rect.center(), 10.0),
+            point_at(
+                &basis,
+                rect,
+                &{
+                    let mut hidden = Ruler::default();
+                    hidden.add_point((0.0, 180.0), false);
+                    hidden
+                },
+                rect.center(),
+                10.0
+            ),
             None
         );
-        assert_eq!(point_at(&basis, rect, &[], second, 10.0), None);
+        assert_eq!(
+            point_at(&basis, rect, &Ruler::default(), second, 10.0),
+            None
+        );
     }
 }
