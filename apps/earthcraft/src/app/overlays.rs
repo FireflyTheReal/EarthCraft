@@ -46,6 +46,11 @@ impl App {
                 basis: *basis,
                 rect,
                 altitude_km,
+                grid_step_deg: if self.show_grid && self.settings.grid_numbers {
+                    self.renderer.displayed_grid_step()
+                } else {
+                    None
+                },
                 pixels_per_point: painter.ctx().pixels_per_point(),
             },
             &self.boundaries,
@@ -54,7 +59,8 @@ impl App {
         let ms = self.settings.map_scale;
         // ruler
         let stroke = Stroke::new(2.5_f32, Color32::from_rgb(255, 80, 80));
-        for leg in earthcraft_render::overlays::ruler::project_ruler(basis, rect, &self.ruler_pts) {
+        for leg in earthcraft_render::overlays::ruler::project_ruler(basis, rect, &self.ruler_paths)
+        {
             for segment in leg.segments {
                 painter.line_segment(segment, stroke);
             }
@@ -80,7 +86,7 @@ impl App {
                 );
             }
         }
-        for p in &self.ruler_pts {
+        for p in self.ruler_paths.points() {
             if let Some(s) = basis.project(ll_to_v3(p.0, p.1), rect) {
                 painter.circle_filled(s, 4.0, Color32::WHITE);
                 painter.circle_stroke(s, 4.0, Stroke::new(1.5_f32, Color32::from_rgb(255, 80, 80)));

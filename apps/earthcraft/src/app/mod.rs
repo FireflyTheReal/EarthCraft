@@ -22,6 +22,7 @@ mod menu;
 mod navigation;
 mod overlays;
 mod rendering;
+mod ruler_history;
 mod search;
 mod ui;
 mod wayback;
@@ -95,8 +96,8 @@ pub(crate) struct App {
     menu_pick: Option<(f64, f64)>,
 
     ruler: bool,
-    ruler_drag: Option<usize>,
-    ruler_pts: Vec<(f64, f64)>,
+    ruler_drag: Option<earthcraft_core::ruler::RulerPointId>,
+    ruler_paths: earthcraft_core::ruler::Ruler,
     cursor: Option<(f64, f64)>,
     sidebar_open: bool,
     sidebar_animating: bool,
@@ -220,7 +221,7 @@ impl App {
             menu_pick: None,
             ruler: false,
             ruler_drag: None,
-            ruler_pts: vec![],
+            ruler_paths: earthcraft_core::ruler::Ruler::default(),
             cursor: None,
             sidebar_open: true,
             sidebar_animating: false,
@@ -286,6 +287,7 @@ impl eframe::App for App {
         self.poll_native_menu(ctx);
         #[cfg(not(target_os = "macos"))]
         self.file_shortcuts(ctx);
+        self.ruler_shortcuts(ctx);
         self.poll_files();
         self.handle_dropped_files(ctx);
         self.ensure_wayback(ctx);
@@ -326,6 +328,8 @@ impl eframe::App for App {
         egui::CentralPanel::default()
             .frame(egui::Frame::none())
             .show(ctx, |ui| self.globe_view(ui, ctx));
+        #[cfg(target_os = "macos")]
+        self.refresh_native_menu(ctx);
         #[cfg(feature = "profiling")]
         {
             profile.values.inflight = self.cache.inflight();

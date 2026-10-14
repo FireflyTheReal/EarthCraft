@@ -20,6 +20,7 @@ pub(super) struct OverlayView {
     pub basis: Basis,
     pub rect: Rect,
     pub altitude_km: f64,
+    pub grid_step_deg: Option<f64>,
     pub pixels_per_point: f32,
 }
 
@@ -76,6 +77,7 @@ impl OverlayCache {
                 basis: view.basis,
                 rect: view.rect,
                 altitude_km: view.altitude_km,
+                grid_step_deg: view.grid_step_deg,
                 layers: style.layers,
             };
             if let Some(completed) = self.worker.take_completed() {

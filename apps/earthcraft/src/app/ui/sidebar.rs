@@ -1,6 +1,6 @@
 use super::super::App;
 use super::paths::short_folder;
-use earthcraft_core::{math::haversine_km, placemark::Placemark};
+use earthcraft_core::placemark::Placemark;
 use earthcraft_data::tiles::Provider;
 use eframe::egui::{self, Color32, Key, Stroke};
 pub(super) const DEFAULT_SIDEBAR_WIDTH_POINTS: f32 = 270.0;
@@ -52,6 +52,12 @@ impl App {
                                                 .selected_text(self.wayback_list[idx].date.clone())
                                                 .height(320.0)
                                                 .show_ui(ui, |ui| {
+                                                    super::selection::size_menu(
+                                                        ui,
+                                                        self.wayback_list
+                                                            .iter()
+                                                            .map(|release| release.date.as_str()),
+                                                    );
                                                     for (i, r) in
                                                         self.wayback_list.iter().enumerate()
                                                     {
@@ -86,6 +92,14 @@ impl App {
                             }
                             ui.separator();
                             ui.checkbox(&mut self.show_grid, lg.text("layers-grid-toggle"));
+                            if self.show_grid {
+                                ui.indent("grid_numbers", |ui| {
+                                    ui.checkbox(
+                                        &mut self.settings.grid_numbers,
+                                        lg.text("layers-grid-numbers-toggle"),
+                                    );
+                                });
+                            }
                             ui.checkbox(
                                 &mut self.show_country_boundaries,
                                 lg.text("layers-country-borders-toggle"),
@@ -283,16 +297,15 @@ impl App {
                             if selected != self.settings.ruler_unit {
                                 self.settings.ruler_unit = selected;
                             }
-                            let total: f64 = self
-                                .ruler_pts
-                                .windows(2)
-                                .map(|w| haversine_km(w[0], w[1]))
-                                .sum();
+                            let total = self.ruler_paths.total_distance_km();
                             ui.label(
                                 lg.format(
                                     "ruler-measurement-summary",
                                     &[
-                                        ("count", self.ruler_pts.len().to_string().into()),
+                                        (
+                                            "count",
+                                            self.ruler_paths.point_count().to_string().into(),
+                                        ),
                                         (
                                             "distance",
                                             self.settings
@@ -303,9 +316,49 @@ impl App {
                                     ],
                                 ),
                             );
-                            ui.weak(lg.text("ruler-point-edit-help"));
+                            ui.weak(lg.text(if cfg!(target_os = "macos") {
+                                "ruler-point-edit-help-macos"
+                            } else {
+                                "ruler-point-edit-help"
+                            }));
+                            if let Some(pair) = self.ruler_paths.last_leg() {
+                                let bearing =
+                                    earthcraft_core::compass::initial_bearing(pair[0], pair[1])
+                                        .map(|bearing| {
+                                            earthcraft_core::compass::heading_text(bearing, lg)
+                                        })
+                                        .unwrap_or_else(|| "—".into());
+                                ui.label(
+                                    lg.format(
+                                        "ruler-bearing-label",
+                                        &[("bearing", bearing.into())],
+                                    ),
+                                )
+                                .on_hover_text(lg.text("ruler-bearing-tooltip"));
+                            }
+                            ui.horizontal(|ui| {
+                                for (command, label, enabled) in [
+                                    (
+                                        crate::app::ruler_history::HistoryCommand::Undo,
+                                        "edit-undo-action",
+                                        self.ruler_paths.can_undo(),
+                                    ),
+                                    (
+                                        crate::app::ruler_history::HistoryCommand::Redo,
+                                        "edit-redo-action",
+                                        self.ruler_paths.can_redo(),
+                                    ),
+                                ] {
+                                    if ui
+                                        .add_enabled(enabled, egui::Button::new(lg.text(label)))
+                                        .clicked()
+                                    {
+                                        self.apply_ruler_history(command, ctx);
+                                    }
+                                }
+                            });
                             if ui.button(lg.text("ruler-clear-action")).clicked() {
-                                self.ruler_pts.clear();
+                                self.ruler_paths.clear();
                                 self.ruler_drag = None;
                             }
                         });

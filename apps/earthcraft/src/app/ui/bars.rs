@@ -102,6 +102,10 @@ impl App {
                         egui::ComboBox::from_id_source("lang_select")
                             .selected_text(format!("🌐 {}", chosen.label()))
                             .show_ui(ui, |ui| {
+                                super::selection::size_menu(
+                                    ui,
+                                    Lang::ALL.into_iter().map(|lang| lang.label()),
+                                );
                                 for l in Lang::ALL {
                                     super::selection::full_width_value(
                                         ui,
@@ -141,57 +145,87 @@ impl App {
     pub(in crate::app) fn bottom_bar(&mut self, ctx: &egui::Context) {
         let lg = self.lang;
         egui::TopBottomPanel::bottom("bottom").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.set_clip_rect(ui.max_rect().intersect(ui.clip_rect()));
-                let sidebar_right =
-                    egui::containers::panel::PanelState::load(ctx, egui::Id::new("side")).map_or(
-                        ctx.screen_rect().left() + super::sidebar::DEFAULT_SIDEBAR_WIDTH_POINTS,
-                        |state| state.rect.right(),
-                    );
-                // egui 0.27 paints the SidePanel separator one point inside its rect.
-                const SIDEBAR_SEPARATOR_INSET_POINTS: f32 = 1.0;
-                let sidebar_border_x = ui
-                    .painter()
-                    .round_to_pixel(sidebar_right - SIDEBAR_SEPARATOR_INSET_POINTS);
-                super::cursor::cursor_readout(ui, self.cursor, sidebar_border_x);
-                ui.monospace(lg.format(
-                    "statusbar-camera-center",
-                    &[
-                        ("latitude", format!("{:.4}", self.cam.lat).into()),
-                        ("longitude", format!("{:.4}", self.cam.lon).into()),
-                    ],
-                ));
-                ui.separator();
-                let altitude = lg.format(
-                    "statusbar-camera-altitude",
-                    &[(
-                        "distance",
-                        self.distance_units().altitude(self.cam.alt).into(),
-                    )],
-                );
-                let altitude_response = ui
-                    .add(
-                        egui::Label::new(egui::RichText::new(altitude).monospace())
-                            .sense(egui::Sense::click()),
-                    )
-                    .on_hover_cursor(egui::CursorIcon::PointingHand)
-                    .on_hover_text(lg.text("altitude-edit-tooltip"));
-                if altitude_response.clicked() {
-                    self.altitude_editor = Some(super::altitude::AltitudeEditor::new(
-                        self.cam.alt,
-                        self.distance_units(),
-                        altitude_response.rect.left_top(),
-                    ));
-                }
-                ui.separator();
-                let n = self.cache.inflight();
-                if n > 0 {
+            let bounds = ui.available_rect_before_wrap();
+            let heading = self
+                .renderer
+                .displayed_view()
+                .map_or(self.cam.heading, |(cam, _)| cam.heading);
+            let font = egui::TextStyle::Monospace.resolve(ui.style());
+            let heading_width = ui
+                .painter()
+                .layout_no_wrap("359° NW".into(), font, ui.visuals().text_color())
+                .size()
+                .x
+                + ui.spacing().item_spacing.x * 2.0;
+            let split = (bounds.right() - heading_width).max(bounds.left());
+            let heading_rect = Rect::from_min_max(egui::pos2(split, bounds.top()), bounds.max);
+            let left_rect = Rect::from_min_max(
+                bounds.min,
+                egui::pos2(split - ui.spacing().item_spacing.x, bounds.bottom()),
+            );
+            ui.allocate_ui_at_rect(left_rect, |ui| {
+                ui.horizontal(|ui| {
+                    ui.set_clip_rect(ui.max_rect().intersect(ui.clip_rect()));
+                    let sidebar_right =
+                        egui::containers::panel::PanelState::load(ctx, egui::Id::new("side"))
+                            .map_or(
+                                ctx.screen_rect().left()
+                                    + super::sidebar::DEFAULT_SIDEBAR_WIDTH_POINTS,
+                                |state| state.rect.right(),
+                            );
+                    // egui 0.27 paints the SidePanel separator one point inside its rect.
+                    const SIDEBAR_SEPARATOR_INSET_POINTS: f32 = 1.0;
+                    let sidebar_border_x = ui
+                        .painter()
+                        .round_to_pixel(sidebar_right - SIDEBAR_SEPARATOR_INSET_POINTS);
+                    super::cursor::cursor_readout(ui, self.cursor, sidebar_border_x);
                     ui.monospace(lg.format(
-                        "statusbar-tiles-loading",
-                        &[("count", n.to_string().into())],
+                        "statusbar-camera-center",
+                        &[
+                            ("latitude", format!("{:.4}", self.cam.lat).into()),
+                            ("longitude", format!("{:.4}", self.cam.lon).into()),
+                        ],
                     ));
-                } else {
-                    ui.monospace("✔ tiles ok");
+                    ui.separator();
+                    let altitude = lg.format(
+                        "statusbar-camera-altitude",
+                        &[(
+                            "distance",
+                            self.distance_units().altitude(self.cam.alt).into(),
+                        )],
+                    );
+                    let altitude_response = ui
+                        .add(
+                            egui::Label::new(egui::RichText::new(altitude).monospace())
+                                .sense(egui::Sense::click()),
+                        )
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
+                        .on_hover_text(lg.text("altitude-edit-tooltip"));
+                    if altitude_response.clicked() {
+                        self.altitude_editor = Some(super::altitude::AltitudeEditor::new(
+                            self.cam.alt,
+                            self.distance_units(),
+                            altitude_response.rect.left_top(),
+                        ));
+                    }
+                    ui.separator();
+                    let n = self.cache.inflight();
+                    if n > 0 {
+                        ui.monospace(lg.format(
+                            "statusbar-tiles-loading",
+                            &[("count", n.to_string().into())],
+                        ));
+                    } else {
+                        ui.monospace("✔ tiles ok");
+                    }
+                });
+            });
+            ui.allocate_ui_at_rect(heading_rect, |ui| {
+                if super::compass::heading_readout(ui, heading, lg) {
+                    self.cam.heading = 0.0;
+                    self.fly = None;
+                    self.touch();
+                    ctx.request_repaint();
                 }
             });
         });

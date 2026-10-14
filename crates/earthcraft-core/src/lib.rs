@@ -2,10 +2,12 @@
 //! No network, filesystem, windowing, or widget dependencies.
 #![forbid(unsafe_code)]
 pub mod camera;
+pub mod compass;
 pub mod language;
 mod localization;
 pub mod math;
 pub mod placemark;
+pub mod ruler;
 /// Mean Earth radius used by the globe model, in kilometers.
 pub const EARTH_RADIUS_KM: f64 = 6371.0088;
 pub const METERS_PER_KM: f64 = 1000.0;

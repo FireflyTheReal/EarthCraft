@@ -7,6 +7,7 @@ use earthcraft_data::boundaries::{
     BoundaryData, LabelKind, MapLabel, OTHER_STATES_MAX_ALTITUDE_KM,
 };
 use emath::{Pos2, Rect};
+pub mod grid;
 mod labels;
 mod spatial;
 mod worker;

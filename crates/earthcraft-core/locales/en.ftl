@@ -346,4 +346,23 @@ settings-hide-navigation-controls-toggle = Hide navigation controls
 
 settings-close-action = Close
 
-ruler-point-edit-help = Drag a point to move it. Hover a point and press Delete or Backspace to remove it.
+ruler-point-edit-help = Alt-click: new path · Drag: move · Hover + Delete: remove
+ruler-point-edit-help-macos = Option-click: new path · Drag: move · Hover + Delete: remove
+compass-north = N
+compass-northeast = NE
+compass-east = E
+compass-southeast = SE
+compass-south = S
+compass-southwest = SW
+compass-west = W
+compass-northwest = NW
+compass-heading = { $degrees }° { $direction }
+compass-heading-tooltip = Direction at the top of the map, clockwise from true north. Click to reset north.
+layers-grid-numbers-toggle = Show numbers
+ruler-bearing-label = Last segment bearing: { $bearing }
+ruler-bearing-tooltip = Initial great-circle bearing from the previous point to the last point, clockwise from true north.
+grid-coordinate-label = { $degrees }° { $direction }
+
+menu-edit-title = Edit
+edit-undo-action = Undo
+edit-redo-action = Redo

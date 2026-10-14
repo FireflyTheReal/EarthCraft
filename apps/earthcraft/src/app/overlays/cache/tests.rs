@@ -15,6 +15,7 @@ fn scene() -> (OverlayView, OverlayStyle, BoundaryData) {
         basis: cam.basis(4.0 / 3.0),
         rect: Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0)),
         altitude_km: cam.alt,
+        grid_step_deg: None,
         pixels_per_point: 1.0,
     };
     let style = OverlayStyle {
@@ -65,6 +66,35 @@ fn headless(test: impl FnOnce(&egui::Painter)) {
     ctx.begin_frame(egui::RawInput::default());
     test(&ctx.layer_painter(LayerId::background()));
     let _ = ctx.end_frame();
+}
+
+#[test]
+fn grid_numbers_toggle_while_stationary_and_fit_without_overlapping() {
+    headless(|painter| {
+        let (mut view, mut style, data) = scene();
+        let data = Arc::new(data);
+        let mut cache = OverlayCache::new(painter.ctx().clone());
+        for lang in Lang::ALL {
+            style.lang = lang;
+            for scale in [0.6, 1.0, 3.0] {
+                style.map_scale = scale;
+                view.grid_step_deg = Some(2.0);
+                draw_ready(&mut cache, painter, view, &data, style);
+                assert!(texts(&cache.shapes).iter().any(|text| text.contains('°')));
+                let mut areas = Vec::new();
+                for shape in &cache.shapes {
+                    if let Shape::Rect(rect) = shape {
+                        assert!(view.rect.contains_rect(rect.rect));
+                        assert!(!areas.iter().any(|area: &Rect| area.intersects(rect.rect)));
+                        areas.push(rect.rect);
+                    }
+                }
+                view.grid_step_deg = None;
+                draw_ready(&mut cache, painter, view, &data, style);
+                assert!(!texts(&cache.shapes).iter().any(|text| text.contains('°')));
+            }
+        }
+    });
 }
 
 #[test]

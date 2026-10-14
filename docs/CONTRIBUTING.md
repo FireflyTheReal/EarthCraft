@@ -105,11 +105,40 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
   result list and late responses must not return. Check singular/plural result
   and KML import messages in both languages.
 - Toggle borders, city/metropolitan layers, labels, grid, atmosphere and sunlight.
+  Enable the grid's indented Show numbers option, zoom and rotate through the
+  dateline/poles; labels must follow the displayed lines and avoid each other.
+  Toggle numbers while stationary, change map text size/language and resize.
+  Disable the grid: numbers disappear but their preference is retained.
+- Check the bottom-right heading through rotation and flight; click it to reset
+  north. Verify the top compass's localized cardinal directions rotate with the
+  displayed view, clicking N resets north, and the north-up, 180° flip and held
+  left/right rotation buttons remain available inside it. Drag the outer ring to
+  rotate. The combined control is always used when navigation controls are visible.
+  Grid labels should share a left column and bottom row inside the visible globe;
+  their axes swap as the view rotates. Grid numbers default off and persist.
+  Alt-click (Option-click on macOS) to start a disconnected ruler path, then
+  use normal clicks to extend it. Gaps must not draw connecting segments or add
+  distance; a new one-point path has no bearing. Drag/delete points in either
+  path and confirm they remain separate, including after deleting every point
+  in the newest path and placing another. Clear ruler removes all paths.
+  Undo/redo additions, new paths, a long drag, deletion and Clear; a drag must be
+  one undo step. After undo, a new edit must disable Redo; a click without moving
+  a handle must preserve it. Verify buttons disable when unavailable.
+  Use Cmd+Z / Cmd+Shift+Z and Edit → Undo/Redo on macOS; use Ctrl+Z /
+  Ctrl+Shift+Z or Ctrl+Y on Windows/Linux. Focus a search/KML text field: its
+  undo/redo must affect text without altering ruler points.
+  Add two ruler points, check the last segment's initial true-north bearing;
+  add/remove/edit points and verify the bearing updates. Coincident or antipodal
+  points must show an undefined bearing rather than an arbitrary direction.
 - For overlay caching, toggle label/border layers while stationary, switch
   language/map text size, and resize. Verify updates without camera movement;
   late boundary patches and ruler/placemark edits must appear immediately.
 - Create placemarks; save/open/drop KML; export a screenshot and use the ruler.
+- Open language, distance-unit, ruler-unit and historical-imagery dropdowns with
+  a short option selected. The selected/hovered rectangle must fill every row,
+  including empty space to the right, even on the first opening.
 - Switch English/Portuguese, change UI/map scales, then restart to verify persistence.
+  Ruler help uses Option-click on macOS and Alt-click elsewhere.
 
 Report which checks actually ran and which platforms/services remain unverified.
 For packaging, use the app manifest/package, e.g. a package-selecting command
@@ -329,7 +358,7 @@ The Explorer, live meteorological/aircraft layers, moon and custom planet
 remain integrated in `apps/earthcraft`. See [GPU_RENDERER.md](GPU_RENDERER.md)
 for hardware limits, performance and CPU-only build instructions.
 
-## Sidebar and native File menu
+## Sidebar and native menus
 
 The toolbar's sidebar button hides and reopens the sidebar with egui's panel
 animation. The sidebar is open at startup; toggling it does not reset layer,
@@ -348,7 +377,9 @@ macOS uses muda 0.19 (compatible with Rust 1.89) in `apps/earthcraft/src/app/men
 Menu objects and handlers stay on the window thread. Callbacks enqueue actions
 and wake egui; the app opens dialogs, submits existing KML/screenshot jobs and
 closes normally. Screenshot is disabled before a frame exists. Captions follow
-language changes and AppKit handles Cmd shortcuts. Windows and Linux use the
+language changes and AppKit handles Cmd shortcuts. Edit contains Undo/Redo;
+these commands edit focused text or the ruler otherwise. Menu availability
+tracks ruler history when text is not focused. Windows and Linux use the
 sidebar's file controls; both support Ctrl+O/S/Shift+S/Shift+E and Ctrl+Q
 without a native menu bar. All workspace code forbids unsafe Rust.
 

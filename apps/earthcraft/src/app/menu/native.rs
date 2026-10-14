@@ -9,6 +9,8 @@ use std::sync::mpsc;
 pub(in crate::app) struct NativeMenu {
     _menu: Menu,
     file: Submenu,
+    edit: Submenu,
+    history_enabled: (bool, bool),
     items: Vec<(Action, MenuItem)>,
     lang: Lang,
     screenshot_enabled: bool,
@@ -18,6 +20,7 @@ impl NativeMenu {
     pub(super) fn new(cc: &eframe::CreationContext<'_>, lang: Lang) -> Result<Self, String> {
         let menu = Menu::new();
         let file = Submenu::new(lang.text("menu-file-title"), true);
+        let edit = Submenu::new(lang.text("menu-edit-title"), true);
         let mut items = Vec::new();
         for action in Action::ALL {
             let key = match action {
@@ -25,19 +28,23 @@ impl NativeMenu {
                 Action::Save | Action::SaveAs => Code::KeyS,
                 Action::Screenshot => Code::KeyE,
                 Action::Quit => Code::KeyQ,
+                Action::Undo | Action::Redo => Code::KeyZ,
             };
             let command = Modifiers::SUPER;
-            let modifiers = if matches!(action, Action::SaveAs | Action::Screenshot) {
+            let modifiers = if matches!(action, Action::SaveAs | Action::Screenshot | Action::Redo)
+            {
                 command | Modifiers::SHIFT
             } else {
                 command
             };
             let item = MenuItem::new(
                 action.label(lang),
-                action != Action::Screenshot,
+                !matches!(action, Action::Screenshot | Action::Undo | Action::Redo),
                 Some(Accelerator::new(Some(modifiers), key)),
             );
-            if action != Action::Quit {
+            if matches!(action, Action::Undo | Action::Redo) {
+                edit.append(&item).map_err(|e| e.to_string())?;
+            } else if action != Action::Quit {
                 if action == Action::Screenshot {
                     file.append(&PredefinedMenuItem::separator())
                         .map_err(|e| e.to_string())?;
@@ -53,12 +60,17 @@ impl NativeMenu {
                 &PredefinedMenuItem::hide_others(None),
                 &PredefinedMenuItem::show_all(None),
                 &PredefinedMenuItem::separator(),
-                &items.last().unwrap().1,
+                &items
+                    .iter()
+                    .find(|(action, _)| *action == Action::Quit)
+                    .unwrap()
+                    .1,
             ])
             .map_err(|e| e.to_string())?;
             menu.append(&app).map_err(|e| e.to_string())?;
         }
         menu.append(&file).map_err(|e| e.to_string())?;
+        menu.append(&edit).map_err(|e| e.to_string())?;
         menu.init_for_nsapp();
         let ids: Vec<_> = items
             .iter()
@@ -76,19 +88,32 @@ impl NativeMenu {
         Ok(Self {
             _menu: menu,
             file,
+            edit,
+            history_enabled: (false, false),
             items,
             lang,
             screenshot_enabled: false,
             events,
         })
     }
-    pub(super) fn update(&mut self, lang: Lang, has_image: bool) {
+    pub(super) fn update(&mut self, lang: Lang, has_image: bool, can_undo: bool, can_redo: bool) {
         if lang != self.lang {
             self.file.set_text(lang.text("menu-file-title"));
+            self.edit.set_text(lang.text("menu-edit-title"));
             for (action, item) in &self.items {
                 item.set_text(action.label(lang));
             }
             self.lang = lang;
+        }
+        if self.history_enabled != (can_undo, can_redo) {
+            for (action, item) in &self.items {
+                match action {
+                    Action::Undo => item.set_enabled(can_undo),
+                    Action::Redo => item.set_enabled(can_redo),
+                    _ => {}
+                }
+            }
+            self.history_enabled = (can_undo, can_redo);
         }
         if has_image != self.screenshot_enabled {
             for (action, item) in &self.items {
