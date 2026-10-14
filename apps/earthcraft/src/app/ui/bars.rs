@@ -138,10 +138,7 @@ impl App {
         egui::TopBottomPanel::bottom("bottom").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.set_clip_rect(ui.max_rect().intersect(ui.clip_rect()));
-                match self.cursor {
-                    Some((la, lo)) => ui.monospace(format!("Cursor: {la:>10.5}°, {lo:>11.5}°")),
-                    None => ui.monospace("Cursor: —"),
-                };
+                cursor_readout(ui, self.cursor);
                 ui.separator();
                 ui.monospace(lg.format(
                     "statusbar-camera-center",
@@ -187,4 +184,28 @@ impl App {
     }
 
     // ───────── Globe / Globo ─────────
+}
+
+/// Reserve coordinate-sized space even when the pointer leaves the globe.
+fn cursor_readout(ui: &mut egui::Ui, cursor: Option<(f64, f64)>) {
+    const CURSOR_LAYOUT_SAMPLE: &str = "Cursor:  -90.00000°,  -180.00000°";
+    let font = egui::TextStyle::Monospace.resolve(ui.style());
+    let size = ui
+        .painter()
+        .layout_no_wrap(CURSOR_LAYOUT_SAMPLE.into(), font, ui.visuals().text_color())
+        .size();
+    ui.allocate_ui_with_layout(
+        size,
+        egui::Layout::left_to_right(egui::Align::Center),
+        |ui| {
+            ui.set_min_width(size.x);
+            let text = match cursor {
+                Some((latitude, longitude)) => {
+                    format!("Cursor: {latitude:>10.5}°, {longitude:>11.5}°")
+                }
+                None => "Cursor: -, -".into(),
+            };
+            ui.add(egui::Label::new(egui::RichText::new(text).monospace()).wrap(false));
+        },
+    );
 }
