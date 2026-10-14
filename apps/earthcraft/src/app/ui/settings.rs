@@ -36,7 +36,8 @@ impl App {
                                 UnitPreference::Metric,
                                 UnitPreference::Imperial,
                             ] {
-                                ui.selectable_value(
+                                super::selection::full_width_value(
+                                    ui,
                                     &mut self.settings.distance_units,
                                     units,
                                     label(units),

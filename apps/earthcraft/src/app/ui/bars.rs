@@ -103,7 +103,12 @@ impl App {
                             .selected_text(format!("🌐 {}", chosen.label()))
                             .show_ui(ui, |ui| {
                                 for l in Lang::ALL {
-                                    ui.selectable_value(&mut chosen, l, l.label());
+                                    super::selection::full_width_value(
+                                        ui,
+                                        &mut chosen,
+                                        l,
+                                        l.label(),
+                                    );
                                 }
                             });
                         if chosen != self.lang {

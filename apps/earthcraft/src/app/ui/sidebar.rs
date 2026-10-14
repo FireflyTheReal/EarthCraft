@@ -55,7 +55,9 @@ impl App {
                                                     for (i, r) in
                                                         self.wayback_list.iter().enumerate()
                                                     {
-                                                        ui.selectable_value(&mut idx, i, &r.date);
+                                                        super::selection::full_width_value(
+                                                            ui, &mut idx, i, &r.date,
+                                                        );
                                                     }
                                                 });
                                             if ui

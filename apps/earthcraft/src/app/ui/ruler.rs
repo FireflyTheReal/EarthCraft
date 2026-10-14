@@ -16,8 +16,13 @@ pub(super) fn unit_selector(
             .selected_text(selected.selector_label(lang, us_locale))
             .show_ui(ui, |ui| {
                 for unit in RulerUnit::ALL {
-                    ui.selectable_value(&mut selected, unit, unit.selector_label(lang, us_locale))
-                        .on_hover_text(unit.help(lang));
+                    super::selection::full_width_value(
+                        ui,
+                        &mut selected,
+                        unit,
+                        unit.selector_label(lang, us_locale),
+                    )
+                    .on_hover_text(unit.help(lang));
                 }
             });
     });

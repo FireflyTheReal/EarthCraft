@@ -6,6 +6,7 @@ mod navigation;
 mod paths;
 mod ruler;
 mod scale_slider;
+mod selection;
 mod settings;
 mod sidebar;
 mod suggestions;
