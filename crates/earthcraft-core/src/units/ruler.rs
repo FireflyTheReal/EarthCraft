@@ -88,6 +88,23 @@ impl RulerUnit {
             Self::FootballFields => "ruler-unit-football-fields",
         })
     }
+    pub fn help(self, lang: Lang) -> &'static str {
+        lang.text(match self {
+            Self::Automatic => "ruler-unit-automatic-help",
+            Self::Centimeters => "ruler-unit-centimeters-help",
+            Self::Meters => "ruler-unit-meters-help",
+            Self::Kilometers => "ruler-unit-kilometers-help",
+            Self::Inches => "ruler-unit-inches-help",
+            Self::Feet => "ruler-unit-feet-help",
+            Self::Yards => "ruler-unit-yards-help",
+            Self::Miles => "ruler-unit-miles-help",
+            Self::NauticalMiles => "ruler-unit-nautical-miles-help",
+            Self::Smoots => "ruler-unit-smoots-help",
+            Self::Degrees => "ruler-unit-degrees-help",
+            Self::Arcseconds => "ruler-unit-arcseconds-help",
+            Self::FootballFields => "ruler-unit-football-fields-help",
+        })
+    }
     /// Format a segment or path total. Angular units express accumulated central
     /// angle on EarthCraft's mean-radius sphere, not coordinate differences.
     pub fn format(self, distance_km: f64, automatic: DistanceUnits, lang: Lang) -> String {
@@ -226,6 +243,7 @@ mod tests {
             assert_eq!(RulerUnit::from_code(unit.code()), Some(unit));
             for lang in Lang::ALL {
                 assert!(!unit.label(lang).starts_with("ruler-unit-"));
+                assert!(!unit.help(lang).starts_with("ruler-unit-"));
             }
         }
         assert_eq!(

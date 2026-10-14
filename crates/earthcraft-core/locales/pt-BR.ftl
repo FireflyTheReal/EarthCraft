@@ -311,7 +311,18 @@ ruler-unit-degrees = Graus
 ruler-unit-arcseconds = Segundos de arco
 ruler-unit-football-fields = Campos de futebol americano
 ruler-units-label = Unidades
-ruler-units-help = Automático segue as configurações de distância. Graus e segundos de arco medem o ângulo central no globo. Um smoot equivale a 67 polegadas.
-ruler-football-fields-help = Um campo de futebol americano equivale a 100 jardas, sem as zonas de pontuação.
 ruler-distance-smoots = { $value } smoots
 ruler-distance-football-fields = { $value } campos de futebol americano
+ruler-unit-automatic-help = Usa as unidades de distância selecionadas nas Configurações.
+ruler-unit-centimeters-help = 1 centímetro = 0,01 metro.
+ruler-unit-meters-help = 1 metro = 100 centímetros.
+ruler-unit-kilometers-help = 1 quilômetro = 1.000 metros.
+ruler-unit-inches-help = 1 polegada = 2,54 centímetros.
+ruler-unit-feet-help = 1 pé = 12 polegadas.
+ruler-unit-yards-help = 1 jarda = 3 pés.
+ruler-unit-miles-help = 1 milha = 1.760 jardas.
+ruler-unit-nautical-miles-help = 1 milha náutica = 1.852 metros.
+ruler-unit-smoots-help = 1 smoot = 67 polegadas.
+ruler-unit-degrees-help = Ângulo central ao longo do trajeto medido no globo.
+ruler-unit-arcseconds-help = 1 segundo de arco = 1/3.600 de grau de ângulo central.
+ruler-unit-football-fields-help = Um campo de futebol americano equivale a 100 jardas, sem as zonas de pontuação.

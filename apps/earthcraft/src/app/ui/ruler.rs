@@ -17,19 +17,11 @@ pub(super) fn unit_selector(
             .show_ui(ui, |ui| {
                 for unit in RulerUnit::ALL {
                     if unit.available(us_locale) {
-                        let response = ui.selectable_value(&mut selected, unit, unit.label(lang));
-                        if unit == RulerUnit::FootballFields {
-                            response.on_hover_text(lang.text("ruler-football-fields-help"));
-                        }
+                        ui.selectable_value(&mut selected, unit, unit.label(lang))
+                            .on_hover_text(unit.help(lang));
                     }
                 }
-            })
-            .response
-            .on_hover_text(lang.text(if selected == RulerUnit::FootballFields {
-                "ruler-football-fields-help"
-            } else {
-                "ruler-units-help"
-            }));
+            });
     });
     selected
 }
