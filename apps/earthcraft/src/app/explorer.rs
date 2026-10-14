@@ -127,7 +127,7 @@ impl App {
                 ui.small(lg.text("explorer-layer-info"));
                 ui.checkbox(&mut self.show_flights, lg.text("layers-flights-toggle"));
                 if self.show_flights {
-                    ui.small(self.live_aircraft.status(lg == earthcraft_core::language::Lang::PtBr));
+                    super::ui::aircraft::draw_status(ui, &self.live_aircraft.snapshot(), lg);
                     ui.hyperlink_to("OpenSky Network", "https://opensky-network.org/");
                     ui.hyperlink_to("ADSB.lol (ODbL)", "https://www.adsb.lol/");
                 }

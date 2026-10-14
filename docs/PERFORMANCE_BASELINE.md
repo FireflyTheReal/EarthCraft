@@ -68,3 +68,51 @@ Aggregate data and phase intervals are in
 are in [contributing](CONTRIBUTING.md). Raw capture for this run was retained at
 `/tmp/earthcraft-native-profile.csv`, outside Git; temporary native cache files were
 removed after the owned app closed cleanly.
+
+## Isolated aircraft fixtures, 2026-10-14
+
+These are separate headless operation measurements on an Apple M1 Pro with
+Rust 1.99.0 and the workspace's optimized development profile (`opt-level=2`).
+Five rounds of 100 iterations use 20,000 deterministic records, an 800×600
+logical-point overview and 6,375 visible aircraft. The baseline is upstream's
+projector/snapshot implementation at `e9f193b`. No public service, native window
+or user cache/settings participates.
+
+| Operation | Before | After |
+| --- | ---: | ---: |
+| UI snapshot acquisition | 8.153 ms median | under 0.001 ms; shared `Arc` |
+| Uncached geographic projection | 3.478 ms median | 2.727 ms median; background |
+| Unchanged-view geometry acquisition | no reuse path | under 0.001 ms |
+| Initial icon mesh construction | not measured | 2.605 ms, one cached mesh |
+| Cached headless egui pass | not measured | 0.002 ms median |
+
+Uncached projection samples ranged 3.469–3.727 ms before and 2.618–2.828 ms in
+the final run. An earlier inline run ranged 3.134–4.690 ms; scheduler/thermal state
+was not controlled, so these do not establish a general projection-kernel speedup. An initial
+cross-crate extraction measured 4.705 ms median; marking the small core destination
+function inline restored the shared optimization boundary. The main improvement
+is removing repeated source cloning/sorting and geographic projection from UI
+passes, then sharing cached meshes. Snapshot/geometry accesses measured about
+0.010/0.024 microseconds; the table uses conservative sub-microsecond reporting
+because these short measurements are sensitive to timer resolution.
+
+The egui result includes headless pass setup and cached shape submission. It
+excludes a native event loop, final frame tessellation, driver upload, GPU execution,
+presentation, live-service latency and complete app-frame time. First geometry
+preparation and changed-view mesh construction remain real costs. Telemetry,
+geometry and mesh residency are additional to the decoded-tile cache target.
+Native interaction and Windows/Linux runtime behavior were not measured.
+
+Reproduce with the manual fixture tests:
+
+```sh
+cargo test -p earthcraft-data aircraft_snapshot_cost --locked -- --ignored --nocapture --test-threads=1
+cargo test -p earthcraft-render aircraft_projection_cost --locked -- --ignored --nocapture --test-threads=1
+cargo test -p earthcraft-render aircraft_geometry_reuse_cost --locked -- --ignored --nocapture --test-threads=1
+cargo test -p earthcraft aircraft_mesh_repaint_cost --locked -- --ignored --nocapture --test-threads=1
+```
+
+Headless regressions retain the original aircraft projection fixture, source
+priority/expiry and request cadence, failure wakeups, coalescing, displayed-frame
+alignment and shared mesh identity. Optional profiling adds `aircraft.snapshot`,
+`aircraft.project` and `ui.aircraft_shapes` through the bounded background recorder.

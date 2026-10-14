@@ -10,6 +10,7 @@ pub struct RenderRequest {
     pub basis: Basis,
     pub cfg: RenderCfg,
     pub overlays: Option<crate::overlays::OverlayInput>,
+    pub aircraft: Option<crate::aircraft::ProjectionInput>,
     // Camera motion may lag by one job; provider/style/size changes must not.
     pub presentation: u64,
 }

@@ -119,6 +119,14 @@ layers-sunlight-toggle = Luz do sol em tempo real (dia/noite)
 layers-auto-rotation-toggle = Girar automaticamente
 
 layers-flights-toggle = Aviões reais (OpenSky + ADSB.lol)
+aircraft-summary-status = Aviões reais rastreados: { $count } | OpenSky: { $global } | ADSB.lol: { $local }
+aircraft-loading-status = carregando
+aircraft-zoom-in-status = aproxime o mapa
+aircraft-updated-status = há { $minutes } min
+aircraft-source-error = { $source }: { $error }
+aircraft-hover-tooltip = { $code }  (ICAO { $hex })
+    Altitude: { $altitude }  |  Velocidade: { $speed }
+    Rumo: { $heading }°  |  Posição há { $age } s
 layers-weather-toggle = Mapa do clima (radar de chuva ao vivo)
 layers-clouds-toggle = Mapa das nuvens por satélite (Matt Eason)
 layers-live-overlays-help = Aviões reais, com cobertura incompleta: atualização global a cada ~17 min e local a cada ~90 s. Nuvens ~3 h; radar de chuva ~10 min. Requer internet.

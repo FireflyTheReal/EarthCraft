@@ -212,6 +212,7 @@ fn warm_gpu_frame_time() {
                 sun: Some(earthcraft_core::math::ll_to_v3(20.0, 45.0)),
             },
             overlays: None,
+            aircraft: None,
             presentation: 0,
         };
         let mut cpu_times = Vec::new();
@@ -340,6 +341,7 @@ fn warm_gpu_frame_time() {
                 sun: Some(earthcraft_core::math::ll_to_v3(20.0, 45.0)),
             },
             overlays: None,
+            aircraft: None,
             presentation: 0,
         };
         let frame = gpu

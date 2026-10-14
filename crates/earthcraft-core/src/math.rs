@@ -90,3 +90,36 @@ pub fn now_unix() -> f64 {
         .map(|d| d.as_secs_f64())
         .unwrap_or(0.0)
 }
+
+/// Destination on the current spherical Earth model, in degrees and kilometers.
+#[inline]
+pub fn destination(lat_deg: f64, lon_deg: f64, heading_deg: f64, km: f64) -> (f64, f64) {
+    let delta = km / EARTH_RADIUS_KM;
+    let lat = lat_deg.to_radians();
+    let lon = lon_deg.to_radians();
+    let heading = heading_deg.to_radians();
+    let next_lat = (lat.sin() * delta.cos() + lat.cos() * delta.sin() * heading.cos())
+        .clamp(-1.0, 1.0)
+        .asin();
+    let next_lon = lon
+        + (heading.sin() * delta.sin() * lat.cos()).atan2(delta.cos() - lat.sin() * next_lat.sin());
+    (
+        next_lat.to_degrees(),
+        (next_lon.to_degrees() + 180.0).rem_euclid(360.0) - 180.0,
+    )
+}
+
+#[cfg(test)]
+mod destination_tests {
+    use super::*;
+    #[test]
+    fn destination_keeps_distance_and_coordinate_bounds_at_poles_and_dateline() {
+        for (lat, lon) in [(0.0, 179.9), (89.9, -150.0), (-90.0, 0.0)] {
+            for heading in [0.0, 90.0, 180.0, 270.0] {
+                let next = destination(lat, lon, heading, 100.0);
+                assert!(crate::coordinates::validate_coordinates(next.0, next.1).is_ok());
+                assert!((haversine_km((lat, lon), next) - 100.0).abs() < 0.000001);
+            }
+        }
+    }
+}

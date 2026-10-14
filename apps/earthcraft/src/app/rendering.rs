@@ -12,6 +12,7 @@ use std::sync::Arc;
 struct PreparedFrame {
     image: egui::ColorImage,
     overlays: Option<Arc<earthcraft_render::overlays::OverlayGeometry>>,
+    aircraft: Option<Arc<earthcraft_render::aircraft::AircraftGeometry>>,
 }
 
 pub(super) struct Renderer {
@@ -31,6 +32,7 @@ impl Renderer {
             earthcraft_render::backend::BackendPreference::from_environment(),
         );
         let mut overlay_preparer = earthcraft_render::overlays::OverlayPreparer::default();
+        let mut aircraft_preparer = earthcraft_render::aircraft::AircraftPreparer::default();
         Self {
             worker: RenderWorker::with_prepare(
                 move |request, buffer| {
@@ -66,6 +68,10 @@ impl Renderer {
                     PreparedFrame {
                         image,
                         overlays: geometry,
+                        aircraft: request.aircraft.clone().map(|mut input| {
+                            input.unix_secs = now_unix();
+                            aircraft_preparer.prepare(input)
+                        }),
                     }
                 },
             )
@@ -123,6 +129,7 @@ impl App {
         aspect: f64,
         presentation: u64,
         rect: egui::Rect,
+        pixels_per_point: f32,
     ) {
         let basis = self.cam.basis(aspect);
         let grid_step = earthcraft_render::grid_step(self.cam.alt, w, h);
@@ -153,6 +160,9 @@ impl App {
             basis,
             cfg,
             presentation,
+            aircraft: (self.show_flights
+                && self.explorer.active == earthcraft_core::body::Body::Earth)
+                .then(|| self.aircraft_input(basis, rect, self.cam.alt, pixels_per_point)),
             overlays: Some(earthcraft_render::overlays::OverlayInput {
                 view: earthcraft_render::overlays::OverlayView {
                     basis,
@@ -188,7 +198,15 @@ impl App {
         let PreparedFrame {
             image: img,
             overlays,
+            aircraft,
         } = frame.prepared;
+        if let Some(geometry) = aircraft
+            && Arc::ptr_eq(&geometry.data, &self.live_aircraft.snapshot())
+            && geometry.view.map_scale == self.settings.map_scale
+            && geometry.view.pixels_per_point == ctx.pixels_per_point()
+        {
+            self.aircraft_overlay.accept(geometry, now_unix());
+        }
         if let Some(geometry) = overlays {
             self.overlay_cache.accept(geometry);
         }
