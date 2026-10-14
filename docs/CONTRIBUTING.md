@@ -98,7 +98,7 @@ Report which checks actually ran and which platforms/services remain unverified.
 For packaging, use the app manifest/package, e.g. a package-selecting command
 supported by your packaging tool or run it from `apps/earthcraft`. Release
 artifacts still go to the root `target/release`. macOS bundles use
-`assets/icon.icns`, generated from the unchanged `assets/icon.png` artwork with
+`assets/macos/icon.icns`, generated from the unchanged `assets/icon.png` artwork with
 transparent Dock padding and standard and Retina sizes (16–1024 pixels).
 The `packaging/earthcraft.desktop` asset must still be supplied before validating
 deb output.
