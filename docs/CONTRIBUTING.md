@@ -118,7 +118,11 @@ deb output.
 
 Distance and path smoke checks: select System, kilometers/meters and miles/feet
 in Settings; check ruler segments/totals, camera altitude and close-view scale
-bars. Restart and verify the override persists; switching UI language must not
+bars. Try each explicit ruler unit and verify that both segment labels and totals
+change while altitude and scale keep their own settings. Check degrees/arcseconds,
+smoots and the US-only football fields option (100 yards without end zones).
+Restart to check the ruler preference; non-US locales hide football fields and
+fall back to Automatic if that preference was saved elsewhere. Restart and verify the override persists; switching UI language must not
 change it. System locales use the regional defaults listed in ARCHITECTURE.md. Inspect folder labels and KML
 import/save/screenshot statuses: home paths use `~/…` on macOS/Linux and
 `%USERPROFILE%\…` on Windows, other long paths retain their tail with `.../`.

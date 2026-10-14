@@ -3,6 +3,9 @@ use crate::{
     math::{fmt_alt, fmt_dist},
     METERS_PER_KM,
 };
+mod ruler;
+pub use ruler::RulerUnit;
+
 const KM_PER_MILE: f64 = 1.609_344;
 const FEET_PER_MILE: f64 = 5280.0;
 // EarthCraft's regional display policy includes mixed/traditional mile usage.
@@ -20,14 +23,7 @@ impl DistanceUnits {
     /// Resolve the app's regional display default; language alone has no region.
     /// See the regional unit policy in docs/ARCHITECTURE.md.
     pub fn for_locale(locale: &str) -> Self {
-        let locale = locale
-            .split(['.', '@'])
-            .next()
-            .unwrap_or(locale)
-            .replace('_', "-");
-        let id = locale.parse::<unic_langid::LanguageIdentifier>().ok();
-        if id
-            .and_then(|id| id.region)
+        if locale_region(locale)
             .is_some_and(|region| MILE_DEFAULT_REGIONS.contains(&region.as_str()))
         {
             Self::Imperial
@@ -100,6 +96,20 @@ impl DistanceUnits {
         };
         format!("{} {unit}", (distance_m / divisor * 100.0).round() / 100.0)
     }
+}
+/// The football-field ruler option is specific to US system locales, not English UI.
+pub fn is_us_locale(locale: &str) -> bool {
+    locale_region(locale).is_some_and(|region| region.as_str() == "US")
+}
+fn locale_region(locale: &str) -> Option<unic_langid::subtags::Region> {
+    locale
+        .split(['.', '@'])
+        .next()
+        .unwrap_or(locale)
+        .replace('_', "-")
+        .parse::<unic_langid::LanguageIdentifier>()
+        .ok()
+        .and_then(|id| id.region)
 }
 #[cfg(test)]
 mod tests {

@@ -2,6 +2,7 @@ use eframe::egui::{self, FontId};
 mod bars;
 mod navigation;
 mod paths;
+mod ruler;
 mod settings;
 mod sidebar;
 mod suggestions;

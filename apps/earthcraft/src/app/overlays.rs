@@ -59,7 +59,9 @@ impl App {
                 painter.line_segment(segment, stroke);
             }
             if let Some(mid) = leg.label_position {
-                let txt = self.distance_units().distance(leg.distance_km);
+                let txt =
+                    self.ruler_unit()
+                        .format(leg.distance_km, self.distance_units(), self.lang);
                 painter.text(
                     mid + Vec2::new(1.0, 1.0),
                     Align2::CENTER_BOTTOM,

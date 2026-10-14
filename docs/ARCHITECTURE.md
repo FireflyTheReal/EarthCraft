@@ -112,7 +112,13 @@ once and data persists the System/Metric/Imperial preference. EarthCraft default
 Bahamas, US Virgin Islands, Guam, Puerto Rico, Cayman Islands, Guernsey, Jersey
 and Isle of Man. This application policy extends CLDR's US/GB length defaults
 to include mixed/traditional mile usage; it does not claim uniform statutory
-units in those regions. Other locales and unknown regions use kilometers/meters. The ruler, camera altitude and scale bar share the selection. KML/GeoJSON arrays are longitude-first; domain pairs are latitude-first.
+units in those regions. Other locales and unknown regions use kilometers/meters. Camera altitude and scale bar share the selection; the ruler's Automatic option
+also follows it. Its separate saved selector supports centimeters, meters,
+kilometers, inches, feet, yards, miles, nautical miles, smoots, degrees and
+arcseconds. Angular units represent accumulated central angle on the mean-radius
+sphere. US system locales also offer football fields (100 yards, excluding end
+zones). Changing UI language does not change availability; a saved football-field
+selection falls back to Automatic when opened under a non-US locale. KML/GeoJSON arrays are longitude-first; domain pairs are latitude-first.
 UI strings live in embedded `locales/{en,pt-BR}.ftl`, with matching semantic keys
 and named whole-message arguments. Errors/logs are English; normal UI messages
 follow the selected language. See [localization](LOCALIZATION.md).

@@ -84,6 +84,7 @@ pub(crate) struct App {
     status: String,
     status_file: Option<files::FileStatus>,
     system_units: earthcraft_core::units::DistanceUnits,
+    us_locale: bool,
 
     file_jobs: earthcraft_data::files::FileJobs,
     file_results: mpsc::Receiver<earthcraft_data::files::FileCompletion>,
@@ -129,6 +130,14 @@ impl App {
         self.settings.distance_units.resolve(self.system_units)
     }
 
+    fn ruler_unit(&self) -> earthcraft_core::units::RulerUnit {
+        if self.settings.ruler_unit.available(self.us_locale) {
+            self.settings.ruler_unit
+        } else {
+            earthcraft_core::units::RulerUnit::Automatic
+        }
+    }
+
     pub(crate) fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let mut vis = egui::Visuals::dark();
         vis.window_rounding = 6.0.into();
@@ -137,6 +146,7 @@ impl App {
             earthcraft_data::runtime::ServiceRuntime::new().expect("start network runtime");
         let lang = load_lang();
         let settings = Settings::load();
+        let system_locale = sys_locale::get_locale().unwrap_or_default();
         let boundary_log: StatusLog = Arc::new(Mutex::new(Vec::new()));
         let (boundaries_rx, boundary_loader) =
             load_boundaries_async(boundary_log.clone(), runtime.handle(), {
@@ -205,9 +215,8 @@ impl App {
             search_rx: None,
             status: lang.text("app-ready-status").into(),
             status_file: None,
-            system_units: earthcraft_core::units::DistanceUnits::for_locale(
-                &sys_locale::get_locale().unwrap_or_default(),
-            ),
+            system_units: earthcraft_core::units::DistanceUnits::for_locale(&system_locale),
+            us_locale: earthcraft_core::units::is_us_locale(&system_locale),
             placemarks: vec![],
             file_jobs,
             file_results,

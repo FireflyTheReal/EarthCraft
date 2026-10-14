@@ -271,18 +271,34 @@ impl App {
                         .default_open(true)
                         .show(ui, |ui| {
                             ui.checkbox(&mut self.ruler, lg.text("ruler-enable-toggle"));
+                            let selected = super::ruler::unit_selector(
+                                ui,
+                                self.ruler_unit(),
+                                self.us_locale,
+                                lg,
+                            );
+                            if selected != self.ruler_unit() {
+                                self.settings.ruler_unit = selected;
+                            }
                             let total: f64 = self
                                 .ruler_pts
                                 .windows(2)
                                 .map(|w| haversine_km(w[0], w[1]))
                                 .sum();
-                            ui.label(lg.format(
-                                "ruler-measurement-summary",
-                                &[
-                                    ("count", self.ruler_pts.len().to_string().into()),
-                                    ("distance", self.distance_units().distance(total).into()),
-                                ],
-                            ));
+                            ui.label(
+                                lg.format(
+                                    "ruler-measurement-summary",
+                                    &[
+                                        ("count", self.ruler_pts.len().to_string().into()),
+                                        (
+                                            "distance",
+                                            self.ruler_unit()
+                                                .format(total, self.distance_units(), lg)
+                                                .into(),
+                                        ),
+                                    ],
+                                ),
+                            );
                             if ui.button(lg.text("ruler-clear-action")).clicked() {
                                 self.ruler_pts.clear();
                             }

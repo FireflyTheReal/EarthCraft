@@ -1,6 +1,6 @@
 mod writer;
 use crate::paths::{cache_dir, default_out_dir};
-use earthcraft_core::language::Lang;
+use earthcraft_core::{language::Lang, units::RulerUnit};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 pub use writer::SettingsWriter;
@@ -51,6 +51,14 @@ pub struct Settings {
     pub map_scale: f32, // text size of map labels
     pub uncap_fps: bool,
     pub distance_units: UnitPreference,
+    #[serde(serialize_with = "serialize_ruler_unit")]
+    pub ruler_unit: RulerUnit,
+}
+fn serialize_ruler_unit<S: serde::Serializer>(
+    unit: &RulerUnit,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    serializer.serialize_str(unit.code())
 }
 impl Default for Settings {
     fn default() -> Self {
@@ -61,6 +69,7 @@ impl Default for Settings {
             map_scale: 1.0,
             uncap_fps: false,
             distance_units: UnitPreference::System,
+            ruler_unit: RulerUnit::Automatic,
         }
     }
 }
@@ -81,6 +90,8 @@ struct SettingsInput {
     uncap_fps: Option<bool>,
     #[serde(default, deserialize_with = "crate::json_fields::string")]
     distance_units: Option<String>,
+    #[serde(default, deserialize_with = "crate::json_fields::string")]
+    ruler_unit: Option<String>,
 }
 impl Settings {
     fn apply_json(&mut self, bytes: &[u8]) -> Result<(), crate::Error> {
@@ -108,6 +119,9 @@ impl Settings {
                 _ => self.distance_units,
             };
         }
+        if let Some(unit) = input.ruler_unit.as_deref().and_then(RulerUnit::from_code) {
+            self.ruler_unit = unit;
+        }
         Ok(())
     }
     pub fn load() -> Self {
@@ -121,6 +135,27 @@ impl Settings {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn every_ruler_preference_roundtrips_and_invalid_values_keep_the_selection() {
+        let mut settings = Settings::default();
+        settings.apply_json(br#"{}"#).unwrap();
+        assert_eq!(settings.ruler_unit, RulerUnit::Automatic);
+        for unit in RulerUnit::ALL {
+            settings.ruler_unit = unit;
+            let bytes = serde_json::to_vec(&settings).unwrap();
+            let mut loaded = Settings::default();
+            loaded.apply_json(&bytes).unwrap();
+            assert_eq!(loaded.ruler_unit, unit);
+            loaded
+                .apply_json(br#"{"distance_units":"imperial"}"#)
+                .unwrap();
+            assert_eq!(loaded.ruler_unit, unit);
+            loaded.apply_json(br#"{"ruler_unit":"unknown"}"#).unwrap();
+            assert_eq!(loaded.ruler_unit, unit);
+            loaded.apply_json(br#"{"ruler_unit":42}"#).unwrap();
+            assert_eq!(loaded.ruler_unit, unit);
+        }
+    }
     #[test]
     fn units_roundtrip_and_tolerate_old_or_invalid_preferences() {
         use earthcraft_core::units::DistanceUnits;
@@ -166,6 +201,7 @@ mod tests {
             map_scale: 1.0,
             uncap_fps: false,
             distance_units: UnitPreference::System,
+            ruler_unit: RulerUnit::Automatic,
         };
         settings
             .apply_json(
