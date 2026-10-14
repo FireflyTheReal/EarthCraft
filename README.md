@@ -28,7 +28,7 @@ Anyway** for EarthCraft and confirm **Open**. See [Apple's instructions](https:/
 - Clear downloaded map tiles from disk through Settings
 - Place and address search (Nominatim), plus direct "lat, lon" coordinate input
 - Animated fly-to (double-click, search or list)
-- Placemarks with KML import/export
+- Placemarks in an editable KML folder tree, with visibility controls and drag-to-folder organization
 - Geodesic distance ruler (great-circle), with exact decimal-degree point entry/editing, undo/redo, separate paths (Alt-click), selectable metric, imperial, nautical, angular and novelty units and initial bearing for the last segment
 - Lat/lon grid with optional coordinate labels, atmosphere, stars, real-time sunlight (day/night)
 - Scale bar, cursor coordinates, PNG screenshot, context menu

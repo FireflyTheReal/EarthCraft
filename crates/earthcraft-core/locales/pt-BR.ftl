@@ -392,3 +392,12 @@ ruler-point-apply-action = Aplicar
 ruler-point-add-action = Adicionar ponto
 ruler-point-new-action = Novo ponto
 ruler-point-close-action = Fechar
+
+places-root-name = Meus lugares
+places-document-name = Documento
+places-folder-name = Nova pasta
+places-add-folder-action = + Pasta
+places-delete-action = Excluir
+places-visible-help = Mostrar este lugar e seus filhos no globo
+places-empty-help = Abra um arquivo KML ou adicione um lugar. Arraste lugares para pastas para organizá-los.
+places-description-placeholder = Descrição
