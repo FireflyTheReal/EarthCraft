@@ -8,8 +8,9 @@ so reviewers can distinguish behavior changes from file organization.
 
 Install Rust 1.95 or newer through rustup. The locked dependency graph includes
 eframe/egui 0.36, which require Rust 1.95.
-The workspace declares 1.95 and CI includes that toolchain. Stable is suitable for
-day-to-day development; do not use APIs newer than the declared minimum.
+The workspace declares 1.95; CI checks the current stable toolchain on Linux,
+macOS and Windows. Stable is suitable for day-to-day development; do not use APIs
+newer than the declared minimum.
 
 On Linux, install build prerequisites before compiling:
 
@@ -42,8 +43,7 @@ catch unintended dependency resolution changes. Intentional dependency updates
 should be reviewed separately, including compatibility with Rust 1.95.
 The `app-build-test` workflow runs on pushes and pull requests changing `apps/**`
 or `crates/**`, and can also be run manually from Actions. It formats, lints,
-tests, and builds on Linux/macOS/Windows, plus
-Linux with the minimum Rust version. Use the latest supported major version tags for GitHub
+tests, and builds on Linux/macOS/Windows using stable Rust. Use the latest supported major version tags for GitHub
 Actions, rather than commit hashes. For actions without version tags, follow the
 maintained upstream branch. Keep Rust toolchain versions explicit.
 
