@@ -126,7 +126,7 @@ aircraft-updated-status = há { $minutes } min
 aircraft-source-error = { $source }: { $error }
 aircraft-hover-tooltip = { $code }  (ICAO { $hex })
     Altitude: { $altitude }  |  Velocidade: { $speed }
-    Rumo: { $heading }°  |  Posição há { $age } s
+    Rumo: { $heading }  |  Posição há { $age } s
 layers-weather-toggle = Mapa do clima (radar de chuva ao vivo)
 layers-clouds-toggle = Mapa das nuvens por satélite (Matt Eason)
 layers-live-overlays-help = Aviões reais, com cobertura incompleta: atualização global a cada ~17 min e local a cada ~90 s. Nuvens ~3 h; radar de chuva ~10 min. Requer internet.

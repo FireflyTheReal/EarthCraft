@@ -167,7 +167,10 @@ fn draw_hover(painter: &egui::Painter, geometry: &AircraftGeometry, lang: Lang) 
                     .map_or("—".into(), |speed| format!("{speed:.0} kt"))
                     .into(),
             ),
-            ("heading", format!("{:.0}", sample.heading_deg).into()),
+            (
+                "heading",
+                earthcraft_core::compass::heading_text(sample.heading_deg, lang).into(),
+            ),
             (
                 "age",
                 format!("{:.0}", (now_unix() - sample.observed_unix).max(0.0)).into(),

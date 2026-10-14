@@ -112,7 +112,6 @@ cargo test -p earthcraft-render aircraft_geometry_reuse_cost --locked -- --ignor
 cargo test -p earthcraft aircraft_mesh_repaint_cost --locked -- --ignored --nocapture --test-threads=1
 ```
 
-Headless regressions retain the original aircraft projection fixture, source
-priority/expiry and request cadence, failure wakeups, coalescing, displayed-frame
+Headless regressions cover source priority/expiry and request cadence, failure wakeups, coalescing, displayed-frame
 alignment and shared mesh identity. Optional profiling adds `aircraft.snapshot`,
 `aircraft.project` and `ui.aircraft_shapes` through the bounded background recorder.
