@@ -335,3 +335,5 @@ altitude-cancel-action = Cancelar
 altitude-input-error = Digite um número entre { $minimum } e { $maximum } { $unit }.
 
 settings-hide-navigation-controls-toggle = Ocultar controles de navegação
+
+settings-close-action = Fechar
