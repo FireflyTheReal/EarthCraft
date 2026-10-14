@@ -61,15 +61,9 @@ pub(super) fn label_center(geometry: &serde_json::Value) -> Option<(f64, f64)> {
     let (mut min_lat, mut max_lat, mut min_lon, mut max_lon) =
         (f64::MAX, f64::MIN, f64::MAX, f64::MIN);
     for p in ring.as_array()? {
-        let (Some(lon), Some(lat)) = (
-            p.get(0).and_then(|v| v.as_f64()),
-            p.get(1).and_then(|v| v.as_f64()),
-        ) else {
+        let Some((lat, lon)) = crate::json_fields::coordinates(p) else {
             continue;
         };
-        if lat.abs() > 90.0 || lon.abs() > 180.0 {
-            continue;
-        }
         min_lat = min_lat.min(lat);
         max_lat = max_lat.max(lat);
         min_lon = min_lon.min(lon);
@@ -129,13 +123,7 @@ pub(super) fn collect_geojson_lines(value: &serde_json::Value, out: &mut Vec<Lin
     if is_line {
         let line: Vec<(f64, f64)> = items
             .iter()
-            .filter_map(|pair| {
-                let p = pair.as_array()?;
-                let lon = p.first()?.as_f64()?;
-                let lat = p.get(1)?.as_f64()?;
-                (lat.is_finite() && lon.is_finite() && lat.abs() <= 90.0 && lon.abs() <= 180.0)
-                    .then_some((lat, lon))
-            })
+            .filter_map(crate::json_fields::coordinates)
             .collect();
         if line.len() >= 2 {
             out.push(Arc::new(line));

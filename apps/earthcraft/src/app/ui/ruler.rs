@@ -1,6 +1,8 @@
 //! Ruler-only display settings; camera altitude and scale-bar units stay separate.
 use earthcraft_core::{language::Lang, units::RulerUnit};
 use eframe::egui;
+mod points;
+pub(in crate::app) use points::PointEditor;
 
 pub(super) fn unit_selector(
     ui: &mut egui::Ui,

@@ -254,18 +254,13 @@ async fn load_places(log: &StatusLog, urls: &[String]) -> Option<Patch> {
         "Cities",
         urls,
         |f: &serde_json::Value, labels: &mut Vec<MapLabel>| {
-            let coords = f
-                .pointer("/geometry/coordinates")
-                .and_then(|v| v.as_array());
+            let coords = f.pointer("/geometry/coordinates");
             let (Some(coords), Some(en)) =
                 (coords, feature_name(f, &["NAME", "name", "NAMEASCII"]))
             else {
                 return;
             };
-            let (Some(lon), Some(lat)) = (
-                coords.first().and_then(|v| v.as_f64()),
-                coords.get(1).and_then(|v| v.as_f64()),
-            ) else {
+            let Some((lat, lon)) = crate::json_fields::coordinates(coords) else {
                 return;
             };
             let pt = feature_name(f, &["NAME_PT", "name_pt"]).unwrap_or_else(|| en.clone());

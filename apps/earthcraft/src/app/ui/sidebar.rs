@@ -297,6 +297,14 @@ impl App {
                             if selected != self.settings.ruler_unit {
                                 self.settings.ruler_unit = selected;
                             }
+                            if ui.button(lg.text("ruler-points-edit-action")).clicked() {
+                                self.ruler_paths.end_move();
+                                self.ruler_drag = None;
+                                self.ruler_point_editor = Some(super::ruler::PointEditor::new((
+                                    self.cam.lat,
+                                    self.cam.lon,
+                                )));
+                            }
                             let total = self.ruler_paths.total_distance_km();
                             ui.label(
                                 lg.format(

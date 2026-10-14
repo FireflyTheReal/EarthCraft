@@ -12,6 +12,8 @@ pub enum Error {
     #[error(transparent)]
     Xml(#[from] quick_xml::Error),
     #[error(transparent)]
+    Coordinates(#[from] earthcraft_core::coordinates::CoordinateError),
+    #[error(transparent)]
     Kml(#[from] ::kml::Error),
     #[error(transparent)]
     PrefixIndex(#[from] fst::Error),

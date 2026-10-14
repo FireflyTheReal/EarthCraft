@@ -3,6 +3,7 @@
 #![forbid(unsafe_code)]
 pub mod camera;
 pub mod compass;
+pub mod coordinates;
 pub mod language;
 mod localization;
 pub mod math;
