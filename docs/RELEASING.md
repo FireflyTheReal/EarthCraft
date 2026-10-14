@@ -3,8 +3,8 @@
 The [release workflow](../.github/workflows/release.yml) builds locked release
 binaries with Rust 1.89. Downloads contain only the application: a bare executable
 on Linux/Windows or `EarthCraft.app` inside a macOS disk image.
-These artifacts use `--no-default-features`: GPU rendering is excluded while
-native cross-platform GPU failures remain unresolved.
+These artifacts use `--no-default-features`: experimental GPU globe rendering is excluded
+from release downloads on every platform. CPU rendering remains the default.
 
 | Platform | Artifact |
 | --- | --- |

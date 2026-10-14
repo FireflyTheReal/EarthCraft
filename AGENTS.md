@@ -174,7 +174,9 @@ User instructions and the requested scope take precedence over these defaults.
   Share an ID only when the meaning and usage match, not just the displayed text.
   See `docs/LOCALIZATION.md` for fallback, fixtures and contributor examples.
 
-- GPU acceleration is optional: the CPU renderer remains available. Selection is opt-in
+- All GPU globe rendering is experimental on every platform. Refer to it as
+  experimental in user-facing documentation and enablement diagnostics.
+  GPU acceleration is optional: the CPU renderer remains available. Selection is opt-in
   (`EARTHCRAFT_RENDERER=auto|gpu`; CPU by default). Keep adapter initialization,
   texture uploads, compute dispatch, waits and readback on the frame coordinator.
   Retain a CPU fallback on initialization/readback/device errors. Close and exact-grid
