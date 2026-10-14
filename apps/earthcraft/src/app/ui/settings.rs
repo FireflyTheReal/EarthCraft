@@ -4,7 +4,7 @@ use earthcraft_core::language::Lang;
 use earthcraft_data::settings::{Settings, UnitPreference};
 use earthcraft_data::settings::{MAX_MAP_SCALE, MIN_MAP_SCALE, MIN_UI_SCALE};
 use eframe::egui;
-const MAX_UI_SLIDER_SCALE: f32 = 2.0;
+pub(super) const MAX_UI_SLIDER_SCALE: f32 = 2.0;
 const FOOTER_MARGIN_POINTS: f32 = 8.0;
 const RESET_BUTTON_FILL: egui::Color32 = egui::Color32::from_rgb(160, 40, 40);
 
@@ -54,26 +54,22 @@ impl App {
                         // The window auto-sizes to its (scaled) content, so changing the scale while dragging
                         // moves the slider under the cursor and feeds back into itself (shaking).
                         // Fix: only commit the new scale when the drag ends.
-                        let r = ui.add(
-                            egui::Slider::new(
-                                &mut self.ui_scale_edit,
-                                MIN_UI_SCALE..=MAX_UI_SLIDER_SCALE,
-                            )
-                            .step_by(0.05)
-                            .custom_formatter(|v, _| format!("{:.0}%", v * 100.0)),
+                        let r = super::scale_slider::relative_scale_slider(
+                            ui,
+                            &mut self.ui_scale_edit,
+                            MIN_UI_SCALE,
+                            MAX_UI_SLIDER_SCALE,
                         );
                         if r.drag_stopped() || (r.changed() && !r.dragged()) {
                             self.settings.ui_scale = self.ui_scale_edit;
                         }
                         ui.end_row();
                         ui.label(lg.text("settings-map-scale-label"));
-                        ui.add(
-                            egui::Slider::new(
-                                &mut self.settings.map_scale,
-                                MIN_MAP_SCALE..=MAX_MAP_SCALE,
-                            )
-                            .step_by(0.05)
-                            .custom_formatter(|v, _| format!("{:.0}%", v * 100.0)),
+                        super::scale_slider::relative_scale_slider(
+                            ui,
+                            &mut self.settings.map_scale,
+                            MIN_MAP_SCALE,
+                            MAX_MAP_SCALE,
                         );
                         ui.end_row();
                     });

@@ -299,6 +299,10 @@ cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 cargo test --workspace --all-features --locked
 ```
 
+The two text-size sliders use relative tracks with a shared 100% midpoint.
+Each keeps its existing limits and five-percentage-point steps. Check pointer
+and keyboard editing, typed percentages and UI-scale application on drag release.
+
 ## Frame rate and display synchronization
 
 Native presentation synchronizes with the current display by default.
