@@ -91,6 +91,9 @@ impl RulerUnit {
     /// Format a segment or path total. Angular units express accumulated central
     /// angle on EarthCraft's mean-radius sphere, not coordinate differences.
     pub fn format(self, distance_km: f64, automatic: DistanceUnits, lang: Lang) -> String {
+        // Empty floating-point sums can produce -0.0. Distances have no signed
+        // zero, so normalize it before automatic or explicit-unit formatting.
+        let distance_km = if distance_km == 0.0 { 0.0 } else { distance_km };
         let meters = distance_km * METERS_PER_KM;
         let (value, suffix) = match self {
             Self::Automatic => return automatic.distance(distance_km),
@@ -137,6 +140,30 @@ impl RulerUnit {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn empty_ruler_totals_never_display_negative_zero_in_any_unit() {
+        let empty_total: f64 = std::iter::empty::<f64>().sum();
+        for distance in [empty_total, -0.0, 0.0] {
+            for unit in RulerUnit::ALL {
+                for automatic in [DistanceUnits::Metric, DistanceUnits::Imperial] {
+                    for lang in Lang::ALL {
+                        let label = unit.format(distance, automatic, lang);
+                        assert!(!label.starts_with('-'), "{unit:?}: {label}");
+                        assert_eq!(label, unit.format(0.0, automatic, lang));
+                    }
+                }
+            }
+        }
+        let distance = RulerUnit::Automatic.format(empty_total, DistanceUnits::Imperial, Lang::En);
+        assert_eq!(distance, "0 ft");
+        assert_eq!(
+            Lang::En.format(
+                "ruler-measurement-summary",
+                &[("count", "0".into()), ("distance", distance.into())]
+            ),
+            "Points: 0   Total: 0 ft"
+        );
+    }
     #[test]
     fn explicit_units_are_independent_of_global_distance_preferences() {
         for unit in RulerUnit::ALL
