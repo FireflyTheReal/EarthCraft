@@ -291,3 +291,5 @@ menu-quit-action = Sair do EarthCraft
 
 sidebar-hide-tooltip = Ocultar painel lateral
 sidebar-show-tooltip = Mostrar painel lateral
+
+ruler-point-edit-help = Arraste um ponto para movê-lo. Passe o cursor sobre um ponto e pressione Delete ou Backspace para removê-lo.

@@ -9,6 +9,8 @@ use eframe::egui::{
     self, Align2, Color32, FontId, Key, PointerButton, Pos2, Rect, Sense, Stroke, Vec2,
 };
 use std::time::{Duration, Instant};
+mod ruler_input;
+
 const DRAG_HEADING_DEG_PER_POINT: f64 = 0.3;
 const SCROLL_ZOOM_RATE_PER_POINT: f64 = 0.0025;
 const POINT_FLY_ALTITUDE_RATIO: f64 = 0.35;
@@ -34,9 +36,11 @@ impl App {
         let aspect = (rect.width() / rect.height()) as f64;
         let shift = ctx.input(|i| i.modifiers.shift);
 
+        let ruler_captured = self.edit_ruler(ui, ctx, &resp, rect, aspect);
+
         // ── input
         let mut interacting = false;
-        if resp.dragged_by(PointerButton::Primary) && !shift {
+        if !ruler_captured && resp.dragged_by(PointerButton::Primary) && !shift {
             let d = ctx.input(|i| i.pointer.delta());
             self.fly = None;
             if self.explorer.active == earthcraft_core::body::Body::Earth {
@@ -45,8 +49,9 @@ impl App {
                 self.cam.orbit_body(d.x as f64, d.y as f64, rect.height());
             }
             interacting = true;
-        } else if resp.dragged_by(PointerButton::Secondary)
-            || (resp.dragged_by(PointerButton::Primary) && shift)
+        } else if !ruler_captured
+            && (resp.dragged_by(PointerButton::Secondary)
+                || (resp.dragged_by(PointerButton::Primary) && shift))
         {
             let drag = ctx.input(|i| i.pointer.delta());
             self.cam.heading =
@@ -160,7 +165,7 @@ impl App {
             .filter(|p| rect.contains(*p))
             .and_then(|p| pick_basis.pick(rect, p));
 
-        if resp.double_clicked() {
+        if !ruler_captured && resp.double_clicked() {
             if let Some((la, lo)) = resp
                 .interact_pointer_pos()
                 .filter(|p| rect.contains(*p))
@@ -172,7 +177,7 @@ impl App {
                     (self.cam.alt * POINT_FLY_ALTITUDE_RATIO).max(MIN_POINT_FLY_ALTITUDE_KM),
                 );
             }
-        } else if resp.clicked() && self.ruler {
+        } else if !ruler_captured && resp.clicked() && self.ruler {
             if let Some(pt) = resp
                 .interact_pointer_pos()
                 .filter(|p| rect.contains(*p))
@@ -415,7 +420,7 @@ impl App {
         }
 
         // auto-rotate (keeps repainting)
-        if self.auto_rotate && self.fly.is_none() {
+        if self.auto_rotate && self.fly.is_none() && !ruler_captured {
             let dt = ctx.input(|i| i.unstable_dt).min(MAX_FRAME_DELTA_SECS) as f64;
             self.cam.lon = wrap_lon(self.cam.lon + AUTO_ROTATE_DEG_PER_SECOND * dt);
             self.touch();

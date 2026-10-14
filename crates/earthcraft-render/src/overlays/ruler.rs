@@ -37,3 +37,52 @@ pub fn project_ruler(basis: &Basis, rect: Rect, points: &[(f64, f64)]) -> Vec<Ru
         })
         .collect()
 }
+
+/// Nearest visible ruler handle within a screen-space hit radius.
+pub fn point_at(
+    basis: &Basis,
+    rect: Rect,
+    points: &[(f64, f64)],
+    pointer: Pos2,
+    radius_points: f32,
+) -> Option<usize> {
+    points
+        .iter()
+        .enumerate()
+        .filter_map(|(index, point)| {
+            let screen = basis.project(ll_to_v3(point.0, point.1), rect)?;
+            let distance = screen.distance_sq(pointer);
+            (rect.contains(screen) && distance <= radius_points * radius_points)
+                .then_some((index, distance))
+        })
+        .min_by(|a, b| a.1.total_cmp(&b.1))
+        .map(|(index, _)| index)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use earthcraft_core::camera::Cam;
+    use emath::Vec2;
+
+    #[test]
+    fn handles_are_nearest_visible_and_within_hit_radius() {
+        let basis = Cam {
+            lat: 0.0,
+            lon: 0.0,
+            heading: 0.0,
+            alt: 14000.0,
+        }
+        .basis(1.0);
+        let rect = Rect::from_min_size(Pos2::ZERO, Vec2::splat(600.0));
+        let points = [(0.0, 0.0), (0.0, 2.0), (0.0, 180.0)];
+        let second = basis.project(ll_to_v3(0.0, 2.0), rect).unwrap();
+        assert_eq!(point_at(&basis, rect, &points, second, 10.0), Some(1));
+        assert_eq!(point_at(&basis, rect, &points, Pos2::ZERO, 10.0), None);
+        assert_eq!(
+            point_at(&basis, rect, &points[2..], rect.center(), 10.0),
+            None
+        );
+        assert_eq!(point_at(&basis, rect, &[], second, 10.0), None);
+    }
+}

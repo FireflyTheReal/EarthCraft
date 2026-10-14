@@ -291,3 +291,5 @@ menu-quit-action = Quit EarthCraft
 
 sidebar-hide-tooltip = Hide sidebar
 sidebar-show-tooltip = Show sidebar
+
+ruler-point-edit-help = Drag a point to move it. Hover a point and press Delete or Backspace to remove it.
