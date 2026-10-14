@@ -322,3 +322,9 @@ Smoke check hiding/reopening the sidebar, preserving expanded sections and layer
 selections, map navigation while hidden and after resizing, and toggling in both
 languages. On macOS also check Open/Save KML, screenshots and Quit through the
 native menu. Use isolated settings/cache for these checks.
+
+Ruler editing smoke check: enable the ruler and add several points. Drag a white
+point and verify that only that point moves, including after releasing outside
+the map. Drag empty map space and verify normal navigation. Hover a point and
+press Delete or Backspace to remove only that point; focused text fields must
+keep their normal editing behavior. Check both UI languages and Clear all.

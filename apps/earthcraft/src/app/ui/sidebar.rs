@@ -285,8 +285,10 @@ impl App {
                                     ("distance", fmt_dist(total).into()),
                                 ],
                             ));
+                            ui.weak(lg.text("ruler-point-edit-help"));
                             if ui.button(lg.text("ruler-clear-action")).clicked() {
                                 self.ruler_pts.clear();
+                                self.ruler_drag = None;
                             }
                         });
 
