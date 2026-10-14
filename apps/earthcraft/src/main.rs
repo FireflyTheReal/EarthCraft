@@ -12,6 +12,10 @@ mod app;
 use app::App;
 use eframe::egui;
 const INITIAL_WINDOW_SIZE_POINTS: [f32; 2] = [1280.0, 800.0];
+#[cfg(target_os = "macos")]
+const APP_ICON_PNG: &[u8] = include_bytes!("../../../assets/macos/icon.png");
+#[cfg(not(target_os = "macos"))]
+const APP_ICON_PNG: &[u8] = include_bytes!("../../../assets/icon_256.png");
 
 fn main() -> Result<(), eframe::Error> {
     #[cfg(feature = "profiling")]
@@ -20,7 +24,7 @@ fn main() -> Result<(), eframe::Error> {
         .with_inner_size(INITIAL_WINDOW_SIZE_POINTS)
         .with_title("EarthCraft")
         .with_app_id("earthcraft");
-    if let Ok(img) = image::load_from_memory(include_bytes!("../../../assets/icon_256.png")) {
+    if let Ok(img) = image::load_from_memory(APP_ICON_PNG) {
         let img = img.to_rgba8();
         viewport = viewport.with_icon(egui::IconData {
             width: img.width(),
