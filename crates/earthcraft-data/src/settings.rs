@@ -1,6 +1,6 @@
 mod writer;
 use crate::paths::{cache_dir, default_out_dir};
-use earthcraft_core::language::Lang;
+use earthcraft_core::{language::Lang, units::RulerUnit};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 pub use writer::SettingsWriter;
@@ -22,6 +22,27 @@ pub fn load_lang() -> Lang {
         _ => Lang::En, // English is the default
     }
 }
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UnitPreference {
+    #[default]
+    System,
+    Metric,
+    Imperial,
+}
+impl UnitPreference {
+    pub fn resolve(
+        self,
+        system: earthcraft_core::units::DistanceUnits,
+    ) -> earthcraft_core::units::DistanceUnits {
+        use earthcraft_core::units::DistanceUnits;
+        match self {
+            Self::System => system,
+            Self::Metric => DistanceUnits::Metric,
+            Self::Imperial => DistanceUnits::Imperial,
+        }
+    }
+}
 #[derive(Clone, PartialEq, Serialize)]
 pub struct Settings {
     pub screenshot_dir: String,
@@ -29,6 +50,16 @@ pub struct Settings {
     pub ui_scale: f32,  // text size of buttons/panels
     pub map_scale: f32, // text size of map labels
     pub uncap_fps: bool,
+    pub hide_navigation_controls: bool,
+    pub distance_units: UnitPreference,
+    #[serde(serialize_with = "serialize_ruler_unit")]
+    pub ruler_unit: RulerUnit,
+}
+fn serialize_ruler_unit<S: serde::Serializer>(
+    unit: &RulerUnit,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    serializer.serialize_str(unit.code())
 }
 impl Default for Settings {
     fn default() -> Self {
@@ -38,6 +69,9 @@ impl Default for Settings {
             ui_scale: 1.0,
             map_scale: 1.0,
             uncap_fps: false,
+            hide_navigation_controls: false,
+            distance_units: UnitPreference::System,
+            ruler_unit: RulerUnit::Automatic,
         }
     }
 }
@@ -56,6 +90,12 @@ struct SettingsInput {
     map_scale: Option<f64>,
     #[serde(default, deserialize_with = "crate::json_fields::boolean")]
     uncap_fps: Option<bool>,
+    #[serde(default, deserialize_with = "crate::json_fields::boolean")]
+    hide_navigation_controls: Option<bool>,
+    #[serde(default, deserialize_with = "crate::json_fields::string")]
+    distance_units: Option<String>,
+    #[serde(default, deserialize_with = "crate::json_fields::string")]
+    ruler_unit: Option<String>,
 }
 impl Settings {
     fn apply_json(&mut self, bytes: &[u8]) -> Result<(), crate::Error> {
@@ -75,6 +115,20 @@ impl Settings {
         if let Some(uncap) = input.uncap_fps {
             self.uncap_fps = uncap;
         }
+        if let Some(hide) = input.hide_navigation_controls {
+            self.hide_navigation_controls = hide;
+        }
+        if let Some(units) = input.distance_units {
+            self.distance_units = match units.as_str() {
+                "metric" => UnitPreference::Metric,
+                "imperial" => UnitPreference::Imperial,
+                "system" => UnitPreference::System,
+                _ => self.distance_units,
+            };
+        }
+        if let Some(unit) = input.ruler_unit.as_deref().and_then(RulerUnit::from_code) {
+            self.ruler_unit = unit;
+        }
         Ok(())
     }
     pub fn load() -> Self {
@@ -89,6 +143,63 @@ impl Settings {
 mod tests {
     use super::*;
     #[test]
+    fn every_ruler_preference_roundtrips_and_invalid_values_keep_the_selection() {
+        let mut settings = Settings::default();
+        settings.apply_json(br#"{}"#).unwrap();
+        assert_eq!(settings.ruler_unit, RulerUnit::Automatic);
+        for unit in RulerUnit::ALL {
+            settings.ruler_unit = unit;
+            let bytes = serde_json::to_vec(&settings).unwrap();
+            let mut loaded = Settings::default();
+            loaded.apply_json(&bytes).unwrap();
+            assert_eq!(loaded.ruler_unit, unit);
+            loaded
+                .apply_json(br#"{"distance_units":"imperial"}"#)
+                .unwrap();
+            assert_eq!(loaded.ruler_unit, unit);
+            loaded.apply_json(br#"{"ruler_unit":"unknown"}"#).unwrap();
+            assert_eq!(loaded.ruler_unit, unit);
+            loaded.apply_json(br#"{"ruler_unit":42}"#).unwrap();
+            assert_eq!(loaded.ruler_unit, unit);
+        }
+    }
+    #[test]
+    fn units_roundtrip_and_tolerate_old_or_invalid_preferences() {
+        use earthcraft_core::units::DistanceUnits;
+        let mut settings = Settings::default();
+        settings.apply_json(br#"{}"#).unwrap();
+        assert_eq!(settings.distance_units, UnitPreference::System);
+        settings
+            .apply_json(br#"{"distance_units":"imperial"}"#)
+            .unwrap();
+        assert_eq!(
+            settings.distance_units.resolve(DistanceUnits::Metric),
+            DistanceUnits::Imperial
+        );
+        for bytes in [
+            br#"{"distance_units":42}"#.as_slice(),
+            br#"{"distance_units":"unknown"}"#,
+        ] {
+            settings.apply_json(bytes).unwrap();
+            assert_eq!(settings.distance_units, UnitPreference::Imperial);
+        }
+        let bytes = serde_json::to_vec(&settings).unwrap();
+        let mut loaded = Settings::default();
+        loaded.apply_json(&bytes).unwrap();
+        assert_eq!(loaded.distance_units, UnitPreference::Imperial);
+        loaded
+            .apply_json(br#"{"distance_units":"system"}"#)
+            .unwrap();
+        assert_eq!(
+            loaded.distance_units.resolve(DistanceUnits::Metric),
+            DistanceUnits::Metric
+        );
+        assert_eq!(
+            loaded.distance_units.resolve(DistanceUnits::Imperial),
+            DistanceUnits::Imperial
+        );
+    }
+    #[test]
     fn partial_invalid_settings_preserve_valid_fields_and_clamping() {
         let mut settings = Settings {
             screenshot_dir: "pictures".into(),
@@ -96,6 +207,9 @@ mod tests {
             ui_scale: 1.0,
             map_scale: 1.0,
             uncap_fps: false,
+            hide_navigation_controls: false,
+            distance_units: UnitPreference::System,
+            ruler_unit: RulerUnit::Automatic,
         };
         settings
             .apply_json(
@@ -107,8 +221,9 @@ mod tests {
         assert_eq!(settings.ui_scale, MAX_UI_SCALE);
         assert_eq!(settings.map_scale, 1.0);
         assert!(!settings.uncap_fps);
+        assert!(!settings.hide_navigation_controls);
         settings
-            .apply_json(br#"{"kml_dir":"","ui_scale":-5,"map_scale":9,"uncap_fps":true}"#)
+            .apply_json(br#"{"kml_dir":"","ui_scale":-5,"map_scale":9,"uncap_fps":true,"hide_navigation_controls":true}"#)
             .unwrap();
         assert_eq!(settings.kml_dir, "custom");
         assert_eq!(settings.ui_scale, MIN_UI_SCALE);
@@ -116,9 +231,20 @@ mod tests {
         assert!(settings.uncap_fps);
         settings.apply_json(br#"{}"#).unwrap();
         assert!(settings.uncap_fps);
+        assert!(settings.hide_navigation_controls);
+        settings
+            .apply_json(br#"{"hide_navigation_controls":"wrong"}"#)
+            .unwrap();
+        assert!(settings.hide_navigation_controls);
         let json: serde_json::Value =
             serde_json::from_slice(&serde_json::to_vec(&settings).unwrap()).unwrap();
         assert_eq!(json["kml_dir"], "custom");
         assert_eq!(json["uncap_fps"], true);
+        assert_eq!(json["hide_navigation_controls"], true);
+        let mut restored = Settings::default();
+        restored
+            .apply_json(&serde_json::to_vec(&settings).unwrap())
+            .unwrap();
+        assert!(restored.hide_navigation_controls);
     }
 }

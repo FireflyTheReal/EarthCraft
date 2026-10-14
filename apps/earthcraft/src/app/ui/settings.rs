@@ -1,21 +1,51 @@
 use super::super::App;
 use crate::app::cache::cache_size_text;
 use earthcraft_core::language::Lang;
-use earthcraft_data::settings::Settings;
+use earthcraft_data::settings::{Settings, UnitPreference};
 use earthcraft_data::settings::{MAX_MAP_SCALE, MIN_MAP_SCALE, MIN_UI_SCALE};
 use eframe::egui;
-const MAX_UI_SLIDER_SCALE: f32 = 2.0;
+pub(super) const MAX_UI_SLIDER_SCALE: f32 = 2.0;
+const FOOTER_MARGIN_POINTS: f32 = 8.0;
+const RESET_BUTTON_FILL: egui::Color32 = egui::Color32::from_rgb(160, 40, 40);
 
 impl App {
     pub(in crate::app) fn settings_window(&mut self, ctx: &egui::Context) {
         self.refresh_disk_usage(ctx);
         let lg = self.lang;
         let mut open = self.show_settings;
+        let mut close_requested = false;
         egui::Window::new(lg.text("settings-title"))
             .open(&mut open)
             .resizable(false)
             .default_width(420.0)
             .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label(lg.text("settings-distance-units-label"));
+                    let label = |units| {
+                        lg.text(match units {
+                            UnitPreference::System => "settings-units-system",
+                            UnitPreference::Metric => "settings-units-metric",
+                            UnitPreference::Imperial => "settings-units-imperial",
+                        })
+                    };
+                    egui::ComboBox::from_id_source("distance_units")
+                        .selected_text(label(self.settings.distance_units))
+                        .show_ui(ui, |ui| {
+                            for units in [
+                                UnitPreference::System,
+                                UnitPreference::Metric,
+                                UnitPreference::Imperial,
+                            ] {
+                                super::selection::full_width_value(
+                                    ui,
+                                    &mut self.settings.distance_units,
+                                    units,
+                                    label(units),
+                                );
+                            }
+                        });
+                });
+                ui.separator();
                 ui.strong(lg.text("settings-text-section-title"));
                 egui::Grid::new("settings_text")
                     .num_columns(2)
@@ -25,30 +55,30 @@ impl App {
                         // The window auto-sizes to its (scaled) content, so changing the scale while dragging
                         // moves the slider under the cursor and feeds back into itself (shaking).
                         // Fix: only commit the new scale when the drag ends.
-                        let r = ui.add(
-                            egui::Slider::new(
-                                &mut self.ui_scale_edit,
-                                MIN_UI_SCALE..=MAX_UI_SLIDER_SCALE,
-                            )
-                            .step_by(0.05)
-                            .custom_formatter(|v, _| format!("{:.0}%", v * 100.0)),
+                        let r = super::scale_slider::relative_scale_slider(
+                            ui,
+                            &mut self.ui_scale_edit,
+                            MIN_UI_SCALE,
+                            MAX_UI_SLIDER_SCALE,
                         );
                         if r.drag_stopped() || (r.changed() && !r.dragged()) {
                             self.settings.ui_scale = self.ui_scale_edit;
                         }
                         ui.end_row();
                         ui.label(lg.text("settings-map-scale-label"));
-                        ui.add(
-                            egui::Slider::new(
-                                &mut self.settings.map_scale,
-                                MIN_MAP_SCALE..=MAX_MAP_SCALE,
-                            )
-                            .step_by(0.05)
-                            .custom_formatter(|v, _| format!("{:.0}%", v * 100.0)),
+                        super::scale_slider::relative_scale_slider(
+                            ui,
+                            &mut self.settings.map_scale,
+                            MIN_MAP_SCALE,
+                            MAX_MAP_SCALE,
                         );
                         ui.end_row();
                     });
                 ui.separator();
+                ui.checkbox(
+                    &mut self.settings.hide_navigation_controls,
+                    lg.text("settings-hide-navigation-controls-toggle"),
+                );
                 ui.checkbox(
                     &mut self.settings.uncap_fps,
                     lg.text("settings-uncap-fps-toggle"),
@@ -124,10 +154,29 @@ impl App {
                     }
                 });
                 ui.separator();
-                if ui.button(lg.text("settings-reset-action")).clicked() {
-                    self.settings = Settings::default();
-                }
+                egui::Frame::none()
+                    .inner_margin(egui::Margin::same(FOOTER_MARGIN_POINTS))
+                    .show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            let reset = egui::Button::new(
+                                egui::RichText::new(lg.text("settings-reset-action"))
+                                    .color(egui::Color32::WHITE),
+                            )
+                            .fill(RESET_BUTTON_FILL);
+                            if ui.add(reset).clicked() {
+                                self.settings = Settings::default();
+                            }
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if ui.button(lg.text("settings-close-action")).clicked() {
+                                        close_requested = true;
+                                    }
+                                },
+                            );
+                        });
+                    });
             });
-        self.show_settings = open;
+        self.show_settings = open && !close_requested;
     }
 }

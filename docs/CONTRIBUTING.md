@@ -78,6 +78,11 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
 - Launch from the root and verify the icon, initial view and panels.
 - Orbit, zoom under the cursor, rotate with right-drag/Shift, use arrow keys,
   compass/north reset, navigation widgets, double-click and fly-to.
+  Hold each pan, rotation and zoom button for at least ten seconds; verify
+  movement continues until release, including with slight pointer movement.
+  Toggle Settings → Hide navigation controls; verify the top-right controls
+  disappear immediately, their area accepts normal map input, reopening restores
+  controls, and the choice persists after restart (default: controls visible).
 - With background rendering, open Settings during continuous rotation/flight;
   verify input remains responsive, new imagery keeps arriving and borders/labels
   stay aligned. Stop input and check full-resolution recovery. Rapidly switch
@@ -96,6 +101,9 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
 - Switch satellite/streets/topography/historical imagery; verify loading,
   release selection, fallback and attribution.
 - Search by coordinates and address; select suggestions with mouse and keyboard.
+  Clear the field after results arrive and during a pending lookup; the old count,
+  result list and late responses must not return. Check singular/plural result
+  and KML import messages in both languages.
 - Toggle borders, city/metropolitan layers, labels, grid, atmosphere and sunlight.
 - For overlay caching, toggle label/border layers while stationary, switch
   language/map text size, and resize. Verify updates without camera movement;
@@ -114,6 +122,24 @@ bundle icon: eframe applies it to the Dock at startup. Keep both assets aligned;
 Windows/Linux retain `assets/icon_256.png`.
 The `packaging/earthcraft.desktop` asset must still be supplied before validating
 deb output.
+
+
+Distance and path smoke checks: select System, kilometers/meters and miles/feet
+in Settings; check ruler segments/totals, camera altitude and close-view scale
+bars. Click the bottom-bar camera altitude and enter an exact value in the shown
+unit; verify Enter/Apply updates altitude without changing the center/heading and
+cancels an active flight. Escape/Cancel must leave altitude unchanged. Check
+invalid, non-finite and out-of-range values, and repeat in both languages. Try each explicit ruler unit and verify that both segment labels and totals
+change while altitude and scale keep their own settings. Check degrees/arcseconds,
+smoots and football fields (100 yards without end zones). The field option is
+available everywhere: verify “Football fields” in the US selector and “American
+football fields” elsewhere, with the shorter name in totals/segment labels.
+Restart to check that the ruler preference persists across locales. Restart and verify the override persists; switching UI language must not
+change it. System locales use the regional defaults listed in ARCHITECTURE.md. Inspect folder labels and KML
+import/save/screenshot statuses: home paths use `~/…` on macOS/Linux and
+`%USERPROFILE%\…` on Windows, other long paths retain their tail with `.../`.
+Hover for full paths/messages. Resize the window and check toolbar spacing and
+that file status text does not push language/settings controls out of view.
 
 ## Resource-constrained builds
 
@@ -278,6 +304,10 @@ cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 cargo test --workspace --all-features --locked
 ```
 
+The two text-size sliders use relative tracks with a shared 100% midpoint.
+Each keeps its existing limits and five-percentage-point steps. Check pointer
+and keyboard editing, typed percentages and UI-scale application on drag release.
+
 ## Frame rate and display synchronization
 
 Native presentation synchronizes with the current display by default.
@@ -304,7 +334,11 @@ for hardware limits, performance and CPU-only build instructions.
 The toolbar's sidebar button hides and reopens the sidebar with egui's panel
 animation. The sidebar is open at startup; toggling it does not reset layer,
 placemark, ruler or section state. Reopening restores its width and scroll state.
-The map uses the space released by the panel. While it animates, frame submission
+Closing or opening sidebar sections must keep the default or manually resized
+panel width. Oversized widgets scroll within the panel instead of changing its
+width; cursor readouts shrink their font, then reduce decimal precision to keep
+both coordinates visible without ellipsis. The comma stays in place when the
+pointer leaves the globe. The map uses the space released by the panel. While it animates, frame submission
 and publication pause; in-flight jobs can finish without blocking egui. Keep the
 previous frame and overlays at their original rectangle, clipped to the available
 map area, until a compatible frame for the settled viewport arrives. KML drops

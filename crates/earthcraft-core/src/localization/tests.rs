@@ -104,16 +104,16 @@ fn all_original_labels_keep_exact_wording_and_help_newlines() {
 #[test]
 fn dynamic_messages_preserve_counts_paths_spacing_and_precision() {
     let args = [
-        ("count", "1234".into()),
+        ("count", 1234usize.into()),
         ("path", "a & b/locais.kml".into()),
     ];
     assert_eq!(
         Lang::En.format("kml-import-success", &args),
-        "1234 placemark(s) imported. — a & b/locais.kml"
+        "1234 placemarks imported. — a & b/locais.kml"
     );
     assert_eq!(
         Lang::PtBr.format("kml-import-success", &args),
-        "1234 local(is) importado(s). — a & b/locais.kml"
+        "1234 locais importados. — a & b/locais.kml"
     );
     assert_eq!(
         Lang::PtBr.format(
@@ -133,6 +133,38 @@ fn dynamic_messages_preserve_counts_paths_spacing_and_precision() {
         Lang::PtBr.format("search-request-error", &[("error", "HTTP 500".into())]),
         "Erro na busca: HTTP 500"
     );
+}
+#[test]
+fn counted_messages_use_singular_only_for_one_in_both_languages() {
+    for (count, en_search, pt_search, en_import, pt_import) in [
+        (
+            0usize,
+            "0 results found.",
+            "0 resultados encontrados.",
+            "0 placemarks imported. — points.kml",
+            "0 locais importados. — points.kml",
+        ),
+        (
+            1,
+            "1 result found.",
+            "1 resultado encontrado.",
+            "1 placemark imported. — points.kml",
+            "1 local importado. — points.kml",
+        ),
+        (
+            2,
+            "2 results found.",
+            "2 resultados encontrados.",
+            "2 placemarks imported. — points.kml",
+            "2 locais importados. — points.kml",
+        ),
+    ] {
+        let args = [("count", count.into()), ("path", "points.kml".into())];
+        assert_eq!(Lang::En.format("search-results-status", &args), en_search);
+        assert_eq!(Lang::PtBr.format("search-results-status", &args), pt_search);
+        assert_eq!(Lang::En.format("kml-import-success", &args), en_import);
+        assert_eq!(Lang::PtBr.format("kml-import-success", &args), pt_import);
+    }
 }
 #[test]
 fn missing_or_unformattable_translations_fall_back() {
@@ -156,7 +188,7 @@ fn missing_or_unformattable_translations_fall_back() {
 }
 
 #[test]
-fn all_original_dynamic_messages_keep_exact_output() {
+fn original_dynamic_messages_preserve_output_except_requested_pluralization() {
     let fixture: serde_json::Value = serde_json::from_str(include_str!(
         "../../tests/fixtures/original-ui-messages.json"
     ))
@@ -166,14 +198,28 @@ fn all_original_dynamic_messages_keep_exact_output() {
             .as_object()
             .unwrap()
             .iter()
-            .map(|(name, value)| (name.as_str(), value.as_str().unwrap().into()))
+            .map(|(name, value)| {
+                let value = value.as_str().unwrap();
+                if name == "count"
+                    && matches!(id.as_str(), "search-results-status" | "kml-import-success")
+                {
+                    (name.as_str(), value.parse::<usize>().unwrap().into())
+                } else {
+                    (name.as_str(), value.into())
+                }
+            })
             .collect();
         for lang in Lang::ALL {
-            assert_eq!(
-                lang.format(id, &args),
-                values[lang.code()].as_str().unwrap(),
-                "{id}"
-            );
+            // These two messages intentionally replace parenthesized plurals.
+            // Keep the original fixture intact as provenance for all other output.
+            let expected = match (id.as_str(), lang) {
+                ("search-results-status", Lang::En) => "1234 results found.",
+                ("search-results-status", Lang::PtBr) => "1234 resultados encontrados.",
+                ("kml-import-success", Lang::En) => "1234 placemarks imported. — a & b/locais.kml",
+                ("kml-import-success", Lang::PtBr) => "1234 locais importados. — a & b/locais.kml",
+                _ => values[lang.code()].as_str().unwrap(),
+            };
+            assert_eq!(lang.format(id, &args), expected, "{id}");
         }
     }
 }

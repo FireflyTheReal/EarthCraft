@@ -295,9 +295,11 @@ impl App {
         }
 
         // scale bar
-        if let Some(scale_bar) =
-            earthcraft_render::scale_bar::scale_bar(display_cam.alt, rect.height())
-        {
+        if let Some(scale_bar) = earthcraft_render::scale_bar::scale_bar_with_units(
+            display_cam.alt,
+            rect.height(),
+            self.distance_units(),
+        ) {
             let len = scale_bar.width_points;
             let y = rect.bottom() - 28.0;
             let x0 = rect.left() + 18.0;
@@ -309,7 +311,7 @@ impl App {
                 [Pos2::new(x0, y), Pos2::new(x0 + len, y)],
                 Stroke::new(1.5_f32, Color32::WHITE),
             );
-            let label = scale_bar.label();
+            let label = self.distance_units().scale_label(scale_bar.distance_m);
             painter.text(
                 Pos2::new(x0, y - 6.0),
                 Align2::LEFT_BOTTOM,

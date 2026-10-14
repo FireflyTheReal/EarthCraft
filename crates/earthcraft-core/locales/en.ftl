@@ -190,7 +190,11 @@ kml-save-success = Saved to { $path }
 
 kml-save-error = Error saving: { $error }
 
-kml-import-success = { $count } placemark(s) imported. — { $path }
+kml-import-success =
+    { $count ->
+        [1] { $count } placemark imported.
+       *[other] { $count } placemarks imported.
+    } — { $path }
 
 kml-open-error = Error opening: { $error }
 
@@ -200,7 +204,11 @@ screenshot-save-error = Error: { $error }
 
 search-navigation-status = Going to { $destination }
 
-search-results-status = { $count } result(s).
+search-results-status =
+    { $count ->
+        [1] { $count } result found.
+       *[other] { $count } results found.
+    }
 
 search-request-error = Search error: { $error }
 
@@ -291,5 +299,51 @@ menu-quit-action = Quit EarthCraft
 
 sidebar-hide-tooltip = Hide sidebar
 sidebar-show-tooltip = Show sidebar
+
+settings-distance-units-label = Distance units
+settings-units-system = System locale
+settings-units-metric = Kilometers / meters
+settings-units-imperial = Miles / feet
+
+ruler-unit-automatic = Automatic
+ruler-unit-centimeters = Centimeters
+ruler-unit-meters = Meters
+ruler-unit-kilometers = Kilometers
+ruler-unit-inches = Inches
+ruler-unit-feet = Feet
+ruler-unit-yards = Yards
+ruler-unit-miles = Miles
+ruler-unit-nautical-miles = Nautical miles
+ruler-unit-smoots = Smoots
+ruler-unit-degrees = Degrees
+ruler-unit-arcseconds = Arcseconds
+ruler-unit-football-fields = Football fields
+ruler-unit-american-football-fields = American football fields
+ruler-units-label = Units
+ruler-distance-smoots = { $value } smoots
+ruler-distance-football-fields = { $value } football fields
+ruler-unit-automatic-help = Use the distance units selected in Settings.
+ruler-unit-centimeters-help = 1 centimeter = 0.01 meters.
+ruler-unit-meters-help = 1 meter = 100 centimeters.
+ruler-unit-kilometers-help = 1 kilometer = 1,000 meters.
+ruler-unit-inches-help = 1 inch = 2.54 centimeters.
+ruler-unit-feet-help = 1 foot = 12 inches.
+ruler-unit-yards-help = 1 yard = 3 feet.
+ruler-unit-miles-help = 1 mile = 1,760 yards.
+ruler-unit-nautical-miles-help = 1 nautical mile = 1,852 meters.
+ruler-unit-smoots-help = 1 smoot = 67 inches.
+ruler-unit-degrees-help = Central angle along the measured path on the globe.
+ruler-unit-arcseconds-help = 1 arcsecond = 1/3,600 of a degree of central angle.
+ruler-unit-football-fields-help = One American football field is 100 yards, excluding end zones.
+
+altitude-edit-tooltip = Set an exact camera altitude
+altitude-edit-title = Camera altitude
+altitude-apply-action = Apply
+altitude-cancel-action = Cancel
+altitude-input-error = Enter a number between { $minimum } and { $maximum } { $unit }.
+
+settings-hide-navigation-controls-toggle = Hide navigation controls
+
+settings-close-action = Close
 
 ruler-point-edit-help = Drag a point to move it. Hover a point and press Delete or Backspace to remove it.

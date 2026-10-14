@@ -1,10 +1,9 @@
 use super::super::App;
-use earthcraft_core::{
-    math::{fmt_dist, haversine_km},
-    placemark::Placemark,
-};
+use super::paths::short_folder;
+use earthcraft_core::{math::haversine_km, placemark::Placemark};
 use earthcraft_data::tiles::Provider;
 use eframe::egui::{self, Color32, Key, Stroke};
+pub(super) const DEFAULT_SIDEBAR_WIDTH_POINTS: f32 = 270.0;
 impl App {
     pub(in crate::app) fn side_panel(&mut self, ctx: &egui::Context) {
         let lg = self.lang;
@@ -19,14 +18,14 @@ impl App {
             egui::SidePanel::left("side_collapsed")
                 .frame(egui::Frame::none())
                 .exact_width(0.0),
-            egui::SidePanel::left("side").default_width(270.0),
+            expanded_sidebar_panel(),
             |ui, openness| {
                 let settled_openness = if self.sidebar_open { 1.0 } else { 0.0 };
                 self.sidebar_animating = openness != settled_openness;
                 if openness < 1.0 {
                     return;
                 }
-                egui::ScrollArea::vertical().show(ui, |ui| {
+                sidebar_scroll_area().show(ui, |ui| {
                     egui::CollapsingHeader::new(lg.text("layers-section-title"))
                         .default_open(true)
                         .show(ui, |ui| {
@@ -56,7 +55,9 @@ impl App {
                                                     for (i, r) in
                                                         self.wayback_list.iter().enumerate()
                                                     {
-                                                        ui.selectable_value(&mut idx, i, &r.date);
+                                                        super::selection::full_width_value(
+                                                            ui, &mut idx, i, &r.date,
+                                                        );
                                                     }
                                                 });
                                             if ui
@@ -273,18 +274,35 @@ impl App {
                         .default_open(true)
                         .show(ui, |ui| {
                             ui.checkbox(&mut self.ruler, lg.text("ruler-enable-toggle"));
+                            let selected = super::ruler::unit_selector(
+                                ui,
+                                self.settings.ruler_unit,
+                                self.us_locale,
+                                lg,
+                            );
+                            if selected != self.settings.ruler_unit {
+                                self.settings.ruler_unit = selected;
+                            }
                             let total: f64 = self
                                 .ruler_pts
                                 .windows(2)
                                 .map(|w| haversine_km(w[0], w[1]))
                                 .sum();
-                            ui.label(lg.format(
-                                "ruler-measurement-summary",
-                                &[
-                                    ("count", self.ruler_pts.len().to_string().into()),
-                                    ("distance", fmt_dist(total).into()),
-                                ],
-                            ));
+                            ui.label(
+                                lg.format(
+                                    "ruler-measurement-summary",
+                                    &[
+                                        ("count", self.ruler_pts.len().to_string().into()),
+                                        (
+                                            "distance",
+                                            self.settings
+                                                .ruler_unit
+                                                .format(total, self.distance_units(), lg)
+                                                .into(),
+                                        ),
+                                    ],
+                                ),
+                            );
                             ui.weak(lg.text("ruler-point-edit-help"));
                             if ui.button(lg.text("ruler-clear-action")).clicked() {
                                 self.ruler_pts.clear();
@@ -343,21 +361,14 @@ impl App {
     }
 }
 
-/// Keep the recognizable directory tail while hiding machine-specific parents.
-fn short_folder(path: &str) -> String {
-    const VISIBLE_FOLDER_COMPONENTS: usize = 2;
-    let mut tail: Vec<_> = std::path::Path::new(path)
-        .components()
-        .rev()
-        .filter_map(|component| match component {
-            std::path::Component::Normal(name) => Some(name.to_string_lossy()),
-            _ => None,
-        })
-        .take(VISIBLE_FOLDER_COMPONENTS)
-        .collect();
-    tail.reverse();
-    if tail.is_empty() {
-        return path.to_string();
-    }
-    format!(".../{}", tail.join("/"))
+fn expanded_sidebar_panel() -> egui::SidePanel {
+    egui::SidePanel::left("side").default_width(DEFAULT_SIDEBAR_WIDTH_POINTS)
 }
+fn sidebar_scroll_area() -> egui::ScrollArea {
+    // Keep the allocated viewport when sections close, and scroll oversized
+    // widgets rather than letting them resize the panel when sections reopen.
+    egui::ScrollArea::both().auto_shrink([false, false])
+}
+
+#[cfg(test)]
+mod tests;

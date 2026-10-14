@@ -24,6 +24,10 @@ impl App {
     /// Google Earth style control cluster: rotation ring, move pad and zoom slider.
     /// Returns true while the user is operating a control.
     pub(in crate::app) fn nav_controls(&mut self, ui: &mut egui::Ui, rect: Rect, dt: f64) -> bool {
+        if self.settings.hide_navigation_controls {
+            self.ring_drag = false;
+            return false;
+        }
         let lg = self.lang;
         let k = self
             .settings
@@ -146,11 +150,13 @@ impl App {
         ];
         for (i, d) in dirs.iter().enumerate() {
             let c = c1 + *d * 17.0 * k;
-            let r = ui.interact(
-                Rect::from_center_size(c, Vec2::splat(15.0 * k)),
-                base.with(("eye", i)),
-                Sense::click(),
-            );
+            let arrow_rect = Rect::from_center_size(c, Vec2::splat(15.0 * k));
+            let id = base.with(("eye", i));
+            let r = if i < 2 {
+                ui.interact(arrow_rect, id, Sense::click())
+            } else {
+                hold_control(ui, arrow_rect, id)
+            };
             let held = r.is_pointer_button_down_on();
             tri(
                 c,
@@ -211,10 +217,10 @@ impl App {
         ];
         for (i, d) in dirs.iter().enumerate() {
             let c = c2 + *d * 17.0 * k;
-            let r = ui.interact(
+            let r = hold_control(
+                ui,
                 Rect::from_center_size(c, Vec2::splat(15.0 * k)),
                 base.with(("pan", i)),
-                Sense::click(),
             );
             let held = r.is_pointer_button_down_on();
             tri(
@@ -262,10 +268,10 @@ impl App {
             Stroke::new(4.0 * k, fill),
         );
         for (c, plus) in [(cplus, true), (cminus, false)] {
-            let r = ui.interact(
+            let r = hold_control(
+                ui,
                 Rect::from_center_size(c, Vec2::splat(2.0 * r_btn)),
                 base.with(("zoombtn", plus)),
-                Sense::click(),
             );
             let held = r.is_pointer_button_down_on();
             painter.circle_filled(c, r_btn, if held || r.hovered() { fill_hot } else { fill });
@@ -329,3 +335,12 @@ impl App {
         active
     }
 }
+
+fn hold_control(ui: &mut egui::Ui, rect: Rect, id: egui::Id) -> egui::Response {
+    // Click-only ownership expires during a long press. Retain drag ownership
+    // until release so continuous controls also tolerate small pointer movements.
+    ui.interact(rect, id, Sense::click_and_drag())
+}
+
+#[cfg(test)]
+mod tests;

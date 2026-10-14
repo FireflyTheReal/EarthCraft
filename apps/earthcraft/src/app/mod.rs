@@ -82,6 +82,10 @@ pub(crate) struct App {
     results: Vec<GeoResult>,
     search_rx: Option<mpsc::Receiver<Result<Vec<GeoResult>, earthcraft_data::Error>>>,
     status: String,
+    status_file: Option<files::FileStatus>,
+    system_units: earthcraft_core::units::DistanceUnits,
+    us_locale: bool,
+    altitude_editor: Option<ui::altitude::AltitudeEditor>,
 
     file_jobs: earthcraft_data::files::FileJobs,
     file_results: mpsc::Receiver<earthcraft_data::files::FileCompletion>,
@@ -124,6 +128,10 @@ pub(crate) struct App {
 }
 
 impl App {
+    fn distance_units(&self) -> earthcraft_core::units::DistanceUnits {
+        self.settings.distance_units.resolve(self.system_units)
+    }
+
     pub(crate) fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let mut vis = egui::Visuals::dark();
         vis.window_rounding = 6.0.into();
@@ -132,6 +140,7 @@ impl App {
             earthcraft_data::runtime::ServiceRuntime::new().expect("start network runtime");
         let lang = load_lang();
         let settings = Settings::load();
+        let system_locale = sys_locale::get_locale().unwrap_or_default();
         let boundary_log: StatusLog = Arc::new(Mutex::new(Vec::new()));
         let (boundaries_rx, boundary_loader) =
             load_boundaries_async(boundary_log.clone(), runtime.handle(), {
@@ -199,6 +208,10 @@ impl App {
             results: vec![],
             search_rx: None,
             status: lang.text("app-ready-status").into(),
+            status_file: None,
+            system_units: earthcraft_core::units::DistanceUnits::for_locale(&system_locale),
+            us_locale: earthcraft_core::units::is_us_locale(&system_locale),
+            altitude_editor: None,
             placemarks: vec![],
             file_jobs,
             file_results,
@@ -298,6 +311,7 @@ impl eframe::App for App {
         self.side_panel(ctx);
         self.settings_window(ctx);
         self.explorer_window(ctx);
+        self.altitude_window(ctx);
         self.live_maps
             .update(ctx, &self.runtime, self.show_clouds, self.show_weather);
         self.boundary_loader.request_visible_layers(

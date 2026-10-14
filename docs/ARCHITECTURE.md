@@ -106,8 +106,23 @@ admission. Other providers stay on demand. Cache roots resolve `LOCALAPPDATA`,
 
 ## Units, localization and diagnostics
 
-Coordinates use degrees, altitude/distances use kilometers, and raster footprints
-use meters. KML/GeoJSON arrays are longitude-first; domain pairs are latitude-first.
+Coordinates use degrees, internal altitude/distances use kilometers, and raster footprints
+use meters. Core owns display conversions; the desktop detects the system locale
+once and data persists the System/Metric/Imperial preference. EarthCraft defaults to miles/feet for the US, UK, Liberia, Myanmar, Belize,
+Bahamas, US Virgin Islands, Guam, Puerto Rico, Cayman Islands, Guernsey, Jersey
+and Isle of Man. This application policy extends CLDR's US/GB length defaults
+to include mixed/traditional mile usage; it does not claim uniform statutory
+units in those regions. Other locales and unknown regions use kilometers/meters. Clicking the camera altitude opens an exact-value editor in its displayed unit.
+Core validates/converts entries within the existing camera limits; the desktop
+owns the editor and applies accepted values, cancelling active flight.
+Camera altitude and scale bar share the selection; the ruler's Automatic option
+also follows it. Its separate saved selector supports centimeters, meters,
+kilometers, inches, feet, yards, miles, nautical miles, smoots, degrees and
+arcseconds. Angular units represent accumulated central angle on the mean-radius
+sphere. Football fields (100 yards, excluding end zones) are available everywhere.
+The selector uses “Football fields” for US system locales and “American football
+fields” elsewhere, with localized names. Optional selector-name overrides are
+separate from short measurement labels; totals and segments retain “football fields”. KML/GeoJSON arrays are longitude-first; domain pairs are latitude-first.
 UI strings live in embedded `locales/{en,pt-BR}.ftl`, with matching semantic keys
 and named whole-message arguments. Errors/logs are English; normal UI messages
 follow the selected language. See [localization](LOCALIZATION.md).

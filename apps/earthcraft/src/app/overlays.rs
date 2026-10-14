@@ -1,8 +1,5 @@
 use super::App;
-use earthcraft_core::{
-    camera::Basis,
-    math::{fmt_dist, ll_to_v3},
-};
+use earthcraft_core::{camera::Basis, math::ll_to_v3};
 use earthcraft_data::boundaries::BoundarySnapshot;
 use eframe::egui::{self, Align2, Color32, FontId, Rect, Stroke, Vec2};
 #[cfg(test)]
@@ -62,7 +59,11 @@ impl App {
                 painter.line_segment(segment, stroke);
             }
             if let Some(mid) = leg.label_position {
-                let txt = fmt_dist(leg.distance_km);
+                let txt = self.settings.ruler_unit.format(
+                    leg.distance_km,
+                    self.distance_units(),
+                    self.lang,
+                );
                 painter.text(
                     mid + Vec2::new(1.0, 1.0),
                     Align2::CENTER_BOTTOM,

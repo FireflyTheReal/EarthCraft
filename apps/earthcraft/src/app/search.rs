@@ -13,6 +13,15 @@ const SUGGESTION_POLL_INTERVAL: Duration = Duration::from_millis(90);
 impl App {
     pub(super) fn on_query_changed(&mut self) {
         let q = self.query.trim().to_string();
+        // Results and their status belong to the query that produced them.
+        // Dropping its receiver also prevents a late response restoring old results.
+        self.search_rx = None;
+        self.results.clear();
+        self.status = self.lang.text("app-ready-status").into();
+        if q.is_empty() {
+            self.sugg_rx = None;
+            self.sugg_sent.clear();
+        }
         self.sugg_sel = None;
         self.sugg_last_edit = Instant::now();
         if q.is_empty() || parse_latlon(&q).is_some() {
@@ -80,6 +89,7 @@ impl App {
 
     pub(super) fn choose_suggestion(&mut self, i: usize) {
         if let Some(s) = self.suggestions.get(i).cloned() {
+            self.search_rx = None;
             self.query = s.label.clone();
             self.sugg_sent = s.label.clone();
             self.sugg_open = false;
@@ -101,10 +111,7 @@ impl App {
             match res {
                 Ok(v) if v.is_empty() => self.status = lg.text("search-empty-status").into(),
                 Ok(v) => {
-                    self.status = lg.format(
-                        "search-results-status",
-                        &[("count", v.len().to_string().into())],
-                    );
+                    self.status = lg.format("search-results-status", &[("count", v.len().into())]);
                     let first = v[0].clone();
                     self.results = v;
                     self.fly_to(first.lat, first.lon, first.alt);

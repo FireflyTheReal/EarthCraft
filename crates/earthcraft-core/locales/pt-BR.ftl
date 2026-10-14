@@ -190,7 +190,11 @@ kml-save-success = Salvo em { $path }
 
 kml-save-error = Erro ao salvar: { $error }
 
-kml-import-success = { $count } local(is) importado(s). — { $path }
+kml-import-success =
+    { $count ->
+        [1] { $count } local importado.
+       *[other] { $count } locais importados.
+    } — { $path }
 
 kml-open-error = Erro ao abrir: { $error }
 
@@ -200,7 +204,11 @@ screenshot-save-error = Erro: { $error }
 
 search-navigation-status = Indo para { $destination }
 
-search-results-status = { $count } resultado(s).
+search-results-status =
+    { $count ->
+        [1] { $count } resultado encontrado.
+       *[other] { $count } resultados encontrados.
+    }
 
 search-request-error = Erro na busca: { $error }
 
@@ -291,5 +299,51 @@ menu-quit-action = Sair do EarthCraft
 
 sidebar-hide-tooltip = Ocultar painel lateral
 sidebar-show-tooltip = Mostrar painel lateral
+
+settings-distance-units-label = Unidades de distância
+settings-units-system = Localidade do sistema
+settings-units-metric = Quilômetros / metros
+settings-units-imperial = Milhas / pés
+
+ruler-unit-automatic = Automático
+ruler-unit-centimeters = Centímetros
+ruler-unit-meters = Metros
+ruler-unit-kilometers = Quilômetros
+ruler-unit-inches = Polegadas
+ruler-unit-feet = Pés
+ruler-unit-yards = Jardas
+ruler-unit-miles = Milhas
+ruler-unit-nautical-miles = Milhas náuticas
+ruler-unit-smoots = Smoots
+ruler-unit-degrees = Graus
+ruler-unit-arcseconds = Segundos de arco
+ruler-unit-football-fields = Campos de futebol
+ruler-unit-american-football-fields = Campos de futebol americano
+ruler-units-label = Unidades
+ruler-distance-smoots = { $value } smoots
+ruler-distance-football-fields = { $value } campos de futebol
+ruler-unit-automatic-help = Usa as unidades de distância selecionadas nas Configurações.
+ruler-unit-centimeters-help = 1 centímetro = 0,01 metro.
+ruler-unit-meters-help = 1 metro = 100 centímetros.
+ruler-unit-kilometers-help = 1 quilômetro = 1.000 metros.
+ruler-unit-inches-help = 1 polegada = 2,54 centímetros.
+ruler-unit-feet-help = 1 pé = 12 polegadas.
+ruler-unit-yards-help = 1 jarda = 3 pés.
+ruler-unit-miles-help = 1 milha = 1.760 jardas.
+ruler-unit-nautical-miles-help = 1 milha náutica = 1.852 metros.
+ruler-unit-smoots-help = 1 smoot = 67 polegadas.
+ruler-unit-degrees-help = Ângulo central ao longo do trajeto medido no globo.
+ruler-unit-arcseconds-help = 1 segundo de arco = 1/3.600 de grau de ângulo central.
+ruler-unit-football-fields-help = Um campo de futebol americano equivale a 100 jardas, sem as zonas de pontuação.
+
+altitude-edit-tooltip = Definir a altitude exata da câmera
+altitude-edit-title = Altitude da câmera
+altitude-apply-action = Aplicar
+altitude-cancel-action = Cancelar
+altitude-input-error = Digite um número entre { $minimum } e { $maximum } { $unit }.
+
+settings-hide-navigation-controls-toggle = Ocultar controles de navegação
+
+settings-close-action = Fechar
 
 ruler-point-edit-help = Arraste um ponto para movê-lo. Passe o cursor sobre um ponto e pressione Delete ou Backspace para removê-lo.
