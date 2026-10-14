@@ -1,5 +1,5 @@
 //! Backend selection owned by the background frame coordinator.
-use crate::{worker::RenderRequest, RenderedView};
+use crate::{RenderedView, worker::RenderRequest};
 use earthcraft_data::tiles::TileCache;
 // Complete 512x384 GPU/CPU frames were tied on the baseline adapter; avoid
 // GPU synchronization overhead for small rasters while retaining forced tests.
@@ -228,15 +228,9 @@ mod native_fallback_tests {
     fn gpu_device_loss_publishes_a_cpu_frame() {
         struct Fixture {
             root: std::path::PathBuf,
-            previous: Option<std::ffi::OsString>,
         }
         impl Drop for Fixture {
             fn drop(&mut self) {
-                if let Some(previous) = &self.previous {
-                    std::env::set_var("LOCALAPPDATA", previous);
-                } else {
-                    std::env::remove_var("LOCALAPPDATA");
-                }
                 std::fs::remove_dir_all(&self.root).unwrap();
             }
         }
@@ -249,13 +243,13 @@ mod native_fallback_tests {
                 .as_nanos()
         ));
         std::fs::create_dir(&root).unwrap();
-        let fixture = Fixture {
-            root,
-            previous: std::env::var_os("LOCALAPPDATA"),
-        };
-        std::env::set_var("LOCALAPPDATA", &fixture.root);
+        let fixture = Fixture { root };
         let runtime = earthcraft_data::runtime::ServiceRuntime::new().unwrap();
-        let cache = TileCache::new(|| {}, runtime.handle());
+        let cache = TileCache::with_cache_dir(
+            || {},
+            runtime.handle(),
+            fixture.root.join("earthcraft_tiles"),
+        );
         let gpu = crate::gpu::GpuRenderer::new().unwrap();
         gpu.destroy_for_test();
         let mut renderer = FrameRenderer {

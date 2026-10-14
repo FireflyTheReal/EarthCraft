@@ -60,7 +60,7 @@ User instructions and the requested scope take precedence over these defaults.
   behind equivalent aliases. Declare a direct workspace dependency when needed.
   Re-exporting EarthCraft-owned APIs from private implementation modules is fine;
   domain aliases must express an application concept rather than rename a dependency.
-- Rust 1.89 is the declared minimum. Avoid newer language/library APIs unless
+- Rust 1.95 is the declared minimum. Avoid newer language/library APIs unless
   intentionally updating the minimum and its CI job together.
 - Write application-owned error messages and diagnostic logs in English, including
   error statuses displayed when the UI language is Portuguese. Normal UI labels

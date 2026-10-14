@@ -58,7 +58,7 @@ pub(super) fn fit_tail(ui: &eframe::egui::Ui, text: &str, width_points: f32) -> 
     use eframe::egui::{Color32, TextStyle};
     let font = TextStyle::Body.resolve(ui.style());
     let fits = |text: &str| {
-        ui.fonts(|fonts| {
+        ui.fonts_mut(|fonts| {
             fonts
                 .layout_no_wrap(text.to_owned(), font.clone(), Color32::WHITE)
                 .size()
@@ -93,14 +93,14 @@ mod tests {
     fn narrow_labels_keep_the_filename_end_and_fit_the_available_width() {
         use eframe::egui;
         let ctx = egui::Context::default();
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        let _ = crate::app::test_ui::run(&ctx, egui::RawInput::default(), |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 let text = "1 placemark imported. — ~/Downloads/東京.kml";
                 assert_eq!(fit_tail(ui, text, 1000.0), text);
                 let fitted = fit_tail(ui, text, 110.0);
                 assert!(fitted.starts_with("..."));
                 assert!(fitted.ends_with("東京.kml"));
-                let width = ui.fonts(|fonts| {
+                let width = ui.fonts_mut(|fonts| {
                     fonts
                         .layout_no_wrap(
                             fitted,

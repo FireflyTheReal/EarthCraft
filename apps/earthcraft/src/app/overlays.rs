@@ -94,26 +94,26 @@ impl App {
         }
         // placemarks
         for pm in &self.placemarks {
-            if let Some(s) = basis.project(ll_to_v3(pm.lat, pm.lon), rect) {
-                if rect.contains(s) {
-                    painter.circle_filled(s, 6.0, Color32::from_rgb(255, 200, 0));
-                    painter.circle_stroke(s, 6.0, Stroke::new(1.5_f32, Color32::BLACK));
-                    let tp = s + Vec2::new(9.0, -9.0);
-                    painter.text(
-                        tp + Vec2::new(1.0, 1.0),
-                        Align2::LEFT_BOTTOM,
-                        &pm.name,
-                        FontId::proportional(13.0 * ms),
-                        Color32::BLACK,
-                    );
-                    painter.text(
-                        tp,
-                        Align2::LEFT_BOTTOM,
-                        &pm.name,
-                        FontId::proportional(13.0 * ms),
-                        Color32::WHITE,
-                    );
-                }
+            if let Some(s) = basis.project(ll_to_v3(pm.lat, pm.lon), rect)
+                && rect.contains(s)
+            {
+                painter.circle_filled(s, 6.0, Color32::from_rgb(255, 200, 0));
+                painter.circle_stroke(s, 6.0, Stroke::new(1.5_f32, Color32::BLACK));
+                let tp = s + Vec2::new(9.0, -9.0);
+                painter.text(
+                    tp + Vec2::new(1.0, 1.0),
+                    Align2::LEFT_BOTTOM,
+                    &pm.name,
+                    FontId::proportional(13.0 * ms),
+                    Color32::BLACK,
+                );
+                painter.text(
+                    tp,
+                    Align2::LEFT_BOTTOM,
+                    &pm.name,
+                    FontId::proportional(13.0 * ms),
+                    Color32::WHITE,
+                );
             }
         }
     }

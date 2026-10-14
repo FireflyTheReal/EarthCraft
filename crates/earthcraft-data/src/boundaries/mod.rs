@@ -5,7 +5,7 @@ mod geojson;
 mod load;
 mod updates;
 pub use geojson::dedupe_city_labels;
-pub use load::{load_boundaries_async, BoundaryLoader};
+pub use load::{BoundaryLoader, load_boundaries_async};
 pub use updates::{BoundarySnapshot, BoundaryUpdates};
 pub type Line = Arc<Vec<(f64, f64)>>;
 

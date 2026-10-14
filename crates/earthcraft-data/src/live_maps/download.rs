@@ -1,6 +1,6 @@
 //! Service-specific downloads and radar palette decoding.
 use super::RadarFrame;
-use image::{imageops::FilterType, RgbaImage};
+use image::{RgbaImage, imageops::FilterType};
 const CLOUD_SOURCE: &str = "https://clouds.matteason.co.uk/images/8192x4096/clouds-alpha.png";
 const RADAR_API: &str = "https://api.rainviewer.com/public/weather-maps.json";
 const TILE_ZOOM: usize = 2;

@@ -2,8 +2,9 @@
 use std::{
     io::{BufWriter, Write},
     sync::{
+        OnceLock,
         atomic::{AtomicU64, Ordering},
-        mpsc, OnceLock,
+        mpsc,
     },
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };

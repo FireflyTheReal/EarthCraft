@@ -1,6 +1,6 @@
 use super::App;
 use earthcraft_core::coordinates::parse_latlon;
-use earthcraft_core::language::{fold_name, Lang};
+use earthcraft_core::language::{Lang, fold_name};
 use earthcraft_data::search::merge_suggestions;
 use earthcraft_data::search::{geocode, photon_suggest};
 use eframe::egui;
@@ -57,17 +57,17 @@ impl App {
     }
 
     pub(super) fn poll_suggestions(&mut self, ctx: &egui::Context) {
-        if let Some(rx) = &self.sugg_rx {
-            if let Ok((q, res)) = rx.try_recv() {
-                self.sugg_rx = None;
-                if let Ok(v) = res {
-                    if q == self.query.trim() {
-                        self.remote_sugg = v;
-                        self.rebuild_suggestions();
-                    }
-                }
-                ctx.request_repaint();
+        if let Some(rx) = &self.sugg_rx
+            && let Ok((q, res)) = rx.try_recv()
+        {
+            self.sugg_rx = None;
+            if let Ok(v) = res
+                && q == self.query.trim()
+            {
+                self.remote_sugg = v;
+                self.rebuild_suggestions();
             }
+            ctx.request_repaint();
         }
         let q = self.query.trim().to_string();
         if self.sugg_open && q.chars().count() >= 2 && q != self.sugg_sent && self.sugg_rx.is_none()

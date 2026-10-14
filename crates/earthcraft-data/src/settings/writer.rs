@@ -32,31 +32,36 @@ impl SettingsWriter {
         let worker = shared.clone();
         let thread = std::thread::Builder::new()
             .name("earthcraft-settings".into())
-            .spawn(move || loop {
-                let (settings, lang) = {
-                    let mut state = worker.pending.lock().unwrap();
-                    while state.settings.is_none() && state.lang.is_none() && !state.stopped {
-                        state = worker.wake.wait(state).unwrap();
+            .spawn(move || {
+                loop {
+                    let (settings, lang) = {
+                        let mut state = worker.pending.lock().unwrap();
+                        while state.settings.is_none() && state.lang.is_none() && !state.stopped {
+                            state = worker.wake.wait(state).unwrap();
+                        }
+                        if state.settings.is_none() && state.lang.is_none() && state.stopped {
+                            return;
+                        }
+                        (state.settings.take(), state.lang.take())
+                    };
+                    let result = (|| -> Result<(), crate::Error> {
+                        std::fs::create_dir_all(&root)?;
+                        if let Some(settings) = settings {
+                            std::fs::write(
+                                root.join("settings.json"),
+                                serde_json::to_vec(&settings)?,
+                            )?;
+                        }
+                        if let Some(lang) = lang {
+                            std::fs::write(root.join("lang.txt"), lang.code())?;
+                        }
+                        Ok(())
+                    })();
+                    if let Err(error) = result {
+                        worker.pending.lock().unwrap().error = Some(error.to_string());
                     }
-                    if state.settings.is_none() && state.lang.is_none() && state.stopped {
-                        return;
-                    }
-                    (state.settings.take(), state.lang.take())
-                };
-                let result = (|| -> Result<(), crate::Error> {
-                    std::fs::create_dir_all(&root)?;
-                    if let Some(settings) = settings {
-                        std::fs::write(root.join("settings.json"), serde_json::to_vec(&settings)?)?;
-                    }
-                    if let Some(lang) = lang {
-                        std::fs::write(root.join("lang.txt"), lang.code())?;
-                    }
-                    Ok(())
-                })();
-                if let Err(error) = result {
-                    worker.pending.lock().unwrap().error = Some(error.to_string());
+                    repaint();
                 }
-                repaint();
             })?;
         Ok(Self {
             shared,

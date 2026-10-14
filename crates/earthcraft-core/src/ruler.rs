@@ -63,10 +63,10 @@ impl Ruler {
         self.paths[id.path][id.point] = position;
     }
     pub fn end_move(&mut self) {
-        if let Some(before) = self.move_before.take() {
-            if before != self.paths {
-                self.record(before);
-            }
+        if let Some(before) = self.move_before.take()
+            && before != self.paths
+        {
+            self.record(before);
         }
     }
     fn record(&mut self, before: RulerPaths) {
@@ -118,14 +118,14 @@ impl Ruler {
             return;
         }
         self.record(self.paths.clone());
-        if let Some(path) = self.paths.get_mut(id.path) {
-            if id.point < path.len() {
-                path.remove(id.point);
-                // Retain an empty active path so the next click cannot silently
-                // reconnect to an older measurement after deleting its last point.
-                if path.is_empty() && id.path + 1 < self.paths.len() {
-                    self.paths.remove(id.path);
-                }
+        if let Some(path) = self.paths.get_mut(id.path)
+            && id.point < path.len()
+        {
+            path.remove(id.point);
+            // Retain an empty active path so the next click cannot silently
+            // reconnect to an older measurement after deleting its last point.
+            if path.is_empty() && id.path + 1 < self.paths.len() {
+                self.paths.remove(id.path);
             }
         }
     }
@@ -139,14 +139,14 @@ impl Ruler {
     }
     pub fn total_distance_km(&self) -> f64 {
         self.paths()
-            .flat_map(|path| path.windows(2))
+            .flat_map(|path| path.array_windows::<2>())
             .map(|pair| haversine_km(pair[0], pair[1]))
             .sum()
     }
     pub fn last_leg(&self) -> Option<[(f64, f64); 2]> {
         let path = self.paths.last()?;
-        let pair = path.windows(2).last()?;
-        Some([pair[0], pair[1]])
+        let pair = path.array_windows::<2>().last()?;
+        Some(*pair)
     }
 }
 

@@ -70,7 +70,9 @@ fn empty_points_are_skipped_without_losing_valid_siblings() {
         "<coordinates><!-- none --></coordinates>",
         "<coordinates>1,2</coordinates><coordinates/>",
     ] {
-        let xml = format!("<kml><Document><Placemark><Point>{coordinates}</Point></Placemark><Placemark><name>Valid</name><Point><coordinates>1,2,0</coordinates></Point></Placemark></Document></kml>");
+        let xml = format!(
+            "<kml><Document><Placemark><Point>{coordinates}</Point></Placemark><Placemark><name>Valid</name><Point><coordinates>1,2,0</coordinates></Point></Placemark></Document></kml>"
+        );
         let marks = parse_kml(&xml, Lang::En).unwrap();
         assert_eq!(marks.len(), 1, "{coordinates}");
         assert_eq!(marks[0].name, "Valid");
@@ -127,7 +129,10 @@ fn library_errors_are_typed_and_cdata_is_literal_text() {
         "<Placemark><Point><coordinates>bad,2</coordinates></Point></Placemark>",
         "<Placemark><Point><altitudeMode>custom-mode</altitudeMode><coordinates>1,2</coordinates></Point></Placemark>",
     ] {
-        assert!(matches!(parse_kml(xml, Lang::En), Err(crate::Error::Kml(_))));
+        assert!(matches!(
+            parse_kml(xml, Lang::En),
+            Err(crate::Error::Kml(_))
+        ));
     }
 }
 
@@ -138,11 +143,13 @@ fn deep_nesting_is_rejected_and_empty_imports_are_valid() {
         "<Folder>".repeat(150),
         "</Folder>".repeat(150)
     );
-    assert!(parse_kml(&xml, Lang::En)
-        .err()
-        .unwrap()
-        .to_string()
-        .contains("nesting"));
+    assert!(
+        parse_kml(&xml, Lang::En)
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("nesting")
+    );
     for empty in [
         "",
         "<kml><Document></Document></kml>",

@@ -44,7 +44,8 @@ mod tests {
         let frame = |selected: &mut usize, events| {
             let mut button = egui::Rect::NOTHING;
             let mut rows = Vec::new();
-            let _ = ctx.run(
+            let _ = crate::app::test_ui::run(
+                &ctx,
                 egui::RawInput {
                     screen_rect: Some(egui::Rect::from_min_size(
                         egui::Pos2::ZERO,
@@ -53,9 +54,9 @@ mod tests {
                     events,
                     ..Default::default()
                 },
-                |ctx| {
-                    egui::CentralPanel::default().show(ctx, |ui| {
-                        let response = egui::ComboBox::from_id_source("language")
+                |ui| {
+                    egui::CentralPanel::default().show(ui, |ui| {
+                        let response = egui::ComboBox::from_id_salt("language")
                             .width(100.0)
                             .selected_text(labels[*selected])
                             .show_ui(ui, |ui| {

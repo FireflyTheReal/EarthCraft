@@ -113,10 +113,11 @@ mod tests {
                     .fold(f32::NEG_INFINITY, f32::max);
                 assert!(max - min <= 0.500001);
             }
-            assert!(mesh
-                .indices
-                .iter()
-                .all(|&index| (index as usize) < mesh.vertices.len()));
+            assert!(
+                mesh.indices
+                    .iter()
+                    .all(|&index| (index as usize) < mesh.vertices.len())
+            );
         }
     }
 }

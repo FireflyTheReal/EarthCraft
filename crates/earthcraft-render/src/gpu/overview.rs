@@ -2,7 +2,7 @@
 use super::*;
 use crate::tuning;
 use earthcraft_core::{EARTH_RADIUS_M, VERTICAL_FOV_HALF_TAN};
-use earthcraft_data::tiles::{make_key, unkey, Lookup};
+use earthcraft_data::tiles::{Lookup, make_key, unkey};
 const MIN_GPU_ALTITUDE_KM: f64 = 1000.0;
 const MAX_TRACKED_ZOOM: u8 = 10;
 const TILE_TABLE_SIZE: usize = 2048;
@@ -63,7 +63,9 @@ impl Overview {
             label: Some("EarthCraft overview renderer"),
             layout: None,
             module: &shader,
-            entry_point: "main",
+            entry_point: Some("main"),
+            compilation_options: Default::default(),
+            cache: None,
         });
         let storage = wgpu::BufferUsages::STORAGE
             | wgpu::BufferUsages::COPY_DST
@@ -240,7 +242,9 @@ impl Overview {
         slice.map_async(wgpu::MapMode::Read, move |result| {
             let _ = tx.send(result);
         });
-        device.poll(wgpu::Maintain::Wait);
+        if let Err(error) = device.poll(wgpu::PollType::wait_indefinitely()) {
+            return Err((error.to_string(), pixels, true));
+        }
         if let Err(error) = rx
             .recv()
             .map_err(|error| error.to_string())
@@ -250,7 +254,13 @@ impl Overview {
         }
         let mut required = Vec::new();
         {
-            let mapped = slice.get_mapped_range();
+            let mapped = match slice.get_mapped_range() {
+                Ok(mapped) => mapped,
+                Err(error) => {
+                    self.staging.unmap();
+                    return Err((error.to_string(), pixels, true));
+                }
+            };
             pixels.resize(count * 4, 0);
             pixels.copy_from_slice(&mapped[..count * 4]);
             let needs: &[u32] = bytemuck::cast_slice(&mapped[count * 4..]);
@@ -346,6 +356,7 @@ mod tests {
     use super::*;
     #[test]
     fn shader_validates_without_an_adapter_and_uniform_layout_matches() {
+        use wgpu::naga;
         let module = naga::front::wgsl::parse_str(&super::super::shader::source())
             .expect("valid embedded WGSL");
         naga::valid::Validator::new(

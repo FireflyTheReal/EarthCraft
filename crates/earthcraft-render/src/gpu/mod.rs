@@ -4,7 +4,7 @@ mod repair;
 mod shader;
 #[cfg(test)]
 mod tests;
-use crate::{worker::RenderRequest, RenderedView};
+use crate::{RenderedView, worker::RenderRequest};
 use earthcraft_data::tiles::{Tile, TileCache, TileKey};
 use std::{
     collections::HashMap,
@@ -37,7 +37,9 @@ impl GpuRenderer {
     #[cfg(test)]
     pub(crate) fn destroy_for_test(&self) {
         self.device.destroy();
-        self.device.poll(wgpu::Maintain::Wait);
+        self.device
+            .poll(wgpu::PollType::wait_indefinitely())
+            .expect("poll destroyed device");
     }
     pub(crate) fn supports(request: &RenderRequest) -> bool {
         overview::supported_zoom(request).is_some()
@@ -52,9 +54,10 @@ impl GpuRenderer {
                 power_preference: wgpu::PowerPreference::HighPerformance,
                 compatible_surface: None,
                 force_fallback_adapter: false,
+                ..Default::default()
             })
             .await
-            .ok_or("No compatible GPU adapter")?;
+            .map_err(|error| format!("No compatible GPU adapter: {error}"))?;
         if adapter.get_info().device_type == wgpu::DeviceType::Cpu {
             return Err("Only a software GPU adapter is available".into());
         }
@@ -65,26 +68,24 @@ impl GpuRenderer {
             ..Default::default()
         };
         let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: Some("EarthCraft compute renderer"),
-                    required_features: wgpu::Features::empty(),
-                    required_limits: limits,
-                },
-                None,
-            )
+            .request_device(&wgpu::DeviceDescriptor {
+                label: Some("EarthCraft compute renderer"),
+                required_features: wgpu::Features::empty(),
+                required_limits: limits,
+                ..Default::default()
+            })
             .await
             .map_err(|error| error.to_string())?;
         let failure = Arc::new(Mutex::new(None));
         let errors = failure.clone();
-        device.on_uncaptured_error(Box::new(move |error| {
+        device.on_uncaptured_error(Arc::new(move |error: wgpu::Error| {
             *errors.lock().unwrap() = Some(error.to_string());
         }));
         let lost = failure.clone();
         device.set_device_lost_callback(move |reason, message| {
             *lost.lock().unwrap() = Some(format!("GPU device lost ({reason:?}): {message}"));
         });
-        device.push_error_scope(wgpu::ErrorFilter::Validation);
+        let scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
         let atlas = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("EarthCraft bounded tile atlas"),
             size: wgpu::Extent3d {
@@ -101,7 +102,7 @@ impl GpuRenderer {
         });
         let view = atlas.create_view(&wgpu::TextureViewDescriptor::default());
         let overview = overview::Overview::new(&device);
-        if let Some(error) = device.pop_error_scope().await {
+        if let Some(error) = scope.pop().await {
             return Err(error.to_string());
         }
         if let Some(error) = failure.lock().unwrap().take() {
@@ -172,7 +173,7 @@ impl GpuRenderer {
                 continue;
             }
             self.queue.write_texture(
-                wgpu::ImageCopyTexture {
+                wgpu::TexelCopyTextureInfo {
                     texture: &self.atlas,
                     mip_level: 0,
                     origin: wgpu::Origin3d {
@@ -183,7 +184,7 @@ impl GpuRenderer {
                     aspect: wgpu::TextureAspect::All,
                 },
                 tile.rgba().2,
-                wgpu::ImageDataLayout {
+                wgpu::TexelCopyBufferLayout {
                     offset: 0,
                     bytes_per_row: Some(TILE_EDGE_PX * 4),
                     rows_per_image: Some(TILE_EDGE_PX),

@@ -47,15 +47,15 @@ impl App {
                 }
             });
         }
-        if let Some(index) = hovered.filter(|_| !ctx.wants_keyboard_input()) {
-            if ctx.input_mut(|i| {
+        if let Some(index) = hovered.filter(|_| !ctx.egui_wants_keyboard_input())
+            && ctx.input_mut(|i| {
                 i.consume_key(egui::Modifiers::NONE, Key::Delete)
                     || i.consume_key(egui::Modifiers::NONE, Key::Backspace)
-            }) {
-                self.ruler_paths.remove_point(index);
-                self.ruler_drag = None;
-                return true;
-            }
+            })
+        {
+            self.ruler_paths.remove_point(index);
+            self.ruler_drag = None;
+            return true;
         }
         if ctx.input(|i| i.pointer.primary_pressed()) {
             self.ruler_drag = pressed_handle(response, &basis, rect, &self.ruler_paths);
@@ -175,14 +175,15 @@ mod tests {
             vec![button(true)],
             vec![button(false)],
         ] {
-            let _ = ctx.run(
+            let _ = crate::app::test_ui::run(
+                &ctx,
                 egui::RawInput {
                     screen_rect: Some(rect),
                     events,
                     ..Default::default()
                 },
-                |ctx| {
-                    egui::CentralPanel::default().show(ctx, |ui| {
+                |ui| {
+                    egui::CentralPanel::default().show(ui, |ui| {
                         let response = ui.allocate_rect(rect, egui::Sense::click_and_drag());
                         assert!(pressed_handle(&response, &basis, rect, &points).is_none());
                         if response.clicked() {
@@ -226,14 +227,15 @@ mod tests {
                 egui::Event::PointerMoved(end),
             ],
         ] {
-            let _ = ctx.run(
+            let _ = crate::app::test_ui::run(
+                &ctx,
                 egui::RawInput {
                     screen_rect: Some(rect),
                     events,
                     ..Default::default()
                 },
-                |ctx| {
-                    egui::CentralPanel::default().show(ctx, |ui| {
+                |ui| {
+                    egui::CentralPanel::default().show(ui, |ui| {
                         let response = ui.allocate_rect(rect, egui::Sense::click_and_drag());
                         selected = pressed_handle(&response, &basis, rect, &points);
                     });

@@ -2,8 +2,8 @@
 use super::Action;
 use earthcraft_core::language::Lang;
 use muda::{
-    accelerator::{Accelerator, Code, Modifiers},
     Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu,
+    accelerator::{Accelerator, Code, Modifiers},
 };
 use std::sync::mpsc;
 pub(in crate::app) struct NativeMenu {
@@ -30,7 +30,7 @@ impl NativeMenu {
                 Action::Quit => Code::KeyQ,
                 Action::Undo | Action::Redo => Code::KeyZ,
             };
-            let command = Modifiers::SUPER;
+            let command = Modifiers::META;
             let modifiers = if matches!(action, Action::SaveAs | Action::Screenshot | Action::Redo)
             {
                 command | Modifiers::SHIFT
@@ -40,7 +40,7 @@ impl NativeMenu {
             let item = MenuItem::new(
                 action.label(lang),
                 !matches!(action, Action::Screenshot | Action::Undo | Action::Redo),
-                Some(Accelerator::new(Some(modifiers), key)),
+                Some(Accelerator::new(modifiers, key)),
             );
             if matches!(action, Action::Undo | Action::Redo) {
                 edit.append(&item).map_err(|e| e.to_string())?;
@@ -79,10 +79,10 @@ impl NativeMenu {
         let (send, events) = mpsc::channel();
         let ctx = cc.egui_ctx.clone();
         MenuEvent::set_event_handler(Some(move |event: MenuEvent| {
-            if let Some((_, action)) = ids.iter().find(|(id, _)| *id == event.id) {
-                if send.send(*action).is_ok() {
-                    ctx.request_repaint();
-                }
+            if let Some((_, action)) = ids.iter().find(|(id, _)| *id == event.id)
+                && send.send(*action).is_ok()
+            {
+                ctx.request_repaint();
             }
         }));
         Ok(Self {

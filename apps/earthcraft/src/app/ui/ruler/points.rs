@@ -81,7 +81,7 @@ impl PointEditor {
             .id(egui::Id::new("ruler_points_editor"))
             .default_width(EDITOR_WIDTH_POINTS)
             .default_pos(
-                ctx.screen_rect().center()
+                ctx.content_rect().center()
                     - egui::vec2(EDITOR_WIDTH_POINTS * 0.5, POINT_LIST_HEIGHT_POINTS),
             )
             .collapsible(false)
@@ -298,10 +298,12 @@ mod tests {
         ruler.add_point((90.0, -180.0), false);
         for lang in Lang::ALL {
             let mut editor = PointEditor::new((0.0, 0.0));
-            let _ = ctx.run(egui::RawInput::default(), |ctx| {
+            let _ = crate::app::test_ui::run(&ctx, egui::RawInput::default(), |ui| {
+                let ctx = &ui.ctx().clone();
                 assert_eq!(editor.show(ctx, &ruler, lang), Action::Pending);
             });
-            let _ = ctx.run(
+            let _ = crate::app::test_ui::run(
+                &ctx,
                 egui::RawInput {
                     events: vec![egui::Event::Key {
                         key: egui::Key::Escape,
@@ -312,7 +314,7 @@ mod tests {
                     }],
                     ..Default::default()
                 },
-                |ctx| assert_eq!(editor.show(ctx, &ruler, lang), Action::Close),
+                |ui| assert_eq!(editor.show(ui.ctx(), &ruler, lang), Action::Close),
             );
             assert_eq!(ruler.point_count(), 1);
         }

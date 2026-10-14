@@ -4,8 +4,8 @@ use earthcraft_core::{
     math::{ll_to_v3, now_unix, subsolar},
 };
 use earthcraft_data::tiles::Provider;
-use earthcraft_render::worker::{RenderRequest, RenderWorker};
 use earthcraft_render::RenderCfg;
+use earthcraft_render::worker::{RenderRequest, RenderWorker};
 use eframe::egui;
 use std::sync::Arc;
 
@@ -201,10 +201,10 @@ impl App {
                 self.texture = Some(ctx.load_texture("globe", img, egui::TextureOptions::LINEAR))
             }
         }
-        if let Some((_, _, previous)) = self.image.replace((w, h, Arc::new(buf))) {
-            if let Ok(previous) = Arc::try_unwrap(previous) {
-                self.renderer.worker.recycle(previous);
-            }
+        if let Some((_, _, previous)) = self.image.replace((w, h, Arc::new(buf)))
+            && let Ok(previous) = Arc::try_unwrap(previous)
+        {
+            self.renderer.worker.recycle(previous);
         }
         self.renderer.waiting = frame.waiting;
         self.renderer.required = frame.required;

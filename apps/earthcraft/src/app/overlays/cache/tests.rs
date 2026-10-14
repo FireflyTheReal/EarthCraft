@@ -1,7 +1,7 @@
 use super::*;
 use earthcraft_core::camera::Cam;
 use earthcraft_data::boundaries::{LabelKind, MapLabel};
-use eframe::egui::{pos2, vec2, Color32, LayerId, Pos2};
+use eframe::egui::{Color32, LayerId, Pos2, pos2, vec2};
 use std::sync::Arc;
 
 fn scene() -> (OverlayView, OverlayStyle, BoundaryData) {
@@ -63,9 +63,10 @@ fn texts(shapes: &[Shape]) -> Vec<&str> {
 
 fn headless(test: impl FnOnce(&egui::Painter)) {
     let ctx = egui::Context::default();
-    ctx.begin_frame(egui::RawInput::default());
+    ctx.begin_pass(egui::RawInput::default());
     test(&ctx.layer_painter(LayerId::background()));
-    let _ = ctx.end_frame();
+    let mut output = ctx.end_pass();
+    output.textures_delta.clear();
 }
 
 #[test]

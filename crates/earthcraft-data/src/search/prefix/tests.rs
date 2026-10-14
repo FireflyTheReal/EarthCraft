@@ -142,5 +142,11 @@ fn prefix_index_time() {
             assert_eq!(signature(&result), signature(&reference));
         }
     }
-    println!("16k names: build {:.3} ms; scan {:.3} ms/query; FST {:.3} ms/query; two language maps {} bytes (label snapshot separate)",build.as_secs_f64()*1000.0,old.as_secs_f64()*1000.0/300.0,new.as_secs_f64()*1000.0/300.0,index.en.as_fst().as_bytes().len()+index.pt.as_fst().as_bytes().len());
+    println!(
+        "16k names: build {:.3} ms; scan {:.3} ms/query; FST {:.3} ms/query; two language maps {} bytes (label snapshot separate)",
+        build.as_secs_f64() * 1000.0,
+        old.as_secs_f64() * 1000.0 / 300.0,
+        new.as_secs_f64() * 1000.0 / 300.0,
+        index.en.as_fst().as_bytes().len() + index.pt.as_fst().as_bytes().len()
+    );
 }

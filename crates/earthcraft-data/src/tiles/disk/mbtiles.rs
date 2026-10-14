@@ -1,5 +1,5 @@
 //! MBTiles 1.3 image tilesets; one async library worker serves every file.
-use rusqlite::{params, OptionalExtension};
+use rusqlite::{OptionalExtension, params};
 use std::{
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
@@ -264,7 +264,7 @@ fn ensure_owned_path(root: &Path, path: &Path) -> Result<(), crate::Error> {
         current.push(part);
         match std::fs::symlink_metadata(&current) {
             Ok(metadata) if metadata.file_type().is_symlink() => {
-                return Err("tile cache path contains a symlink".into())
+                return Err("tile cache path contains a symlink".into());
             }
             Ok(_) => {}
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}

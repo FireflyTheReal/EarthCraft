@@ -7,15 +7,16 @@ fn held_navigation_retains_pointer_until_release() {
         let button_rect = Rect::from_center_size(Pos2::new(100.0, 100.0), Vec2::splat(15.0));
         let frame = |time, events| {
             let mut held = false;
-            let _ = ctx.run(
+            let _ = crate::app::test_ui::run(
+                &ctx,
                 egui::RawInput {
                     screen_rect: Some(Rect::from_min_size(Pos2::ZERO, Vec2::splat(400.0))),
                     time: Some(time),
                     events,
                     ..Default::default()
                 },
-                |ctx| {
-                    egui::CentralPanel::default().show(ctx, |ui| {
+                |ui| {
+                    egui::CentralPanel::default().show(ui, |ui| {
                         // Navigation buttons overlap the draggable globe and rotation ring.
                         let globe =
                             ui.interact(ui.max_rect(), ui.id().with("globe"), Sense::drag());

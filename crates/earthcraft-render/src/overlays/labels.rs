@@ -1,6 +1,6 @@
 //! Screen-space occupancy, preserving the caller's ordered label admission.
 use emath::Rect;
-use rstar::{RTree, RTreeObject, AABB};
+use rstar::{AABB, RTree, RTreeObject};
 use std::ops::ControlFlow;
 
 struct LabelRect(Rect);

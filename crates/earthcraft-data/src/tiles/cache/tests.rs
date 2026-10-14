@@ -18,6 +18,23 @@ fn tile_key_roundtrip() {
     );
 }
 
+#[test]
+fn explicit_cache_directories_keep_instances_isolated() {
+    let runtime = crate::runtime::ServiceRuntime::new().unwrap();
+    let root = std::env::temp_dir().join("earthcraft-explicit-roots");
+    let first = TileCache::with_cache_dir(|| {}, runtime.handle(), root.join("first"));
+    let second = TileCache::with_cache_dir(|| {}, runtime.handle(), root.join("second"));
+    let key = make_key(Provider::Satellite, 0, 0, 0, 0);
+    assert_eq!(
+        first.disk.path(key).unwrap(),
+        root.join("first/esri_sat/0/0/0.tile")
+    );
+    assert_eq!(
+        second.disk.path(key).unwrap(),
+        root.join("second/esri_sat/0/0/0.tile")
+    );
+}
+
 fn test_cache(budget: usize) -> (Arc<TileCache>, tokio::sync::mpsc::Receiver<TileKey>) {
     let (tx, rx) = tokio::sync::mpsc::channel(MAX_INFLIGHT);
     (Arc::new(TileCache::with_budget(tx, budget)), rx)

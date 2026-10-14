@@ -1,12 +1,12 @@
 //! Read and write EarthCraft placemarks through GeoRust KML.
 use ::kml::{
-    types::{Coord, Element, Geometry, KmlDocument, KmlVersion, Placemark as KmlPlacemark, Point},
     Kml, KmlReader, KmlWriter,
+    types::{Coord, Element, Geometry, KmlDocument, KmlVersion, Placemark as KmlPlacemark, Point},
 };
 use earthcraft_core::{language::Lang, placemark::Placemark};
 use quick_xml::{
-    events::{BytesDecl, Event},
     Writer,
+    events::{BytesDecl, Event},
 };
 
 mod guard;
@@ -40,7 +40,8 @@ pub fn save_kml(path: &str, pms: &[Placemark]) -> Result<(), crate::Error> {
     let mut bytes = Vec::new();
     let mut xml = Writer::new(&mut bytes);
     xml.write_event(Event::Decl(BytesDecl::new("1.0", Some("UTF-8"), None)))?;
-    KmlWriter::new(xml).write(&document)?;
+    drop(xml);
+    KmlWriter::from_writer(&mut bytes).write(&document)?;
     Ok(std::fs::write(path, bytes)?)
 }
 

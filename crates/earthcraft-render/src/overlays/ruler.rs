@@ -14,14 +14,14 @@ pub struct RulerLeg {
 pub fn project_ruler(basis: &Basis, rect: Rect, points: &Ruler) -> Vec<RulerLeg> {
     points
         .paths()
-        .flat_map(|path| path.windows(2))
+        .flat_map(|path| path.array_windows::<2>())
         .map(|pair| {
             let projected: Vec<_> = great_circle(pair[0], pair[1], ARC_SEGMENTS)
                 .into_iter()
                 .map(|point| basis.project(point, rect))
                 .collect();
             let segments = projected
-                .windows(2)
+                .array_windows::<2>()
                 .filter_map(|p| match (p[0], p[1]) {
                     (Some(a), Some(b)) => Some([a, b]),
                     _ => None,

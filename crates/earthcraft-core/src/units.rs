@@ -1,7 +1,7 @@
 //! Display units only. Geographic calculations and persisted coordinates stay metric.
 use crate::{
-    math::{fmt_alt, fmt_dist},
     METERS_PER_KM,
+    math::{fmt_alt, fmt_dist},
 };
 mod altitude;
 pub use altitude::AltitudeUnit;

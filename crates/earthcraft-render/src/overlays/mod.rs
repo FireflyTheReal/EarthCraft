@@ -63,7 +63,7 @@ pub fn project_borders(
                     continue;
                 }
                 let mut anchor: Option<Pos2> = None;
-                for pair in line.windows(2) {
+                for pair in line.array_windows::<2>() {
                     let (lat1, lon1) = pair[0];
                     let (lat2, lon2) = pair[1];
                     let dlat = lat2 - lat1;
@@ -172,16 +172,16 @@ pub fn project_labels<'a>(
         if !enabled {
             continue;
         }
-        if let Some(pos) = basis.project(ll_to_v3(label.lat, label.lon), rect) {
-            if rect.contains(pos) {
-                let prio = match label.kind {
-                    LabelKind::Country => 0,
-                    LabelKind::State => 1,
-                    LabelKind::Metro => 2,
-                    LabelKind::City => 3,
-                };
-                cands.push((prio, label.rank, pos, label, source_index));
-            }
+        if let Some(pos) = basis.project(ll_to_v3(label.lat, label.lon), rect)
+            && rect.contains(pos)
+        {
+            let prio = match label.kind {
+                LabelKind::Country => 0,
+                LabelKind::State => 1,
+                LabelKind::Metro => 2,
+                LabelKind::City => 3,
+            };
+            cands.push((prio, label.rank, pos, label, source_index));
         }
     }
     cands.sort_by_key(|c| (c.0, c.1));

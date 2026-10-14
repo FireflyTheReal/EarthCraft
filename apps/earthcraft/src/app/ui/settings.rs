@@ -1,11 +1,11 @@
 use super::super::App;
 use crate::app::cache::cache_size_text;
 use earthcraft_core::language::Lang;
-use earthcraft_data::settings::{Settings, UnitPreference};
 use earthcraft_data::settings::{MAX_MAP_SCALE, MIN_MAP_SCALE, MIN_UI_SCALE};
+use earthcraft_data::settings::{Settings, UnitPreference};
 use eframe::egui;
 pub(super) const MAX_UI_SLIDER_SCALE: f32 = 2.0;
-const FOOTER_MARGIN_POINTS: f32 = 8.0;
+const FOOTER_MARGIN_POINTS: i8 = 8;
 const RESET_BUTTON_FILL: egui::Color32 = egui::Color32::from_rgb(160, 40, 40);
 
 impl App {
@@ -28,7 +28,7 @@ impl App {
                             UnitPreference::Imperial => "settings-units-imperial",
                         })
                     };
-                    egui::ComboBox::from_id_source("distance_units")
+                    egui::ComboBox::from_id_salt("distance_units")
                         .selected_text(label(self.settings.distance_units))
                         .show_ui(ui, |ui| {
                             super::selection::size_menu(
@@ -164,7 +164,7 @@ impl App {
                     }
                 });
                 ui.separator();
-                egui::Frame::none()
+                egui::Frame::NONE
                     .inner_margin(egui::Margin::same(FOOTER_MARGIN_POINTS))
                     .show(ui, |ui| {
                         ui.horizontal(|ui| {

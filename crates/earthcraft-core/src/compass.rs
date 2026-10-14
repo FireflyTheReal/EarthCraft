@@ -18,11 +18,7 @@ const DIRECTION_IDS: [&str; 8] = [
 /// Degrees clockwise from true north in [0, 360).
 pub fn normalize_heading(heading_deg: f64) -> f64 {
     let heading = heading_deg.rem_euclid(360.0);
-    if heading == 0.0 {
-        0.0
-    } else {
-        heading
-    }
+    if heading == 0.0 { 0.0 } else { heading }
 }
 
 pub fn heading_text(heading_deg: f64, lang: Lang) -> String {

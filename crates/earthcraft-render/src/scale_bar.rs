@@ -1,5 +1,5 @@
 //! Scale-bar distance selection, independent of drawing.
-use earthcraft_core::{units::DistanceUnits, METERS_PER_KM, VERTICAL_FOV_HALF_TAN};
+use earthcraft_core::{METERS_PER_KM, VERTICAL_FOV_HALF_TAN, units::DistanceUnits};
 const MAX_ALTITUDE_KM: f64 = 3000.0;
 const TARGET_WIDTH_POINTS: f64 = 120.0;
 pub struct ScaleBar {

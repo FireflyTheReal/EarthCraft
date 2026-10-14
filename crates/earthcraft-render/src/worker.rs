@@ -78,62 +78,64 @@ impl<T: Send + 'static> RenderWorker<T> {
         let worker = shared.clone();
         std::thread::Builder::new()
             .name("earthcraft-frame".into())
-            .spawn(move || loop {
-                let (pending, buffer) = {
+            .spawn(move || {
+                loop {
+                    let (pending, buffer) = {
+                        let mut mailbox = worker.mailbox.lock().unwrap();
+                        while !mailbox.stopped && mailbox.pending.is_none() {
+                            mailbox = worker.wake.wait(mailbox).unwrap();
+                        }
+                        if mailbox.stopped {
+                            return;
+                        }
+                        mailbox.active = true;
+                        (
+                            mailbox.pending.take().unwrap(),
+                            mailbox.spare.take().unwrap_or_default(),
+                        )
+                    };
+                    #[cfg(feature = "profiling")]
+                    earthcraft_data::profiling::Span::elapsed(
+                        "frame.queue",
+                        pending.submitted,
+                        Default::default(),
+                    );
+                    let request = pending.request;
+                    // Rasterization holds no mailbox lock. Admission is synchronized below.
+                    let frame = render(&request, buffer);
+                    let prepared = prepare(&request, &frame.pixels);
                     let mut mailbox = worker.mailbox.lock().unwrap();
-                    while !mailbox.stopped && mailbox.pending.is_none() {
-                        mailbox = worker.wake.wait(mailbox).unwrap();
-                    }
+                    mailbox.active = false;
                     if mailbox.stopped {
                         return;
                     }
-                    mailbox.active = true;
-                    (
-                        mailbox.pending.take().unwrap(),
-                        mailbox.spare.take().unwrap_or_default(),
-                    )
-                };
-                #[cfg(feature = "profiling")]
-                earthcraft_data::profiling::Span::elapsed(
-                    "frame.queue",
-                    pending.submitted,
-                    Default::default(),
-                );
-                let request = pending.request;
-                // Rasterization holds no mailbox lock. Admission is synchronized below.
-                let frame = render(&request, buffer);
-                let prepared = prepare(&request, &frame.pixels);
-                let mut mailbox = worker.mailbox.lock().unwrap();
-                mailbox.active = false;
-                if mailbox.stopped {
-                    return;
-                }
-                let obsolete = mailbox
-                    .pending
-                    .as_ref()
-                    .is_some_and(|next| next.request.presentation != request.presentation);
-                if !obsolete {
-                    // Admission is short and bounded; synchronize it with pending
-                    // presentation changes so incompatible rasters cannot fetch tiles.
-                    admit(&frame);
-                    if let Some(previous) = mailbox.completed.take() {
-                        mailbox.spare = Some(previous.pixels);
+                    let obsolete = mailbox
+                        .pending
+                        .as_ref()
+                        .is_some_and(|next| next.request.presentation != request.presentation);
+                    if !obsolete {
+                        // Admission is short and bounded; synchronize it with pending
+                        // presentation changes so incompatible rasters cannot fetch tiles.
+                        admit(&frame);
+                        if let Some(previous) = mailbox.completed.take() {
+                            mailbox.spare = Some(previous.pixels);
+                        }
+                        let required = frame.required_tiles();
+                        mailbox.completed = Some(RenderedFrame {
+                            prepared,
+                            #[cfg(feature = "profiling")]
+                            submitted: pending.submitted,
+                            request,
+                            pixels: frame.pixels,
+                            waiting: frame.waiting,
+                            required,
+                        });
+                    } else {
+                        mailbox.spare = Some(frame.pixels);
                     }
-                    let required = frame.required_tiles();
-                    mailbox.completed = Some(RenderedFrame {
-                        prepared,
-                        #[cfg(feature = "profiling")]
-                        submitted: pending.submitted,
-                        request,
-                        pixels: frame.pixels,
-                        waiting: frame.waiting,
-                        required,
-                    });
-                } else {
-                    mailbox.spare = Some(frame.pixels);
+                    drop(mailbox);
+                    repaint();
                 }
-                drop(mailbox);
-                repaint();
             })?;
         Ok(Self { shared })
     }

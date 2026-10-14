@@ -80,10 +80,10 @@ impl OverlayCache {
                 grid_step_deg: view.grid_step_deg,
                 layers: style.layers,
             };
-            if let Some(completed) = self.worker.take_completed() {
-                if completed.matches(geometry_view, boundaries) {
-                    self.geometry = Some(completed);
-                }
+            if let Some(completed) = self.worker.take_completed()
+                && completed.matches(geometry_view, boundaries)
+            {
+                self.geometry = Some(completed);
             }
             if let Some(geometry) = self
                 .geometry

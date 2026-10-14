@@ -1,7 +1,7 @@
 //! Ranking and merging place suggestions independently of UI state.
-use super::{Suggestion, CITY_SEARCH_ALTITUDE_KM, COUNTRY_SEARCH_ALTITUDE_KM};
+use super::{CITY_SEARCH_ALTITUDE_KM, COUNTRY_SEARCH_ALTITUDE_KM, Suggestion};
 use crate::boundaries::{LabelKind, MapLabel};
-use earthcraft_core::language::{fold_name, Lang};
+use earthcraft_core::language::{Lang, fold_name};
 const BIG_STATE_SEARCH_ALTITUDE_KM: f64 = 3000.0;
 const STATE_SEARCH_ALTITUDE_KM: f64 = 1200.0;
 const METRO_SEARCH_ALTITUDE_KM: f64 = 150.0;

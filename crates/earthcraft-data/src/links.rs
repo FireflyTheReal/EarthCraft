@@ -23,6 +23,9 @@ mod tests {
     use super::*;
     #[test]
     fn photo_query_encodes_utf8_and_reserved_characters() {
-        assert_eq!(photo_search("São Paulo & Rio"),"https://commons.wikimedia.org/wiki/Special:MediaSearch?type=image&search=S%C3%A3o%20Paulo%20%26%20Rio");
+        assert_eq!(
+            photo_search("São Paulo & Rio"),
+            "https://commons.wikimedia.org/wiki/Special:MediaSearch?type=image&search=S%C3%A3o%20Paulo%20%26%20Rio"
+        );
     }
 }

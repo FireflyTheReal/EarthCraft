@@ -1,6 +1,6 @@
 //! Embedded catalogs shared by the UI and background importers.
 use crate::language::Lang;
-use fluent_bundle::{concurrent::FluentBundle, FluentArgs, FluentResource, FluentValue};
+use fluent_bundle::{FluentArgs, FluentResource, FluentValue, concurrent::FluentBundle};
 use fluent_syntax::ast::Entry;
 use std::{collections::HashMap, sync::OnceLock};
 

@@ -12,7 +12,7 @@ pub(super) fn outer_outline<'a>(lines: impl Iterator<Item = &'a Line>) -> Vec<Li
     type EdgeCount = (u32, Point, Point);
     let mut count: HashMap<Edge, EdgeCount> = HashMap::new();
     for line in lines {
-        for w in line.windows(2) {
+        for w in line.array_windows::<2>() {
             let (a, b) = (q(w[0]), q(w[1]));
             if a == b {
                 continue;

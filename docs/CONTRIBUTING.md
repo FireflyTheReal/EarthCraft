@@ -6,10 +6,11 @@ so reviewers can distinguish behavior changes from file organization.
 
 ## Development
 
-Install Rust 1.89 or newer through rustup. The locked dependency graph includes
-packages requiring 1.89; the old README's 1.82 requirement was no longer accurate.
-The workspace declares 1.89 and CI includes that toolchain. Stable is suitable for
-day-to-day development; do not use APIs newer than the declared minimum.
+Install Rust 1.95 or newer through rustup. The locked dependency graph includes
+eframe/egui 0.36, which require Rust 1.95.
+The workspace uses Edition 2024 and declares Rust 1.95; CI checks stable on Linux,
+macOS and Windows. Stable is suitable for day-to-day development; do not use APIs
+newer than the declared minimum.
 
 On Linux, install build prerequisites before compiling:
 
@@ -39,11 +40,10 @@ cargo run -p earthcraft
 
 Keep `Cargo.lock` in version control. Normal verification uses `--locked` to
 catch unintended dependency resolution changes. Intentional dependency updates
-should be reviewed separately, including compatibility with Rust 1.89.
+should be reviewed separately, including compatibility with Rust 1.95.
 The `app-build-test` workflow runs on pushes and pull requests changing `apps/**`
 or `crates/**`, and can also be run manually from Actions. It formats, lints,
-tests, and builds on Linux/macOS/Windows, plus
-Linux with the minimum Rust version. Use the latest supported major version tags for GitHub
+tests, and builds on Linux/macOS/Windows using stable Rust. Use the latest supported major version tags for GitHub
 Actions, rather than commit hashes. For actions without version tags, follow the
 maintained upstream branch. Keep Rust toolchain versions explicit.
 
@@ -236,9 +236,9 @@ To compare complete warm CPU frames using isolated disk fixtures:
 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_DEV_INCREMENTAL=false RAYON_NUM_THREADS=8 cargo test -p earthcraft-render warm_cpu_frame_time --locked -- --ignored --nocapture --test-threads=1
 ```
 
-Run this benchmark alone: it temporarily selects a private cache directory before
-creating worker threads, then restores the process environment and removes that
-directory. It renders 512×384 frames with grid, sunlight and atmosphere, using 341
+Run this benchmark alone: it injects a private imagery directory into the cache
+constructor, then removes that directory after its workers stop. It does not
+modify the process environment. It renders 512×384 frames with grid, sunlight and atmosphere, using 341
 warm 256×256-pixel fixture tiles (85.25 MiB decoded). Startup warming uses production admission and disk
 workers, and rotations across hemispheres, the dateline and poles assert that
 overview frames request no new tiles. Five rounds of two hundred frames include production ray
@@ -381,7 +381,7 @@ previous frame and overlays at their original rectangle, clipped to the availabl
 map area, until a compatible frame for the settled viewport arrives. KML drops
 remain available with the sidebar hidden.
 
-macOS uses muda 0.19 (compatible with Rust 1.89) in `apps/earthcraft/src/app/menu`.
+macOS uses muda 0.21 (compatible with Rust 1.95) in `apps/earthcraft/src/app/menu`.
 Menu objects and handlers stay on the window thread. Callbacks enqueue actions
 and wake egui; the app opens dialogs, submits existing KML/screenshot jobs and
 closes normally. Screenshot is disabled before a frame exists. Captions follow

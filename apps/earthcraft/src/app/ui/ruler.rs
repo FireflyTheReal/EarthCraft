@@ -12,9 +12,9 @@ pub(super) fn unit_selector(
 ) -> RulerUnit {
     ui.horizontal(|ui| {
         ui.label(lang.text("ruler-units-label"));
-        egui::ComboBox::from_id_source("ruler_units")
+        egui::ComboBox::from_id_salt("ruler_units")
             .width(ui.available_width())
-            .wrap(true)
+            .wrap()
             .selected_text(selected.selector_label(lang, us_locale))
             .show_ui(ui, |ui| {
                 super::selection::size_menu(
@@ -46,7 +46,8 @@ mod tests {
         for lang in Lang::ALL {
             for unit in RulerUnit::ALL {
                 for us_locale in [true, false] {
-                    let _ = ctx.run(
+                    let _ = crate::app::test_ui::run(
+                        &ctx,
                         egui::RawInput {
                             screen_rect: Some(egui::Rect::from_min_size(
                                 egui::Pos2::ZERO,
@@ -54,8 +55,8 @@ mod tests {
                             )),
                             ..Default::default()
                         },
-                        |ctx| {
-                            egui::CentralPanel::default().show(ctx, |ui| {
+                        |ui| {
+                            egui::CentralPanel::default().show(ui, |ui| {
                                 let bounds = ui.max_rect();
                                 assert_eq!(unit_selector(ui, unit, us_locale, lang), unit);
                                 assert!(

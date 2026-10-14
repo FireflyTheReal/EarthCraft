@@ -51,16 +51,20 @@ async fn aggregate_file_budget_evicts_detail_before_overview_and_reclaims_disk()
     }
     assert!(store.usage().await.unwrap() <= 160 * 1024);
     assert!(store.read(&overview).await.unwrap().is_some());
-    assert!(store
-        .read(&fixture.0.join("osm/6/0/0.tile"))
-        .await
-        .unwrap()
-        .is_none());
-    assert!(store
-        .read(&fixture.0.join("osm/6/19/0.tile"))
-        .await
-        .unwrap()
-        .is_some());
+    assert!(
+        store
+            .read(&fixture.0.join("osm/6/0/0.tile"))
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert!(
+        store
+            .read(&fixture.0.join("osm/6/19/0.tile"))
+            .await
+            .unwrap()
+            .is_some()
+    );
     store.clear().await.unwrap();
     assert_eq!(store.usage().await.unwrap(), 0);
 }

@@ -107,21 +107,22 @@ impl App {
                 .interact_pointer_pos()
                 .is_some_and(|p| (p - c1).length() >= r_disc - 1.0);
         }
-        if ring.dragged() && self.ring_drag {
-            if let Some(cur) = ring.interact_pointer_pos() {
-                let prev = cur - ui.ctx().input(|i| i.pointer.delta());
-                let ang = |v: Vec2| v.y.atan2(v.x);
-                let mut d = ang(cur - c1) - ang(prev - c1);
-                if d > std::f32::consts::PI {
-                    d -= std::f32::consts::TAU;
-                }
-                if d < -std::f32::consts::PI {
-                    d += std::f32::consts::TAU;
-                }
-                self.cam.heading = wrap_lon(self.cam.heading - d.to_degrees() as f64);
-                self.fly = None;
-                active = true;
+        if ring.dragged()
+            && self.ring_drag
+            && let Some(cur) = ring.interact_pointer_pos()
+        {
+            let prev = cur - ui.ctx().input(|i| i.pointer.delta());
+            let ang = |v: Vec2| v.y.atan2(v.x);
+            let mut d = ang(cur - c1) - ang(prev - c1);
+            if d > std::f32::consts::PI {
+                d -= std::f32::consts::TAU;
             }
+            if d < -std::f32::consts::PI {
+                d += std::f32::consts::TAU;
+            }
+            self.cam.heading = wrap_lon(self.cam.heading - d.to_degrees() as f64);
+            self.fly = None;
+            active = true;
         }
         if ring.drag_stopped() {
             self.ring_drag = false;
@@ -312,13 +313,13 @@ impl App {
             base.with("track"),
             Sense::click_and_drag(),
         );
-        if track.dragged() || track.clicked() || track.is_pointer_button_down_on() {
-            if let Some(p) = track.interact_pointer_pos() {
-                let tt = ((p.y - t_top) / track_len).clamp(0.0, 1.0) as f64;
-                self.cam.set_zoom_fraction(tt);
-                self.fly = None;
-                active = true;
-            }
+        if (track.dragged() || track.clicked() || track.is_pointer_button_down_on())
+            && let Some(p) = track.interact_pointer_pos()
+        {
+            let tt = ((p.y - t_top) / track_len).clamp(0.0, 1.0) as f64;
+            self.cam.set_zoom_fraction(tt);
+            self.fly = None;
+            active = true;
         }
         let hy = t_top + t * track_len;
         let hot = track.hovered() || track.dragged();
@@ -331,6 +332,7 @@ impl App {
             Rect::from_center_size(Pos2::new(cx, hy), Vec2::new(20.0 * k, 11.0 * k)),
             4.0 * k,
             Stroke::new(1.0_f32, edge),
+            egui::StrokeKind::Middle,
         );
         painter.line_segment(
             [Pos2::new(cx - 4.5 * k, hy), Pos2::new(cx + 4.5 * k, hy)],

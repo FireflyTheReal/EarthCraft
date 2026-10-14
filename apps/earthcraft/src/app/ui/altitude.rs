@@ -1,9 +1,9 @@
 //! The desktop owns altitude-entry timing; core owns conversion and validation.
 use super::super::App;
 use earthcraft_core::{
+    MAX_CAMERA_ALTITUDE_KM, MIN_CAMERA_ALTITUDE_KM,
     language::Lang,
     units::{AltitudeUnit, DistanceUnits},
-    MAX_CAMERA_ALTITUDE_KM, MIN_CAMERA_ALTITUDE_KM,
 };
 use eframe::egui;
 const EDITOR_ANCHOR_GAP_POINTS: f32 = 8.0;
@@ -132,11 +132,13 @@ mod tests {
         let ctx = egui::Context::default();
         let mut editor =
             AltitudeEditor::new(14000.0, DistanceUnits::Metric, egui::pos2(100.0, 300.0));
-        let _ = ctx.run(egui::RawInput::default(), |ctx| {
+        let _ = crate::app::test_ui::run(&ctx, egui::RawInput::default(), |ui| {
+            let ctx = &ui.ctx().clone();
             editor.show(ctx, Lang::En);
         });
         let mut result = Action::Pending;
-        let _ = ctx.run(
+        let _ = crate::app::test_ui::run(
+            &ctx,
             egui::RawInput {
                 events: vec![
                     egui::Event::Text(text.into()),
@@ -150,7 +152,8 @@ mod tests {
                 ],
                 ..Default::default()
             },
-            |ctx| {
+            |ui| {
+                let ctx = &ui.ctx().clone();
                 result = editor.show(ctx, Lang::En);
             },
         );
@@ -170,7 +173,8 @@ mod tests {
         let mut editor =
             AltitudeEditor::new(14000.0, DistanceUnits::Metric, egui::pos2(100.0, 300.0));
         let mut result = Action::Pending;
-        let _ = ctx.run(
+        let _ = crate::app::test_ui::run(
+            &ctx,
             egui::RawInput {
                 events: vec![egui::Event::Key {
                     key: egui::Key::Escape,
@@ -181,7 +185,8 @@ mod tests {
                 }],
                 ..Default::default()
             },
-            |ctx| {
+            |ui| {
+                let ctx = &ui.ctx().clone();
                 result = editor.show(ctx, Lang::PtBr);
             },
         );

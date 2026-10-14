@@ -1,5 +1,5 @@
 //! Bounded, one-pass satellite overview warming; visible requests take precedence.
-use super::{make_key, Lookup, Provider, TileCache, TileKey};
+use super::{Lookup, Provider, TileCache, TileKey, make_key};
 use std::collections::VecDeque;
 
 // z0..=4: 341 standard RGBA tiles, about 85 MiB within the 256 MiB cache target.

@@ -56,7 +56,8 @@ mod tests {
     fn compass_uses_displayed_heading_and_localized_cardinals() {
         for lang in Lang::ALL {
             let ctx = egui::Context::default();
-            let output = ctx.run(egui::RawInput::default(), |ctx| {
+            let output = crate::app::test_ui::run(&ctx, egui::RawInput::default(), |ui| {
+                let ctx = &ui.ctx().clone();
                 draw_cardinals(
                     &ctx.layer_painter(egui::LayerId::background()),
                     Pos2::new(100.0, 100.0),
@@ -77,9 +78,11 @@ mod tests {
             assert_eq!(labels.len(), 4);
             let north = labels.iter().find(|t| t.galley.job.text == "N").unwrap();
             assert!(north.pos.x + north.galley.size().x < 100.0);
-            assert!(labels
-                .iter()
-                .any(|t| t.galley.job.text == lang.text("compass-west")));
+            assert!(
+                labels
+                    .iter()
+                    .any(|t| t.galley.job.text == lang.text("compass-west"))
+            );
         }
     }
     #[test]
@@ -87,27 +90,31 @@ mod tests {
         let ctx = egui::Context::default();
         let frame = |events| {
             let mut clicked = false;
-            let output = ctx.run(
+            let output = crate::app::test_ui::run(
+                &ctx,
                 egui::RawInput {
                     events,
                     ..Default::default()
                 },
-                |ctx| {
-                    egui::CentralPanel::default().show(ctx, |ui| {
+                |ui| {
+                    egui::CentralPanel::default().show(ui, |ui| {
                         let origin = ui.next_widget_position();
-                        ui.allocate_ui_at_rect(
-                            egui::Rect::from_min_size(origin, egui::vec2(180.0, 30.0)),
+                        ui.scope_builder(
+                            egui::UiBuilder::new().max_rect(egui::Rect::from_min_size(
+                                origin,
+                                egui::vec2(180.0, 30.0),
+                            )),
                             |ui| {
                                 ui.horizontal(|ui| {
                                     ui.monospace("Center");
                                 });
                             },
                         );
-                        ui.allocate_ui_at_rect(
-                            egui::Rect::from_min_size(
+                        ui.scope_builder(
+                            egui::UiBuilder::new().max_rect(egui::Rect::from_min_size(
                                 origin + egui::vec2(200.0, 0.0),
                                 egui::vec2(180.0, 30.0),
-                            ),
+                            )),
                             |ui| {
                                 clicked = heading_readout(ui, 0.0, Lang::En);
                             },

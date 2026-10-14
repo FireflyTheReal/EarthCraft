@@ -1,20 +1,23 @@
 //! Desktop state and orchestration; widgets live in focused child modules.
+#[cfg(test)]
+mod test_ui;
 use earthcraft_core::{camera::Cam, language::Lang, placemark::Placemark};
 use earthcraft_data::{
-    boundaries::{load_boundaries_async, BoundaryData, BoundaryUpdates, StatusLog},
+    boundaries::{BoundaryData, BoundaryUpdates, StatusLog, load_boundaries_async},
     search::{GeoResult, Suggestion},
-    settings::{load_lang, Settings},
+    settings::{Settings, load_lang},
     tiles::{Provider, TileCache, TileWarmup},
     wayback::WaybackRelease,
 };
 use eframe::egui::{self, Rect};
 use std::{
-    sync::{mpsc, Arc, Mutex},
+    sync::{Arc, Mutex, mpsc},
     time::{Duration, Instant},
 };
 mod cache;
 mod explorer;
 mod files;
+mod frame_timing;
 mod globe;
 mod live_layers;
 mod live_maps;
@@ -32,8 +35,6 @@ const INITIAL_CAMERA: Cam = Cam {
     heading: 0.0,
     alt: 14_000.0,
 };
-// Bound animation steps after slow frames to prevent sudden camera jumps.
-const MAX_FRAME_DELTA_SECS: f32 = 0.1;
 const PAN_SPEED_POINTS_PER_SECOND: f64 = 350.0;
 const BOUNDARY_POLL_INTERVAL: Duration = Duration::from_millis(300);
 
@@ -136,7 +137,8 @@ impl App {
 
     pub(crate) fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let mut vis = egui::Visuals::dark();
-        vis.window_rounding = 6.0.into();
+        vis.handle_shape = egui::style::HandleShape::Circle;
+        vis.window_corner_radius = 6.0.into();
         cc.egui_ctx.set_visuals(vis);
         let runtime =
             earthcraft_data::runtime::ServiceRuntime::new().expect("start network runtime");
@@ -269,10 +271,28 @@ impl eframe::App for App {
     fn on_exit(&mut self, _: Option<&eframe::glow::Context>) {
         earthcraft_data::profiling::flush();
     }
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.poll_files();
+        self.ensure_wayback(ctx);
+        self.poll_wayback();
+        self.poll_suggestions(ctx);
+        if let Some(error) = self.local_search.take_error() {
+            self.status = format!("Local prefix index failed: {error}");
+        }
+        self.poll_search();
+        self.poll_cache_clear(ctx);
+        if let Some(snapshot) = self.boundaries_rx.take_latest() {
+            self.merge_snapshot(snapshot);
+        }
+        if self.boundary_loader.is_loading() {
+            ctx.request_repaint_after(BOUNDARY_POLL_INTERVAL);
+        }
+    }
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        let ctx = &ui.ctx().clone();
         #[cfg(feature = "profiling")]
         let mut profile = earthcraft_data::profiling::Span::new("ui.update");
-        let dt = ctx.input(|i| i.unstable_dt).min(MAX_FRAME_DELTA_SECS) as f64;
+        let dt = frame_timing::animation_delta_secs(ctx);
         if (self.settings.ui_scale - self.applied_ui_scale).abs() > 1e-4 {
             ui::apply_ui_scale(ctx, self.settings.ui_scale);
             self.applied_ui_scale = self.settings.ui_scale;
@@ -290,29 +310,14 @@ impl eframe::App for App {
         #[cfg(not(target_os = "macos"))]
         self.file_shortcuts(ctx);
         self.ruler_shortcuts(ctx);
-        self.poll_files();
         self.handle_dropped_files(ctx);
-        self.ensure_wayback(ctx);
-        self.poll_wayback();
-        self.poll_suggestions(ctx);
-        if let Some(error) = self.local_search.take_error() {
-            self.status = format!("Local prefix index failed: {error}");
-        }
-        self.poll_search();
-        self.poll_cache_clear(ctx);
-        if let Some(snapshot) = self.boundaries_rx.take_latest() {
-            self.merge_snapshot(snapshot);
-        }
-        if self.boundary_loader.is_loading() {
-            ctx.request_repaint_after(BOUNDARY_POLL_INTERVAL);
-        }
         self.step_fly(dt);
         if self.fly.is_some() {
             ctx.request_repaint();
         }
-        self.top_bar(ctx);
-        self.bottom_bar(ctx);
-        self.side_panel(ctx);
+        self.top_bar(ui);
+        self.bottom_bar(ui);
+        self.side_panel(ui);
         self.settings_window(ctx);
         self.explorer_window(ctx);
         self.altitude_window(ctx);
@@ -329,8 +334,8 @@ impl eframe::App for App {
             ctx.request_repaint_after(BOUNDARY_POLL_INTERVAL);
         }
         egui::CentralPanel::default()
-            .frame(egui::Frame::none())
-            .show(ctx, |ui| self.globe_view(ui, ctx));
+            .frame(egui::Frame::NONE)
+            .show(ui, |ui| self.globe_view(ui, ctx));
         #[cfg(target_os = "macos")]
         self.refresh_native_menu(ctx);
         #[cfg(feature = "profiling")]

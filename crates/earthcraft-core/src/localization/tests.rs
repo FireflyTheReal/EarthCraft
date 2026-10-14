@@ -269,8 +269,18 @@ fn explorer_labels_follow_selected_language_and_keep_variable_interpolation() {
         Lang::PtBr.text("explorer-cloud-credit"),
         "Imagens de nuvens: Matt Eason / Live Cloud Maps"
     );
-    assert_eq!(Lang::En.format("explorer-tour-default", &[("place", "Rio de Janeiro".into())]),
-        "We are exploring Rio de Janeiro. Explore the location on the globe and choose points of interest to continue your tour.");
-    assert_eq!(Lang::PtBr.format("explorer-tour-default", &[("place", "Rio de Janeiro".into())]),
-        "Estamos explorando Rio de Janeiro. Explore o local no globo e escolha pontos de interesse para continuar seu passeio.");
+    assert_eq!(
+        Lang::En.format(
+            "explorer-tour-default",
+            &[("place", "Rio de Janeiro".into())]
+        ),
+        "We are exploring Rio de Janeiro. Explore the location on the globe and choose points of interest to continue your tour."
+    );
+    assert_eq!(
+        Lang::PtBr.format(
+            "explorer-tour-default",
+            &[("place", "Rio de Janeiro".into())]
+        ),
+        "Estamos explorando Rio de Janeiro. Explore o local no globo e escolha pontos de interesse para continuar seu passeio."
+    );
 }

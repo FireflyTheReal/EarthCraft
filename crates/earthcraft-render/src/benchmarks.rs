@@ -15,7 +15,6 @@ const FIXTURE_TILE_SIZE_PX: u32 = 256;
 
 struct FixtureCache {
     root: PathBuf,
-    previous: Option<std::ffi::OsString>,
 }
 impl FixtureCache {
     fn new() -> Self {
@@ -24,10 +23,7 @@ impl FixtureCache {
             std::process::id(),
             now_unix()
         ));
-        let previous = std::env::var_os("LOCALAPPDATA");
-        // This ignored benchmark runs alone, before constructing Tokio/Rayon workers.
-        std::env::set_var("LOCALAPPDATA", &root);
-        Self { root, previous }
+        Self { root }
     }
     fn prepare(&self) -> Vec<TileKey> {
         let mut keys = Vec::new();
@@ -61,10 +57,6 @@ impl FixtureCache {
 }
 impl Drop for FixtureCache {
     fn drop(&mut self) {
-        match &self.previous {
-            Some(value) => std::env::set_var("LOCALAPPDATA", value),
-            None => std::env::remove_var("LOCALAPPDATA"),
-        }
         std::fs::remove_dir_all(&self.root).unwrap();
     }
 }
@@ -75,7 +67,11 @@ fn warm_cpu_frame_time() {
     let fixture = FixtureCache::new();
     let keys = fixture.prepare();
     let runtime = earthcraft_data::runtime::ServiceRuntime::new().unwrap();
-    let cache = TileCache::new(|| {}, runtime.handle());
+    let cache = TileCache::with_cache_dir(
+        || {},
+        runtime.handle(),
+        fixture.root.join("earthcraft_tiles"),
+    );
     let started = Instant::now();
     let mut warmup = earthcraft_data::tiles::TileWarmup::startup_satellite();
     while warmup.pump(&cache) {
@@ -179,7 +175,11 @@ fn warm_gpu_frame_time() {
     let fixture = FixtureCache::new();
     let keys = fixture.prepare();
     let runtime = earthcraft_data::runtime::ServiceRuntime::new().unwrap();
-    let cache = TileCache::new(|| {}, runtime.handle());
+    let cache = TileCache::with_cache_dir(
+        || {},
+        runtime.handle(),
+        fixture.root.join("earthcraft_tiles"),
+    );
     let started = Instant::now();
     let mut warmup = earthcraft_data::tiles::TileWarmup::startup_satellite();
     while warmup.pump(&cache)
@@ -277,7 +277,11 @@ fn warm_gpu_frame_time() {
         }
         cpu_times.sort();
         gpu_times.sort();
-        eprintln!("{w}x{h}: CPU median {:.3} ms; GPU including readback and sky repair median {:.3} ms (15 warm frames)", cpu_times[7].as_secs_f64()*1000.0, gpu_times[7].as_secs_f64()*1000.0);
+        eprintln!(
+            "{w}x{h}: CPU median {:.3} ms; GPU including readback and sky repair median {:.3} ms (15 warm frames)",
+            cpu_times[7].as_secs_f64() * 1000.0,
+            gpu_times[7].as_secs_f64() * 1000.0
+        );
     }
     // A decoded cache larger than the GPU atlas must not disable acceleration
     // when the actual view fits. Seed extra detail through the normal disk loader.
@@ -367,7 +371,9 @@ fn warm_gpu_frame_time() {
             cpu.waiting.into_iter().collect()
         );
     }
-    eprintln!("597 decoded tiles: GPU residency and pixel/dependency parity passed across three hemispheric views");
+    eprintln!(
+        "597 decoded tiles: GPU residency and pixel/dependency parity passed across three hemispheric views"
+    );
     drop(cache);
     drop(runtime);
     drop(fixture);

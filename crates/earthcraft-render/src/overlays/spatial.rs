@@ -1,8 +1,8 @@
 //! Static geographic bounds; screen-space label admission remains in `labels`.
-use earthcraft_core::{camera::Basis, VERTICAL_FOV_HALF_TAN};
+use earthcraft_core::{VERTICAL_FOV_HALF_TAN, camera::Basis};
 use earthcraft_data::boundaries::{BoundaryData, Line};
 use emath::Rect;
-use geo_index::rtree::{sort::HilbertSort, RTree, RTreeBuilder, RTreeIndex};
+use geo_index::rtree::{RTree, RTreeBuilder, RTreeIndex, sort::HilbertSort};
 use glam::DVec3;
 use std::{collections::HashSet, sync::Arc};
 
@@ -20,7 +20,7 @@ impl Bounds {
             min: DVec3::splat(1.0),
             max: DVec3::splat(-1.0),
         };
-        for pair in line.windows(2) {
+        for pair in line.array_windows::<2>() {
             let ((lat1, lon1), (lat2, lon2)) = (pair[0], pair[1]);
             if ![lat1, lon1, lat2, lon2].iter().all(|v| v.is_finite()) {
                 return Self {

@@ -1,19 +1,19 @@
 //! Immutable FST prefix indexes, rebuilt off the UI thread when loaded names change.
 use super::{
-    local::{
-        label_altitude, merge_remote, MAX_LOCAL_SUGGESTIONS, MAX_RANK_PRIORITY,
-        MIN_LOCAL_PREFIX_CHARS,
-    },
     Suggestion,
+    local::{
+        MAX_LOCAL_SUGGESTIONS, MAX_RANK_PRIORITY, MIN_LOCAL_PREFIX_CHARS, label_altitude,
+        merge_remote,
+    },
 };
 use crate::boundaries::{LabelKind, MapLabel};
-use earthcraft_core::language::{fold_name, Lang};
-use fst::{automaton::Str, Automaton, IntoStreamer, Streamer};
+use earthcraft_core::language::{Lang, fold_name};
+use fst::{Automaton, IntoStreamer, Streamer, automaton::Str};
 use std::{
     collections::{BTreeMap, BinaryHeap},
     sync::{
-        atomic::{AtomicU64, Ordering},
         Arc, Mutex,
+        atomic::{AtomicU64, Ordering},
     },
 };
 

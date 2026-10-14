@@ -1,6 +1,6 @@
 //! Ordered patch preparation; the UI swaps one latest immutable dataset.
-use super::{dedupe_city_labels, BoundaryData, Layer, MapLabel, Patch};
-use std::sync::{mpsc, Arc, Mutex};
+use super::{BoundaryData, Layer, MapLabel, Patch, dedupe_city_labels};
+use std::sync::{Arc, Mutex, mpsc};
 
 pub struct BoundarySnapshot {
     pub data: Arc<BoundaryData>,

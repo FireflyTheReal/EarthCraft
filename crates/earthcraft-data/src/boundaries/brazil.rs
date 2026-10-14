@@ -1,9 +1,9 @@
 use super::geojson::{collect_geojson_lines, feature_name, label_center, outer_outline};
-use super::{log_status, LabelKind, Layer, Line, MapLabel, Patch, StatusLog};
+use super::{LabelKind, Layer, Line, MapLabel, Patch, StatusLog, log_status};
 use crate::http::fetch_json;
 use std::{
     collections::HashMap,
-    sync::{mpsc, Arc},
+    sync::{Arc, mpsc},
 };
 const IBGE: &str = "https://servicodados.ibge.gov.br/api";
 const BR_UFS: [u32; 27] = [
@@ -38,9 +38,15 @@ async fn load_brazil_state(uf: u32, include_geometry: bool) -> Result<Vec<Muni>,
         }
     }
     let urls = [
-        format!("{IBGE}/v3/malhas/estados/{uf}?intrarregiao=municipio&qualidade=intermediaria&formato=application/vnd.geo+json"),
-        format!("{IBGE}/v3/malhas/estados/{uf}?intrarregiao=municipio&qualidade=minima&formato=application/vnd.geo+json"),
-        format!("https://raw.githubusercontent.com/tbrugz/geodata-br/master/geojson/geojs-{uf}-mun.json"),
+        format!(
+            "{IBGE}/v3/malhas/estados/{uf}?intrarregiao=municipio&qualidade=intermediaria&formato=application/vnd.geo+json"
+        ),
+        format!(
+            "{IBGE}/v3/malhas/estados/{uf}?intrarregiao=municipio&qualidade=minima&formato=application/vnd.geo+json"
+        ),
+        format!(
+            "https://raw.githubusercontent.com/tbrugz/geodata-br/master/geojson/geojs-{uf}-mun.json"
+        ),
     ];
     let names = Arc::new(names);
     let mut last = String::new();
@@ -60,10 +66,8 @@ async fn load_brazil_state(uf: u32, include_geometry: bool) -> Result<Vec<Muni>,
                     return;
                 };
                 let mut lines = Vec::new();
-                if include_geometry {
-                    if let Some(coords) = geometry.get("coordinates") {
-                        collect_geojson_lines(coords, &mut lines);
-                    }
+                if include_geometry && let Some(coords) = geometry.get("coordinates") {
+                    collect_geojson_lines(coords, &mut lines);
                 }
                 let name = names
                     .get(&code)

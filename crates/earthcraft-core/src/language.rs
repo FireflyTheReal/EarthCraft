@@ -34,7 +34,7 @@ impl Lang {
 /// Canonically decomposes and removes combining accents for name matching.
 /// This is a comparison key, not a transliteration or a displayed place name.
 pub fn fold_name(s: &str) -> String {
-    use unicode_normalization::{char::is_combining_mark, UnicodeNormalization};
+    use unicode_normalization::{UnicodeNormalization, char::is_combining_mark};
     s.nfd()
         .flat_map(char::to_lowercase)
         .filter(|c| !is_combining_mark(*c) && c.is_alphanumeric())

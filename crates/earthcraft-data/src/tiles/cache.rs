@@ -1,11 +1,12 @@
-use super::{disk::DiskCache, unkey, KeyBuild, Tile, TileKey};
+use super::{KeyBuild, Tile, TileKey, disk::DiskCache, unkey};
 use crate::paths::cache_dir;
 use moka::{policy::EvictionPolicy, sync::Cache};
 use std::{
     collections::{HashMap, HashSet, VecDeque},
+    path::PathBuf,
     sync::{
-        atomic::{AtomicU64, AtomicUsize, Ordering},
         Arc, Mutex,
+        atomic::{AtomicU64, AtomicUsize, Ordering},
     },
     time::{Duration, Instant},
 };
@@ -43,12 +44,20 @@ pub struct TileCache {
     budget: usize,
     disk: DiskCache,
     tx: tokio::sync::mpsc::Sender<TileKey>,
-    gen: AtomicU64,
+    generation: AtomicU64,
     inflight: AtomicUsize,
 }
 
 impl TileCache {
+    #[cfg(test)]
     fn with_budget(tx: tokio::sync::mpsc::Sender<TileKey>, budget: usize) -> Self {
+        Self::with_budget_at(tx, budget, cache_dir())
+    }
+    fn with_budget_at(
+        tx: tokio::sync::mpsc::Sender<TileKey>,
+        budget: usize,
+        directory: PathBuf,
+    ) -> Self {
         Self {
             ready: Cache::builder()
                 .name("earthcraft-decoded-tiles")
@@ -62,9 +71,9 @@ impl TileCache {
             requests: Mutex::new(HashMap::default()),
             queue: Mutex::new(VecDeque::new()),
             budget,
-            disk: DiskCache::new(cache_dir()),
+            disk: DiskCache::new(directory),
             tx,
-            gen: AtomicU64::new(0),
+            generation: AtomicU64::new(0),
             inflight: AtomicUsize::new(0),
         }
     }
@@ -72,10 +81,23 @@ impl TileCache {
         repaint: impl Fn() + Send + Sync + 'static,
         runtime: &tokio::runtime::Handle,
     ) -> Arc<Self> {
+        Self::with_cache_dir(repaint, runtime, cache_dir())
+    }
+
+    /// Use an explicit imagery directory, including for isolated render fixtures.
+    pub fn with_cache_dir(
+        repaint: impl Fn() + Send + Sync + 'static,
+        runtime: &tokio::runtime::Handle,
+        directory: PathBuf,
+    ) -> Arc<Self> {
         let repaint: Arc<dyn Fn() + Send + Sync> = Arc::new(repaint);
         let (tx, rx) = tokio::sync::mpsc::channel(MAX_INFLIGHT);
         let rx = Arc::new(tokio::sync::Mutex::new(rx));
-        let cache = Arc::new(Self::with_budget(tx, DEFAULT_TILE_CACHE_BUDGET_BYTES));
+        let cache = Arc::new(Self::with_budget_at(
+            tx,
+            DEFAULT_TILE_CACHE_BUDGET_BYTES,
+            directory,
+        ));
         for _ in 0..TILE_WORKER_COUNT {
             let (c, r, x) = (cache.clone(), rx.clone(), repaint.clone());
             runtime.spawn(worker(Arc::downgrade(&c), r, x));
@@ -227,11 +249,11 @@ impl TileCache {
         if was_loading {
             self.inflight.fetch_sub(1, Ordering::Relaxed);
         }
-        self.gen.fetch_add(1, Ordering::Relaxed);
+        self.generation.fetch_add(1, Ordering::Relaxed);
     }
     /// Changes whenever a tile request finishes, including failures.
     pub fn generation(&self) -> u64 {
-        self.gen.load(Ordering::Relaxed)
+        self.generation.load(Ordering::Relaxed)
     }
     pub fn inflight(&self) -> usize {
         self.inflight.load(Ordering::Relaxed)
@@ -268,7 +290,7 @@ async fn fetch_tile(k: TileKey, disk: &DiskCache) -> Result<FetchedTile, crate::
                 return Ok(FetchedTile {
                     tile,
                     persistence: None,
-                })
+                });
             }
             Err(_) => {
                 let _ = disk.invalidate(&path).await;

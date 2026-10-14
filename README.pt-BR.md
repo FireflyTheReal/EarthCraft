@@ -8,7 +8,7 @@ Globo 3D estilo Google Earth em Rust (egui + renderização do globo por ray-cas
 Roda em Windows, macOS e Linux sem dependências de sistema além do driver gráfico.
 
 ### Compilar e executar
-Requer Rust 1.89+ (https://rustup.rs):
+Requer Rust 1.95+ (https://rustup.rs):
 
     cargo run --release
 
