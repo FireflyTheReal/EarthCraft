@@ -1,6 +1,10 @@
 //! Real aircraft snapshots from OpenSky (worldwide) and ADSB.lol (near the camera).
 //! Both providers are independent, best-effort services; no fabricated flights.
-use std::{collections::HashMap, sync::mpsc, time::{Duration, Instant, SystemTime, UNIX_EPOCH}};
+use std::{
+    collections::HashMap,
+    sync::mpsc,
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
+};
 
 const OPENSKY_STATES_URL: &str = "https://opensky-network.org/api/states/all";
 const ADSB_LOCAL_RADIUS_NM: u32 = 250;
@@ -93,9 +97,17 @@ impl LiveAircraft {
                 Err(mpsc::TryRecvError::Empty) => {}
             }
         }
-        if !enabled { return; }
+        if !enabled {
+            return;
+        }
 
-        if self.global_rx.is_none() && due(self.global_attempt, self.global_error.is_none(), GLOBAL_REFRESH) {
+        if self.global_rx.is_none()
+            && due(
+                self.global_attempt,
+                self.global_error.is_none(),
+                GLOBAL_REFRESH,
+            )
+        {
             let (tx, rx) = mpsc::channel();
             self.global_rx = Some(rx);
             self.global_attempt = Some(Instant::now());
@@ -113,8 +125,15 @@ impl LiveAircraft {
             let moved = self.local_center.is_some_and(|center| {
                 geographic_distance_km(center, (center_lat, center_lon)) > 140.0
             });
-            let refresh = due(self.local_attempt, self.local_error.is_none(), LOCAL_REFRESH);
-            let movement_ready = moved && self.local_attempt.is_none_or(|t| t.elapsed() >= MOVE_RETRY_MIN);
+            let refresh = due(
+                self.local_attempt,
+                self.local_error.is_none(),
+                LOCAL_REFRESH,
+            );
+            let movement_ready = moved
+                && self
+                    .local_attempt
+                    .is_none_or(|t| t.elapsed() >= MOVE_RETRY_MIN);
             if refresh || movement_ready {
                 let (tx, rx) = mpsc::channel();
                 self.local_rx = Some(rx);
@@ -135,15 +154,26 @@ impl LiveAircraft {
     pub fn snapshot(&self) -> Vec<Aircraft> {
         let now = now_unix();
         let mut by_hex = HashMap::new();
-        if self.global_loaded.is_some_and(|t| t.elapsed().as_secs_f64() <= GLOBAL_MAX_AGE_SECS) {
-            for flight in &self.global { by_hex.insert(flight.hex.clone(), flight.clone()); }
+        if self
+            .global_loaded
+            .is_some_and(|t| t.elapsed().as_secs_f64() <= GLOBAL_MAX_AGE_SECS)
+        {
+            for flight in &self.global {
+                by_hex.insert(flight.hex.clone(), flight.clone());
+            }
         }
-        if self.local_loaded.is_some_and(|t| t.elapsed().as_secs_f64() <= LOCAL_MAX_AGE_SECS) {
+        if self
+            .local_loaded
+            .is_some_and(|t| t.elapsed().as_secs_f64() <= LOCAL_MAX_AGE_SECS)
+        {
             for flight in &self.local {
                 if now - flight.observed_unix <= MAX_POSITION_AGE_SECS {
-                    let replace = by_hex.get(&flight.hex)
+                    let replace = by_hex
+                        .get(&flight.hex)
                         .is_none_or(|old: &Aircraft| flight.observed_unix >= old.observed_unix);
-                    if replace { by_hex.insert(flight.hex.clone(), flight.clone()); }
+                    if replace {
+                        by_hex.insert(flight.hex.clone(), flight.clone());
+                    }
                 }
             }
         }
@@ -157,22 +187,47 @@ impl LiveAircraft {
         let latest = self.global_loaded.map(|t| t.elapsed().as_secs() / 60);
         let local = self.local_loaded.map(|t| t.elapsed().as_secs() / 60);
         let mut msg = if pt {
-            format!("Aviões reais rastreados: {count} | OpenSky: {} | ADSB.lol: {}",
+            format!(
+                "Aviões reais rastreados: {count} | OpenSky: {} | ADSB.lol: {}",
                 latest.map_or("carregando".into(), |m| format!("há {m} min")),
-                local.map_or(if self.local_attempt.is_some() { "carregando".into() } else { "aproxime o mapa".into() }, |m| format!("há {m} min")))
+                local.map_or(
+                    if self.local_attempt.is_some() {
+                        "carregando".into()
+                    } else {
+                        "aproxime o mapa".into()
+                    },
+                    |m| format!("há {m} min")
+                )
+            )
         } else {
-            format!("Real tracked aircraft: {count} | OpenSky: {} | ADSB.lol: {}",
+            format!(
+                "Real tracked aircraft: {count} | OpenSky: {} | ADSB.lol: {}",
                 latest.map_or("loading".into(), |m| format!("{m} min ago")),
-                local.map_or(if self.local_attempt.is_some() { "loading".into() } else { "zoom in".into() }, |m| format!("{m} min ago")))
+                local.map_or(
+                    if self.local_attempt.is_some() {
+                        "loading".into()
+                    } else {
+                        "zoom in".into()
+                    },
+                    |m| format!("{m} min ago")
+                )
+            )
         };
-        if let Some(err) = &self.global_error { msg.push_str(&format!("\nOpenSky: {err}")); }
-        if let Some(err) = &self.local_error { msg.push_str(&format!("\nADSB.lol: {err}")); }
+        if let Some(err) = &self.global_error {
+            msg.push_str(&format!("\nOpenSky: {err}"));
+        }
+        if let Some(err) = &self.local_error {
+            msg.push_str(&format!("\nADSB.lol: {err}"));
+        }
         msg
     }
 }
 
 fn now_unix() -> f64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs_f64()
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs_f64()
 }
 fn due(last: Option<Instant>, success: bool, interval: Duration) -> bool {
     last.is_none_or(|time| time.elapsed() >= if success { interval } else { FAILURE_RETRY })
@@ -180,16 +235,22 @@ fn due(last: Option<Instant>, success: bool, interval: Duration) -> bool {
 fn geographic_distance_km(a: (f64, f64), b: (f64, f64)) -> f64 {
     let dlat = (b.0 - a.0).to_radians();
     let dlon = (b.1 - a.1).to_radians();
-    let h = (dlat / 2.0).sin().powi(2) + a.0.to_radians().cos() * b.0.to_radians().cos() * (dlon / 2.0).sin().powi(2);
+    let h = (dlat / 2.0).sin().powi(2)
+        + a.0.to_radians().cos() * b.0.to_radians().cos() * (dlon / 2.0).sin().powi(2);
     12_742.0 * h.clamp(0.0, 1.0).sqrt().asin()
 }
 fn valid_coords(lat: f64, lon: f64) -> bool {
-    lat.is_finite() && (-90.0..=90.0).contains(&lat) && lon.is_finite() && (-180.0..=180.0).contains(&lon)
+    lat.is_finite()
+        && (-90.0..=90.0).contains(&lat)
+        && lon.is_finite()
+        && (-180.0..=180.0).contains(&lon)
 }
 fn number(v: Option<&serde_json::Value>) -> Option<f64> {
     v.and_then(|v| v.as_f64()).filter(|v| v.is_finite())
 }
-fn safe_heading(v: Option<f64>) -> f64 { v.unwrap_or(0.0).rem_euclid(360.0) }
+fn safe_heading(v: Option<f64>) -> f64 {
+    v.unwrap_or(0.0).rem_euclid(360.0)
+}
 
 async fn download_global() -> Result<Vec<Aircraft>, crate::Error> {
     let client = crate::http::client(crate::http::Policy::Aircraft)?;
@@ -200,11 +261,13 @@ async fn download_global() -> Result<Vec<Aircraft>, crate::Error> {
             return Err("OpenSky response lacks state vectors".into());
         }
         Ok(parse_opensky(&json, now_unix()))
-    }).await?
+    })
+    .await?
 }
 async fn download_local(lat: f64, lon: f64) -> Result<Vec<Aircraft>, crate::Error> {
     let client = crate::http::client(crate::http::Policy::Aircraft)?;
-    let url = format!("https://api.adsb.lol/v2/lat/{lat:.4}/lon/{lon:.4}/dist/{ADSB_LOCAL_RADIUS_NM}");
+    let url =
+        format!("https://api.adsb.lol/v2/lat/{lat:.4}/lon/{lon:.4}/dist/{ADSB_LOCAL_RADIUS_NM}");
     let bytes = crate::http::body(client.get(url), LOCAL_RESPONSE_LIMIT).await?;
     tokio::task::spawn_blocking(move || -> Result<_, crate::Error> {
         let json: serde_json::Value = serde_json::from_slice(&bytes)?;
@@ -212,42 +275,84 @@ async fn download_local(lat: f64, lon: f64) -> Result<Vec<Aircraft>, crate::Erro
             return Err("ADSB.lol response lacks aircraft".into());
         }
         Ok(parse_adsb_lol(&json, now_unix()))
-    }).await?
+    })
+    .await?
 }
 
 fn parse_opensky(json: &serde_json::Value, now: f64) -> Vec<Aircraft> {
-    json.get("states").and_then(|v| v.as_array()).into_iter().flatten().filter_map(|v| {
-        let f = v.as_array()?;
-        let hex = f.first()?.as_str()?.trim().to_ascii_lowercase();
-        if hex.is_empty() || f.get(8)?.as_bool().unwrap_or(false) { return None; }
-        let lat = number(f.get(6))?;
-        let lon = number(f.get(5))?;
-        let observed = number(f.get(3)).or_else(|| number(f.get(4)))?;
-        if !valid_coords(lat, lon) || !(0.0..=MAX_POSITION_AGE_SECS).contains(&(now - observed)) { return None; }
-        let callsign = f.get(1).and_then(|v| v.as_str()).unwrap_or("").trim().to_owned();
-        let altitude_feet = number(f.get(7)).or_else(|| number(f.get(13))).map(|m| m * 3.28084);
-        let speed_knots = number(f.get(9)).map(|mps| mps * 1.94384449);
-        Some(Aircraft { hex, callsign, latitude: lat, longitude: lon,
-            heading_deg: safe_heading(number(f.get(10))), speed_knots, altitude_feet,
-            observed_unix: observed })
-    }).collect()
+    json.get("states")
+        .and_then(|v| v.as_array())
+        .into_iter()
+        .flatten()
+        .filter_map(|v| {
+            let f = v.as_array()?;
+            let hex = f.first()?.as_str()?.trim().to_ascii_lowercase();
+            if hex.is_empty() || f.get(8)?.as_bool().unwrap_or(false) {
+                return None;
+            }
+            let lat = number(f.get(6))?;
+            let lon = number(f.get(5))?;
+            let observed = number(f.get(3)).or_else(|| number(f.get(4)))?;
+            if !valid_coords(lat, lon) || !(0.0..=MAX_POSITION_AGE_SECS).contains(&(now - observed))
+            {
+                return None;
+            }
+            let callsign = f
+                .get(1)
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim()
+                .to_owned();
+            let altitude_feet = number(f.get(7))
+                .or_else(|| number(f.get(13)))
+                .map(|m| m * 3.28084);
+            let speed_knots = number(f.get(9)).map(|mps| mps * 1.94384449);
+            Some(Aircraft {
+                hex,
+                callsign,
+                latitude: lat,
+                longitude: lon,
+                heading_deg: safe_heading(number(f.get(10))),
+                speed_knots,
+                altitude_feet,
+                observed_unix: observed,
+            })
+        })
+        .collect()
 }
 fn parse_adsb_lol(json: &serde_json::Value, now: f64) -> Vec<Aircraft> {
-    json.get("ac").and_then(|v| v.as_array()).into_iter().flatten().filter_map(|v| {
-        let hex = v.get("hex")?.as_str()?.trim().to_ascii_lowercase();
-        if hex.is_empty() || v.get("alt_baro").and_then(|v| v.as_str()) == Some("ground") { return None; }
-        let lat = number(v.get("lat"))?;
-        let lon = number(v.get("lon"))?;
-        let age = number(v.get("seen_pos"))?;
-        if !valid_coords(lat, lon) || !(0.0..=MAX_POSITION_AGE_SECS).contains(&age) { return None; }
-        Some(Aircraft { hex,
-            callsign: v.get("flight").and_then(|v| v.as_str()).unwrap_or("").trim().to_owned(),
-            latitude: lat, longitude: lon,
-            heading_deg: safe_heading(number(v.get("track"))),
-            speed_knots: number(v.get("gs")),
-            altitude_feet: number(v.get("alt_baro")).or_else(|| number(v.get("alt_geom"))),
-            observed_unix: now - age })
-    }).collect()
+    json.get("ac")
+        .and_then(|v| v.as_array())
+        .into_iter()
+        .flatten()
+        .filter_map(|v| {
+            let hex = v.get("hex")?.as_str()?.trim().to_ascii_lowercase();
+            if hex.is_empty() || v.get("alt_baro").and_then(|v| v.as_str()) == Some("ground") {
+                return None;
+            }
+            let lat = number(v.get("lat"))?;
+            let lon = number(v.get("lon"))?;
+            let age = number(v.get("seen_pos"))?;
+            if !valid_coords(lat, lon) || !(0.0..=MAX_POSITION_AGE_SECS).contains(&age) {
+                return None;
+            }
+            Some(Aircraft {
+                hex,
+                callsign: v
+                    .get("flight")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .trim()
+                    .to_owned(),
+                latitude: lat,
+                longitude: lon,
+                heading_deg: safe_heading(number(v.get("track"))),
+                speed_knots: number(v.get("gs")),
+                altitude_feet: number(v.get("alt_baro")).or_else(|| number(v.get("alt_geom"))),
+                observed_unix: now - age,
+            })
+        })
+        .collect()
 }
 
 #[cfg(test)]
