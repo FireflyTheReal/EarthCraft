@@ -47,33 +47,24 @@ def validate(tag):
     print(version)
 
 
-def package(version, target, binary, output, changelog):
+def package(version, target, binary, output):
     if version != workspace_version():
         raise ValueError("Package version must match the workspace manifest")
     if target not in TARGETS:
         raise ValueError(f"Unsupported target: {target}")
     if not binary.is_file():
         raise ValueError(f"Release executable does not exist: {binary}")
-    if not changelog.is_file() or not changelog.read_text(encoding="utf-8").strip():
-        raise ValueError(f"Generated changelog is missing or empty: {changelog}")
     if target == "universal-apple-darwin":
         subprocess.run(
             ["lipo", str(binary), "-verify_arch", "arm64", "x86_64"], check=True
         )
     output.mkdir(parents=True, exist_ok=True)
     name = f"earthcraft-{version}-{TARGETS[target]}"
-    extension = ".tar.gz" if "linux" in target else ".zip"
+    extension = ".dmg" if "apple" in target else ".tar.gz" if "linux" in target else ".zip"
     archive = output / f"{name}{extension}"
     with tempfile.TemporaryDirectory(prefix="earthcraft-package-") as temporary:
         payload = Path(temporary) / name
         payload.mkdir()
-        for filename in ("README.md", "README.pt-BR.md", "AGENTS.md"):
-            shutil.copy2(ROOT / filename, payload / filename)
-        for filename in ("LICENSE", "LICENSE.md", "LICENSE.txt"):
-            if (ROOT / filename).is_file():
-                shutil.copy2(ROOT / filename, payload / filename)
-        shutil.copytree(ROOT / "docs", payload / "docs")
-        shutil.copy2(changelog, payload / "CHANGELOG.md")
         if "apple" in target:
             contents = payload / "EarthCraft.app" / "Contents"
             executable = contents / "MacOS" / "earthcraft"
@@ -107,22 +98,19 @@ def package(version, target, binary, output, changelog):
             subprocess.run(
                 ["codesign", "--verify", "--deep", "--strict", str(app)], check=True
             )
-        (payload / "RELEASE.txt").write_text(
-            f"EarthCraft {version} — {target}\n\n"
-            "This archive contains a CPU-only release build. GPU rendering is not enabled.\n"
-            "Linux requires a graphics driver and GTK 3 runtime libraries.\n"
-            "macOS bundles are ad-hoc signed, without Developer ID or notarization.\n"
-            "Extract the entire archive before launching. See docs/RELEASING.md.\n",
-            encoding="utf-8",
-        )
-        if extension == ".tar.gz":
+        if extension == ".dmg":
+            subprocess.run(
+                ["hdiutil", "create", "-volname", "EarthCraft", "-srcfolder",
+                 str(payload), "-format", "UDZO", "-ov", str(archive)],
+                check=True,
+            )
+            subprocess.run(["hdiutil", "verify", str(archive)], check=True)
+        elif extension == ".tar.gz":
             with tarfile.open(archive, "w:gz") as stream:
-                stream.add(payload, arcname=name)
+                stream.add(executable, arcname=executable.name)
         else:
             with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as stream:
-                for path in sorted(payload.rglob("*")):
-                    if path.is_file():
-                        stream.write(path, path.relative_to(payload.parent))
+                stream.write(executable, executable.name)
     with archive.open("rb") as stream:
         digest = hashlib.file_digest(stream, "sha256").hexdigest()
     archive.with_name(archive.name + ".sha256").write_text(
@@ -141,13 +129,12 @@ def main():
     archive.add_argument("--target", choices=TARGETS, required=True)
     archive.add_argument("--binary", type=Path, required=True)
     archive.add_argument("--output", type=Path, required=True)
-    archive.add_argument("--changelog", type=Path, required=True)
     args = parser.parse_args()
     try:
         if args.command == "validate":
             validate(args.tag)
         else:
-            package(args.version, args.target, args.binary, args.output, args.changelog)
+            package(args.version, args.target, args.binary, args.output)
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         parser.exit(1, f"Release packaging failed: {error}\n")
 
