@@ -276,12 +276,13 @@ Continuous animation requests repaints without the old 260 ms delay; native
 presentation and renderer readiness determine the achievable cadence.
 
 
-## Optional GPU Earth rasterization / renderização opcional em GPU
+## Experimental GPU Earth rasterization / renderização experimental em GPU
 
 The Earth overview raster can be computed by the `earthcraft-render` `backend`
 module with `wgpu` compute shaders (`gpu/`), then read back for the existing
-egui view; the CPU path remains the default and fallback. Set
-`EARTHCRAFT_RENDERER=auto` or `EARTHCRAFT_RENDERER=gpu` to enable a GPU attempt.
+egui view. All GPU globe rendering is experimental on every platform; the CPU
+path remains the default and fallback. Set
+`EARTHCRAFT_RENDERER=auto` or `EARTHCRAFT_RENDERER=gpu` to enable an experimental GPU attempt.
 The Explorer, live meteorological/aircraft layers, moon and custom planet
 remain integrated in `apps/earthcraft`. See [GPU_RENDERER.md](GPU_RENDERER.md)
 for hardware limits, performance and CPU-only build instructions.

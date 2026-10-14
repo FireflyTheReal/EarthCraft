@@ -4,7 +4,7 @@
 
 [![Listed on Remade](https://remade.wiki/badges/listed-on-remade.svg)](https://remade.wiki/projects/earthcraft/)
 
-A 3D globe in the style of Google Earth, written in pure Rust (egui + optional GPU/CPU ray-casting globe rendering). Runs on Windows, macOS and Linux with no system dependencies beyond a graphics driver.
+A 3D globe in the style of Google Earth, written in pure Rust (egui + CPU ray-casting globe rendering, with optional, experimental GPU acceleration). Runs on Windows, macOS and Linux with no system dependencies beyond a graphics driver.
 
 ### Build and run
 Requires Rust 1.89+ (https://rustup.rs):
@@ -14,6 +14,11 @@ Requires Rust 1.89+ (https://rustup.rs):
 Linux (if something is missing):  `sudo apt install libxkbcommon-dev libwayland-dev libx11-dev` / `sudo apt install build-essential pkg-config libatk1.0-dev libgtk-3-dev`
 
 An internet connection is required to download map tiles.
+
+**macOS downloads:** Open the DMG and drag EarthCraft to Applications. The app
+is not notarized, so Gatekeeper may block the first launch. Try opening it once,
+dismiss the warning, then go to **System Settings → Privacy & Security → Open
+Anyway** for EarthCraft and confirm **Open**. See [Apple's instructions](https://support.apple.com/en-us/102445).
 
 ### Features
 
@@ -27,7 +32,7 @@ An internet connection is required to download map tiles.
 - Geodesic distance ruler (great-circle)
 - Lat/lon grid, atmosphere, stars, real-time sunlight (day/night)
 - Scale bar, cursor coordinates, PNG screenshot, context menu
-- Background CPU rendering; optional GPU globe renderer can be enabled via `EARTHCRAFT_RENDERER=auto` or `EARTHCRAFT_RENDERER=gpu` (with CPU fallback). See [GPU rendering](docs/GPU_RENDERER.md).
+- Background CPU rendering; experimental GPU globe renderer can be enabled via `EARTHCRAFT_RENDERER=auto` or `EARTHCRAFT_RENDERER=gpu` (with CPU fallback). See [experimental GPU rendering](docs/GPU_RENDERER.md).
 
 ### Controls
 Drag: rotate globe · Right-drag / Shift+drag: rotate view · Wheel / +/-: zoom · Double-click: fly to point · Arrow keys: move · N: north up
@@ -62,7 +67,7 @@ the same directory); and preview custom sky/galaxy images.
 licensed photos embedded in the application, actual 3D buildings or detailed
 terrain. Live flight and weather layers depend on external providers. The
 Moon and custom planet use egui meshes rather than GPU compute rendering.
-The Earth globe also supports an optional GPU overview renderer; Explorer planets are still drawn by egui. The explorer's
+The Earth globe also supports an experimental GPU overview renderer; Explorer planets are still drawn by egui. The explorer's
 websites require an internet connection. This code was not compiled or
 executed in the delivery environment (Rust toolchain unavailable).
 

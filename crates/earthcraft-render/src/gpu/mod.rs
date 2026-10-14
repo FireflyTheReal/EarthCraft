@@ -1,4 +1,4 @@
-//! Precision-preserving GPU sampling and shading, without egui dependencies.
+//! Experimental GPU sampling and shading, without egui dependencies.
 mod overview;
 mod repair;
 mod shader;
@@ -108,7 +108,7 @@ impl GpuRenderer {
             return Err(error);
         }
         eprintln!(
-            "GPU globe rendering enabled: {} ({:?}), {} MiB tile atlas",
+            "Experimental GPU globe rendering enabled: {} ({:?}), {} MiB tile atlas",
             adapter.get_info().name,
             adapter.get_info().backend,
             layers * TILE_BYTES / (1024 * 1024)

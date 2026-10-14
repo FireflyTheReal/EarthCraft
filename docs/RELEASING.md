@@ -3,8 +3,8 @@
 The [release workflow](../.github/workflows/release.yml) builds locked release
 binaries with Rust 1.89. Downloads contain only the application: a bare executable
 on Linux/Windows or `EarthCraft.app` inside a macOS disk image.
-These artifacts use `--no-default-features`: GPU rendering is excluded while
-native cross-platform GPU failures remain unresolved.
+These artifacts use `--no-default-features`: experimental GPU globe rendering is excluded
+from release downloads on every platform. CPU rendering remains the default.
 
 | Platform | Artifact |
 | --- | --- |
@@ -34,6 +34,24 @@ hidden. There are no bundled
 READMEs, agent rules, contributor docs, changelogs or release text files. Build/package checks do not verify
 interactive runtime behavior: manually test downloads on the supported platforms
 before announcing them.
+
+## First launch on macOS (Gatekeeper)
+
+The macOS app is ad-hoc signed but is not notarized or signed with an Apple
+Developer ID certificate. To open a release downloaded from this repository:
+
+1. Open the DMG and drag EarthCraft onto the Applications shortcut.
+2. Open EarthCraft from Applications once. If Gatekeeper blocks it, dismiss
+   the warning without moving the app to Trash.
+3. Open **System Settings → Privacy & Security**, scroll to the security
+   section and select **Open Anyway** beside the EarthCraft notice.
+4. Authenticate if requested and confirm **Open**. Later launches use the
+   exception saved for this app.
+
+On older macOS versions, the equivalent controls are under **System Preferences
+→ Security & Privacy → General**. See [Apple's opening instructions](https://support.apple.com/en-us/102445)
+for the current flow. This creates a per-app exception; disabling Gatekeeper
+system-wide is not required.
 
 ## Preview builds
 

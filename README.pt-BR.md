@@ -4,7 +4,7 @@
 
 [![Listed on Remade](https://remade.wiki/badges/listed-on-remade.svg)](https://remade.wiki/projects/earthcraft/)
 
-Globo 3D estilo Google Earth em Rust (egui + renderização do globo por ray-casting na CPU, com aceleração opcional na GPU).
+Globo 3D estilo Google Earth em Rust (egui + renderização do globo por ray-casting na CPU, com aceleração experimental e opcional na GPU).
 Roda em Windows, macOS e Linux sem dependências de sistema além do driver gráfico.
 
 ### Compilar e executar
@@ -15,6 +15,12 @@ Requer Rust 1.89+ (https://rustup.rs):
 Linux (se faltar algo): `sudo apt install libxkbcommon-dev libwayland-dev libx11-dev` / `sudo apt install build-essential pkg-config libatk1.0-dev libgtk-3-dev`
 
 Uma conexão com a internet é necessária para baixar os tiles do mapa.
+
+**Downloads para macOS:** Abra o DMG e arraste o EarthCraft para Aplicativos.
+O app não é notarizado, então o Gatekeeper pode bloquear a primeira abertura.
+Tente abrir uma vez, feche o aviso e acesse **Ajustes do Sistema → Privacidade e
+Segurança → Abrir Mesmo Assim** para o EarthCraft. Confirme em **Abrir**.
+Consulte as [instruções da Apple](https://support.apple.com/pt-br/102445).
 
 ### Funções
 
@@ -28,7 +34,7 @@ Uma conexão com a internet é necessária para baixar os tiles do mapa.
 - Régua de distância geodésica (grande círculo)
 - Grade lat/lon, atmosfera, estrelas, luz solar em tempo real (dia/noite)
 - Barra de escala, coordenadas do cursor, captura de tela PNG, menu de contexto
-- Renderização do globo por ray-casting na CPU ou GPU (opcional) em segundo plano, mantendo retorno automático à CPU em casos não suportados
+- Renderização do globo por ray-casting na CPU ou GPU (experimental e opcional) em segundo plano, mantendo retorno automático à CPU em casos não suportados
 
 ### Controles
 Arrastar: girar · Botão direito/Shift+arrastar: girar vista · Roda/+/-: zoom ·
@@ -63,7 +69,7 @@ the same directory); and preview custom sky/galaxy images.
 **Limitações:** O Explorador não implementa relevos tridimensionais reais,
 malhas de edifícios em 3D ou cartões completos de lugares do Google Maps.
 A Lua e o planeta personalizado usam malhas desenhadas pelo egui, sem
-aceleração direta pelo novo renderizador de GPU. Camadas de aviões e de
+aceleração direta pelo renderizador experimental de GPU. Camadas de aviões e de
 meteorologia dependem de serviços de terceiros e conexão com a internet.
 A compilação e execução nativa não puderam ser verificadas neste ambiente
 por ausência de toolchain Rust.
@@ -73,10 +79,10 @@ The Explorer panel and toolbar labels follow the existing top-right language sel
 O painel Explorar e a barra superior acompanham o seletor de idioma no canto superior direito. Textos de narração editados pelo usuário não são traduzidos automaticamente.
 
 
-### Aceleração por GPU (opcional)
+### Aceleração por GPU (experimental e opcional)
 
-O EarthCraft possui um renderizador opcional via `wgpu`, portado da versão GPU.
-Por segurança, a CPU continua sendo o padrão. Para experimentar GPU, use
+O EarthCraft possui um renderizador experimental e opcional via `wgpu`.
+A CPU continua sendo o padrão. Para experimentar GPU, use
 `EARTHCRAFT_RENDERER=auto` (quadros grandes) ou `EARTHCRAFT_RENDERER=gpu`
 (forçar tentativa). Falhas de inicialização ou indisponibilidade de GPU
 retornam à CPU. Visualizações muito próximas e a grade usam CPU.

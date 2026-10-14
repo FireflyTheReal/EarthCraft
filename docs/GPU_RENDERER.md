@@ -1,7 +1,10 @@
-# Optional GPU globe renderer
+# Experimental GPU globe renderer
 
-Desktop builds include a wgpu 0.19 compute renderer alongside the CPU renderer.
-It ray-casts the overview globe, calculates Mercator coordinates and LOD, samples
+All GPU globe rendering is **experimental**, on every platform. CPU rendering
+remains the default; published release downloads exclude the experimental GPU
+backend. Source builds with the `gpu` feature include a wgpu 0.19 compute renderer
+alongside the CPU renderer.
+The experimental renderer ray-casts the overview globe, calculates Mercator coordinates and LOD, samples
 imagery, blends zoom levels, and applies sunlight and atmosphere on the GPU.
 The render crate owns it; the egui presentation backend stays in the app.
 Adapter/device creation, texture uploads, execution and readback run on the frame
@@ -10,10 +13,10 @@ coordinator, never on the UI thread.
 ## Selection and fallback
 
 CPU rendering is the default while reported Ubuntu GPU freezes remain under
-investigation. GPU rendering requires explicit opt-in; automatic GPU activation
+investigation. Experimental GPU rendering requires explicit opt-in; automatic GPU activation
 must not return until native cross-platform checks cover the reported failure.
 
-`EARTHCRAFT_RENDERER=auto` opts into GPU rendering for supported
+`EARTHCRAFT_RENDERER=auto` opts into experimental GPU rendering for supported
 views with at least 262,144 pixels; small frames retain CPU rendering because
 complete GPU/CPU timings were similar at 512×384 on the baseline adapter.
 `EARTHCRAFT_RENDERER=gpu` also tries GPU rendering for small supported frames.
