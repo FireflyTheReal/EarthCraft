@@ -1,7 +1,7 @@
 use super::super::App;
 use crate::app::cache::cache_size_text;
 use earthcraft_core::language::Lang;
-use earthcraft_data::settings::Settings;
+use earthcraft_data::settings::{Settings, UnitPreference};
 use earthcraft_data::settings::{MAX_MAP_SCALE, MIN_MAP_SCALE, MIN_UI_SCALE};
 use eframe::egui;
 const MAX_UI_SLIDER_SCALE: f32 = 2.0;
@@ -16,6 +16,32 @@ impl App {
             .resizable(false)
             .default_width(420.0)
             .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label(lg.text("settings-distance-units-label"));
+                    let label = |units| {
+                        lg.text(match units {
+                            UnitPreference::System => "settings-units-system",
+                            UnitPreference::Metric => "settings-units-metric",
+                            UnitPreference::Imperial => "settings-units-imperial",
+                        })
+                    };
+                    egui::ComboBox::from_id_source("distance_units")
+                        .selected_text(label(self.settings.distance_units))
+                        .show_ui(ui, |ui| {
+                            for units in [
+                                UnitPreference::System,
+                                UnitPreference::Metric,
+                                UnitPreference::Imperial,
+                            ] {
+                                ui.selectable_value(
+                                    &mut self.settings.distance_units,
+                                    units,
+                                    label(units),
+                                );
+                            }
+                        });
+                });
+                ui.separator();
                 ui.strong(lg.text("settings-text-section-title"));
                 egui::Grid::new("settings_text")
                     .num_columns(2)

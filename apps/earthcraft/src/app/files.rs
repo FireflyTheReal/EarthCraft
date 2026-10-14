@@ -3,6 +3,11 @@ use earthcraft_core::{language::Lang, math::now_unix};
 use earthcraft_data::files::{FileCompletion, FileKind, FileOutcome};
 use eframe::egui;
 use std::path::PathBuf;
+/// A file status keeps its full path for hover while the toolbar abbreviates it.
+pub(super) struct FileStatus {
+    pub(super) message: String,
+    pub(super) path: PathBuf,
+}
 impl App {
     pub(super) fn resolve_kml_path(&self, p: &str) -> PathBuf {
         let path = PathBuf::from(p.trim());
@@ -34,6 +39,10 @@ impl App {
                         "kml-save-success",
                         &[("path", path.display().to_string().into())],
                     );
+                    self.status_file = Some(FileStatus {
+                        message: self.status.clone(),
+                        path,
+                    });
                 }
                 Ok(FileOutcome::KmlLoaded { path, placemarks }) => {
                     self.status = self.lang.format(
@@ -43,6 +52,10 @@ impl App {
                             ("path", path.display().to_string().into()),
                         ],
                     );
+                    self.status_file = Some(FileStatus {
+                        message: self.status.clone(),
+                        path: path.clone(),
+                    });
                     self.kml_path = path.to_string_lossy().into_owned();
                     if let Some(first) = placemarks.first() {
                         self.fly_to(
@@ -58,6 +71,10 @@ impl App {
                         "screenshot-save-success",
                         &[("path", path.display().to_string().into())],
                     );
+                    self.status_file = Some(FileStatus {
+                        message: self.status.clone(),
+                        path,
+                    });
                 }
                 Err(error) => {
                     let id = match kind {

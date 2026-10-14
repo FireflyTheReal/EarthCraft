@@ -1,8 +1,6 @@
 use super::super::App;
-use earthcraft_core::{
-    math::{fmt_dist, haversine_km},
-    placemark::Placemark,
-};
+use super::paths::short_folder;
+use earthcraft_core::{math::haversine_km, placemark::Placemark};
 use earthcraft_data::tiles::Provider;
 use eframe::egui::{self, Color32, Key, Stroke};
 impl App {
@@ -282,7 +280,7 @@ impl App {
                                 "ruler-measurement-summary",
                                 &[
                                     ("count", self.ruler_pts.len().to_string().into()),
-                                    ("distance", fmt_dist(total).into()),
+                                    ("distance", self.distance_units().distance(total).into()),
                                 ],
                             ));
                             if ui.button(lg.text("ruler-clear-action")).clicked() {
@@ -339,23 +337,4 @@ impl App {
             self.fly_to(la, lo, al);
         }
     }
-}
-
-/// Keep the recognizable directory tail while hiding machine-specific parents.
-fn short_folder(path: &str) -> String {
-    const VISIBLE_FOLDER_COMPONENTS: usize = 2;
-    let mut tail: Vec<_> = std::path::Path::new(path)
-        .components()
-        .rev()
-        .filter_map(|component| match component {
-            std::path::Component::Normal(name) => Some(name.to_string_lossy()),
-            _ => None,
-        })
-        .take(VISIBLE_FOLDER_COMPONENTS)
-        .collect();
-    tail.reverse();
-    if tail.is_empty() {
-        return path.to_string();
-    }
-    format!(".../{}", tail.join("/"))
 }

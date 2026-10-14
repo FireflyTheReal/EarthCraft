@@ -31,7 +31,7 @@ Consulte as [instruções da Apple](https://support.apple.com/pt-br/102445).
 - Busca de lugares/endereços (Nominatim) e entrada direta de coordenadas "lat, lon"
 - Voo animado até o destino (duplo clique, busca ou lista)
 - Placemarks com importação/exportação KML
-- Régua de distância geodésica (grande círculo)
+- Régua de distância geodésica (grande círculo) — quilômetros/metros ou milhas/pés conforme a localidade, com seleção nas Configurações
 - Grade lat/lon, atmosfera, estrelas, luz solar em tempo real (dia/noite)
 - Barra de escala, coordenadas do cursor, captura de tela PNG, menu de contexto
 - Renderização do globo por ray-casting na CPU ou GPU (experimental e opcional) em segundo plano, mantendo retorno automático à CPU em casos não suportados

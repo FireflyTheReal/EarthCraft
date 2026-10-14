@@ -291,3 +291,8 @@ menu-quit-action = Sair do EarthCraft
 
 sidebar-hide-tooltip = Ocultar painel lateral
 sidebar-show-tooltip = Mostrar painel lateral
+
+settings-distance-units-label = Unidades de distância
+settings-units-system = Localidade do sistema
+settings-units-metric = Quilômetros / metros
+settings-units-imperial = Milhas / pés

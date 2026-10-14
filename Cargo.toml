@@ -22,6 +22,7 @@ eframe = "0.27"
 # Native desktop menu adapters; keep GUI/platform dependencies out of the libraries.
 muda = { version = "0.19.3", default-features = false }
 emath = "0.27"
+sys-locale = "0.3"
 glam = { version = "0.34", default-features = false, features = ["std", "f64"] }
 bytemuck = { version = "1", features = ["derive"] }
 wgpu = "0.19"

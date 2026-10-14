@@ -115,6 +115,16 @@ Windows/Linux retain `assets/icon_256.png`.
 The `packaging/earthcraft.desktop` asset must still be supplied before validating
 deb output.
 
+
+Distance and path smoke checks: select System, kilometers/meters and miles/feet
+in Settings; check ruler segments/totals, camera altitude and close-view scale
+bars. Restart and verify the override persists; switching UI language must not
+change it. System locales use the regional defaults listed in ARCHITECTURE.md. Inspect folder labels and KML
+import/save/screenshot statuses: home paths use `~/…` on macOS/Linux and
+`%USERPROFILE%\…` on Windows, other long paths retain their tail with `.../`.
+Hover for full paths/messages. Resize the window and check toolbar spacing and
+that file status text does not push language/settings controls out of view.
+
 ## Resource-constrained builds
 
 For a small disk or a quick local check, reduce generated debug information and

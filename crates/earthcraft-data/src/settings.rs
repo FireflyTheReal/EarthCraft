@@ -22,6 +22,27 @@ pub fn load_lang() -> Lang {
         _ => Lang::En, // English is the default
     }
 }
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UnitPreference {
+    #[default]
+    System,
+    Metric,
+    Imperial,
+}
+impl UnitPreference {
+    pub fn resolve(
+        self,
+        system: earthcraft_core::units::DistanceUnits,
+    ) -> earthcraft_core::units::DistanceUnits {
+        use earthcraft_core::units::DistanceUnits;
+        match self {
+            Self::System => system,
+            Self::Metric => DistanceUnits::Metric,
+            Self::Imperial => DistanceUnits::Imperial,
+        }
+    }
+}
 #[derive(Clone, PartialEq, Serialize)]
 pub struct Settings {
     pub screenshot_dir: String,
@@ -29,6 +50,7 @@ pub struct Settings {
     pub ui_scale: f32,  // text size of buttons/panels
     pub map_scale: f32, // text size of map labels
     pub uncap_fps: bool,
+    pub distance_units: UnitPreference,
 }
 impl Default for Settings {
     fn default() -> Self {
@@ -38,6 +60,7 @@ impl Default for Settings {
             ui_scale: 1.0,
             map_scale: 1.0,
             uncap_fps: false,
+            distance_units: UnitPreference::System,
         }
     }
 }
@@ -56,6 +79,8 @@ struct SettingsInput {
     map_scale: Option<f64>,
     #[serde(default, deserialize_with = "crate::json_fields::boolean")]
     uncap_fps: Option<bool>,
+    #[serde(default, deserialize_with = "crate::json_fields::string")]
+    distance_units: Option<String>,
 }
 impl Settings {
     fn apply_json(&mut self, bytes: &[u8]) -> Result<(), crate::Error> {
@@ -75,6 +100,14 @@ impl Settings {
         if let Some(uncap) = input.uncap_fps {
             self.uncap_fps = uncap;
         }
+        if let Some(units) = input.distance_units {
+            self.distance_units = match units.as_str() {
+                "metric" => UnitPreference::Metric,
+                "imperial" => UnitPreference::Imperial,
+                "system" => UnitPreference::System,
+                _ => self.distance_units,
+            };
+        }
         Ok(())
     }
     pub fn load() -> Self {
@@ -89,6 +122,42 @@ impl Settings {
 mod tests {
     use super::*;
     #[test]
+    fn units_roundtrip_and_tolerate_old_or_invalid_preferences() {
+        use earthcraft_core::units::DistanceUnits;
+        let mut settings = Settings::default();
+        settings.apply_json(br#"{}"#).unwrap();
+        assert_eq!(settings.distance_units, UnitPreference::System);
+        settings
+            .apply_json(br#"{"distance_units":"imperial"}"#)
+            .unwrap();
+        assert_eq!(
+            settings.distance_units.resolve(DistanceUnits::Metric),
+            DistanceUnits::Imperial
+        );
+        for bytes in [
+            br#"{"distance_units":42}"#.as_slice(),
+            br#"{"distance_units":"unknown"}"#,
+        ] {
+            settings.apply_json(bytes).unwrap();
+            assert_eq!(settings.distance_units, UnitPreference::Imperial);
+        }
+        let bytes = serde_json::to_vec(&settings).unwrap();
+        let mut loaded = Settings::default();
+        loaded.apply_json(&bytes).unwrap();
+        assert_eq!(loaded.distance_units, UnitPreference::Imperial);
+        loaded
+            .apply_json(br#"{"distance_units":"system"}"#)
+            .unwrap();
+        assert_eq!(
+            loaded.distance_units.resolve(DistanceUnits::Metric),
+            DistanceUnits::Metric
+        );
+        assert_eq!(
+            loaded.distance_units.resolve(DistanceUnits::Imperial),
+            DistanceUnits::Imperial
+        );
+    }
+    #[test]
     fn partial_invalid_settings_preserve_valid_fields_and_clamping() {
         let mut settings = Settings {
             screenshot_dir: "pictures".into(),
@@ -96,6 +165,7 @@ mod tests {
             ui_scale: 1.0,
             map_scale: 1.0,
             uncap_fps: false,
+            distance_units: UnitPreference::System,
         };
         settings
             .apply_json(
