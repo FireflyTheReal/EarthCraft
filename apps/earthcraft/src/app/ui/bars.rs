@@ -138,8 +138,12 @@ impl App {
         egui::TopBottomPanel::bottom("bottom").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.set_clip_rect(ui.max_rect().intersect(ui.clip_rect()));
-                cursor_readout(ui, self.cursor);
-                ui.separator();
+                let sidebar_right =
+                    egui::containers::panel::PanelState::load(ctx, egui::Id::new("side")).map_or(
+                        ctx.screen_rect().left() + super::sidebar::DEFAULT_SIDEBAR_WIDTH_POINTS,
+                        |state| state.rect.right(),
+                    );
+                cursor_readout(ui, self.cursor, sidebar_right);
                 ui.monospace(lg.format(
                     "statusbar-camera-center",
                     &[
@@ -186,26 +190,35 @@ impl App {
     // ───────── Globe / Globo ─────────
 }
 
-/// Reserve coordinate-sized space even when the pointer leaves the globe.
-fn cursor_readout(ui: &mut egui::Ui, cursor: Option<(f64, f64)>) {
-    const CURSOR_LAYOUT_SAMPLE: &str = "Cursor:  -90.00000°,  -180.00000°";
-    let font = egui::TextStyle::Monospace.resolve(ui.style());
+/// Keep the coordinate slots and separator fixed at the remembered sidebar edge.
+fn cursor_readout(ui: &mut egui::Ui, cursor: Option<(f64, f64)>, sidebar_right: f32) {
+    const CURSOR_LAYOUT_SAMPLE: &str = "Cursor: -90.00000°, -180.00000°";
+    let width = (sidebar_right - ui.next_widget_position().x - ui.spacing().item_spacing.x)
+        .clamp(0.0, ui.available_width().max(0.0));
+    let mut font = egui::TextStyle::Monospace.resolve(ui.style());
     let size = ui
         .painter()
-        .layout_no_wrap(CURSOR_LAYOUT_SAMPLE.into(), font, ui.visuals().text_color())
+        .layout_no_wrap(
+            CURSOR_LAYOUT_SAMPLE.into(),
+            font.clone(),
+            ui.visuals().text_color(),
+        )
         .size();
+    // Fit all five decimals without expanding the sidebar-aligned status slot.
+    font.size = (font.size * (width / size.x).min(1.0)).max(1.0);
     ui.allocate_ui_with_layout(
-        size,
+        egui::vec2(width, size.y),
         egui::Layout::left_to_right(egui::Align::Center),
         |ui| {
-            ui.set_min_width(size.x);
+            ui.set_min_width(width);
             let text = match cursor {
                 Some((latitude, longitude)) => {
-                    format!("Cursor: {latitude:>10.5}°, {longitude:>11.5}°")
+                    format!("Cursor: {latitude:>9.5}°, {longitude:>10.5}°")
                 }
-                None => "Cursor: -, -".into(),
+                None => format!("Cursor: {:>10}, {:>11}", "-", "-"),
             };
-            ui.add(egui::Label::new(egui::RichText::new(text).monospace()).wrap(false));
+            ui.add(egui::Label::new(egui::RichText::new(text).font(font)).wrap(false));
         },
     );
+    ui.add(egui::Separator::default().vertical().spacing(0.0));
 }

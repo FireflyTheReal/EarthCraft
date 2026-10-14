@@ -3,6 +3,7 @@ use super::paths::short_folder;
 use earthcraft_core::{math::haversine_km, placemark::Placemark};
 use earthcraft_data::tiles::Provider;
 use eframe::egui::{self, Color32, Key, Stroke};
+pub(super) const DEFAULT_SIDEBAR_WIDTH_POINTS: f32 = 270.0;
 impl App {
     pub(in crate::app) fn side_panel(&mut self, ctx: &egui::Context) {
         let lg = self.lang;
@@ -17,7 +18,7 @@ impl App {
             egui::SidePanel::left("side_collapsed")
                 .frame(egui::Frame::none())
                 .exact_width(0.0),
-            egui::SidePanel::left("side").default_width(270.0),
+            egui::SidePanel::left("side").default_width(DEFAULT_SIDEBAR_WIDTH_POINTS),
             |ui, openness| {
                 let settled_openness = if self.sidebar_open { 1.0 } else { 0.0 };
                 self.sidebar_animating = openness != settled_openness;
