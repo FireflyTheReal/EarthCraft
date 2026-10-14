@@ -52,6 +52,9 @@ User instructions and the requested scope take precedence over these defaults.
   Add abstractions only for a concrete dependency boundary or multiple real uses.
 - Use workspace dependency versions and shared package metadata. Keep `Cargo.lock`
   tracked. Do not update unrelated dependencies during unrelated changes.
+- Use the latest supported major version tags for GitHub Actions rather than
+  commit hashes. For actions without version tags, use the maintained upstream
+  branch. Keep Rust toolchain versions explicit in workflow inputs.
 - Import unchanged dependency types, traits, and functions directly from their
   owning package. Do not re-export them through EarthCraft crates or hide them
   behind equivalent aliases. Declare a direct workspace dependency when needed.
