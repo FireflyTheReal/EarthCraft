@@ -24,7 +24,7 @@ Consulte as [instruções da Apple](https://support.apple.com/pt-br/102445).
 
 ### Funções
 
-- Globo 3D com órbita, zoom, rotação da vista (heading) e bússola
+- Globo 3D com órbita, zoom, rotação da vista (heading) e bússola; os controles de navegação podem ser ocultados nas Configurações
 - Imagens de satélite (Esri), ruas (OSM) e topografia (OpenTopoMap) com tiles em múltiplos níveis de zoom e cache em disco
 - Carregamento em segundo plano da visão de satélite de todo o globo na distância inicial; tiles detalhados carregam ao aproximar
 - Limpeza dos tiles baixados em disco pelas configurações

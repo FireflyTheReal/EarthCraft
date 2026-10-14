@@ -78,6 +78,9 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
 - Launch from the root and verify the icon, initial view and panels.
 - Orbit, zoom under the cursor, rotate with right-drag/Shift, use arrow keys,
   compass/north reset, navigation widgets, double-click and fly-to.
+  Toggle Settings → Hide navigation controls; verify the top-right controls
+  disappear immediately, their area accepts normal map input, reopening restores
+  controls, and the choice persists after restart (default: controls visible).
 - With background rendering, open Settings during continuous rotation/flight;
   verify input remains responsive, new imagery keeps arriving and borders/labels
   stay aligned. Stop input and check full-resolution recovery. Rapidly switch

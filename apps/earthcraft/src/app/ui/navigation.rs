@@ -24,6 +24,10 @@ impl App {
     /// Google Earth style control cluster: rotation ring, move pad and zoom slider.
     /// Returns true while the user is operating a control.
     pub(in crate::app) fn nav_controls(&mut self, ui: &mut egui::Ui, rect: Rect, dt: f64) -> bool {
+        if self.settings.hide_navigation_controls {
+            self.ring_drag = false;
+            return false;
+        }
         let lg = self.lang;
         let k = self
             .settings

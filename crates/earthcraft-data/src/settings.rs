@@ -50,6 +50,7 @@ pub struct Settings {
     pub ui_scale: f32,  // text size of buttons/panels
     pub map_scale: f32, // text size of map labels
     pub uncap_fps: bool,
+    pub hide_navigation_controls: bool,
     pub distance_units: UnitPreference,
     #[serde(serialize_with = "serialize_ruler_unit")]
     pub ruler_unit: RulerUnit,
@@ -68,6 +69,7 @@ impl Default for Settings {
             ui_scale: 1.0,
             map_scale: 1.0,
             uncap_fps: false,
+            hide_navigation_controls: false,
             distance_units: UnitPreference::System,
             ruler_unit: RulerUnit::Automatic,
         }
@@ -88,6 +90,8 @@ struct SettingsInput {
     map_scale: Option<f64>,
     #[serde(default, deserialize_with = "crate::json_fields::boolean")]
     uncap_fps: Option<bool>,
+    #[serde(default, deserialize_with = "crate::json_fields::boolean")]
+    hide_navigation_controls: Option<bool>,
     #[serde(default, deserialize_with = "crate::json_fields::string")]
     distance_units: Option<String>,
     #[serde(default, deserialize_with = "crate::json_fields::string")]
@@ -110,6 +114,9 @@ impl Settings {
         }
         if let Some(uncap) = input.uncap_fps {
             self.uncap_fps = uncap;
+        }
+        if let Some(hide) = input.hide_navigation_controls {
+            self.hide_navigation_controls = hide;
         }
         if let Some(units) = input.distance_units {
             self.distance_units = match units.as_str() {
@@ -200,6 +207,7 @@ mod tests {
             ui_scale: 1.0,
             map_scale: 1.0,
             uncap_fps: false,
+            hide_navigation_controls: false,
             distance_units: UnitPreference::System,
             ruler_unit: RulerUnit::Automatic,
         };
@@ -213,8 +221,9 @@ mod tests {
         assert_eq!(settings.ui_scale, MAX_UI_SCALE);
         assert_eq!(settings.map_scale, 1.0);
         assert!(!settings.uncap_fps);
+        assert!(!settings.hide_navigation_controls);
         settings
-            .apply_json(br#"{"kml_dir":"","ui_scale":-5,"map_scale":9,"uncap_fps":true}"#)
+            .apply_json(br#"{"kml_dir":"","ui_scale":-5,"map_scale":9,"uncap_fps":true,"hide_navigation_controls":true}"#)
             .unwrap();
         assert_eq!(settings.kml_dir, "custom");
         assert_eq!(settings.ui_scale, MIN_UI_SCALE);
@@ -222,9 +231,20 @@ mod tests {
         assert!(settings.uncap_fps);
         settings.apply_json(br#"{}"#).unwrap();
         assert!(settings.uncap_fps);
+        assert!(settings.hide_navigation_controls);
+        settings
+            .apply_json(br#"{"hide_navigation_controls":"wrong"}"#)
+            .unwrap();
+        assert!(settings.hide_navigation_controls);
         let json: serde_json::Value =
             serde_json::from_slice(&serde_json::to_vec(&settings).unwrap()).unwrap();
         assert_eq!(json["kml_dir"], "custom");
         assert_eq!(json["uncap_fps"], true);
+        assert_eq!(json["hide_navigation_controls"], true);
+        let mut restored = Settings::default();
+        restored
+            .apply_json(&serde_json::to_vec(&settings).unwrap())
+            .unwrap();
+        assert!(restored.hide_navigation_controls);
     }
 }

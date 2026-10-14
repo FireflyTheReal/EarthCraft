@@ -76,6 +76,10 @@ impl App {
                     });
                 ui.separator();
                 ui.checkbox(
+                    &mut self.settings.hide_navigation_controls,
+                    lg.text("settings-hide-navigation-controls-toggle"),
+                );
+                ui.checkbox(
                     &mut self.settings.uncap_fps,
                     lg.text("settings-uncap-fps-toggle"),
                 );

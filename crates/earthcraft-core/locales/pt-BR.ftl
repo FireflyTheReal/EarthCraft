@@ -333,3 +333,5 @@ altitude-edit-title = Altitude da câmera
 altitude-apply-action = Aplicar
 altitude-cancel-action = Cancelar
 altitude-input-error = Digite um número entre { $minimum } e { $maximum } { $unit }.
+
+settings-hide-navigation-controls-toggle = Ocultar controles de navegação
