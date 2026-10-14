@@ -1,6 +1,7 @@
 use eframe::egui::{self, FontId};
 pub(in crate::app) mod altitude;
 mod bars;
+mod cursor;
 mod navigation;
 mod paths;
 mod ruler;

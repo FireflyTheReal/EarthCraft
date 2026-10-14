@@ -148,7 +148,7 @@ impl App {
                 let sidebar_border_x = ui
                     .painter()
                     .round_to_pixel(sidebar_right - SIDEBAR_SEPARATOR_INSET_POINTS);
-                cursor_readout(ui, self.cursor, sidebar_border_x);
+                super::cursor::cursor_readout(ui, self.cursor, sidebar_border_x);
                 ui.monospace(lg.format(
                     "statusbar-camera-center",
                     &[
@@ -193,108 +193,4 @@ impl App {
     }
 
     // ───────── Globe / Globo ─────────
-}
-
-/// Keep the coordinate slots and separator fixed at the remembered sidebar edge.
-fn cursor_readout(ui: &mut egui::Ui, cursor: Option<(f64, f64)>, sidebar_border_x: f32) {
-    const CURSOR_LAYOUT_SAMPLE: &str = "Cursor: -90.00000°, -180.00000°";
-    const MIN_CURSOR_FONT_SCALE: f32 = 0.75;
-    const CURSOR_FONT_STEP_POINTS: f32 = 0.25;
-    let width = (sidebar_border_x - ui.next_widget_position().x - ui.spacing().item_spacing.x)
-        .clamp(0.0, ui.available_width().max(0.0));
-    let mut font = egui::TextStyle::Monospace.resolve(ui.style());
-    let size = ui
-        .painter()
-        .layout_no_wrap(
-            CURSOR_LAYOUT_SAMPLE.into(),
-            font.clone(),
-            ui.visuals().text_color(),
-        )
-        .size();
-    // Fit the full coordinate slots first, with a readability floor for narrow
-    // user-resized panels. Use the same sample for values and placeholders.
-    let min_font_size = font.size * MIN_CURSOR_FONT_SCALE;
-    font.size *= (width / size.x).clamp(MIN_CURSOR_FONT_SCALE, 1.0);
-    // Glyph advances are rounded at the current DPI, so proportional scaling
-    // alone can still leave the final character outside the slot.
-    while font.size > min_font_size
-        && ui
-            .painter()
-            .layout_no_wrap(
-                CURSOR_LAYOUT_SAMPLE.into(),
-                font.clone(),
-                ui.visuals().text_color(),
-            )
-            .size()
-            .x
-            > width
-    {
-        font.size = (font.size - CURSOR_FONT_STEP_POINTS).max(min_font_size);
-    }
-    ui.allocate_ui_with_layout(
-        egui::vec2(width, size.y),
-        egui::Layout::left_to_right(egui::Align::Center),
-        |ui| {
-            ui.set_min_width(width);
-            ui.set_max_width(width);
-            let text = match cursor {
-                Some((latitude, longitude)) => {
-                    format!("Cursor: {latitude:>9.5}°, {longitude:>10.5}°")
-                }
-                None => format!("Cursor: {:>10}, {:>11}", "-", "-"),
-            };
-            ui.add(egui::Label::new(egui::RichText::new(&text).font(font)).truncate(true))
-                .on_hover_text(text);
-        },
-    );
-    ui.add(egui::Separator::default().vertical().spacing(0.0));
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn cursor_slot_scales_with_width_and_does_not_push_other_fields() {
-        for border_x in [120.0, 220.0, 340.0] {
-            for cursor in [None, Some((-90.0, -180.0))] {
-                let ctx = egui::Context::default();
-                let mut normal_font_size = 0.0;
-                let output = ctx.run(egui::RawInput::default(), |ctx| {
-                    egui::TopBottomPanel::bottom("test_status").show(ctx, |ui| {
-                        normal_font_size = egui::TextStyle::Monospace.resolve(ui.style()).size;
-                        ui.horizontal(|ui| {
-                            cursor_readout(ui, cursor, border_x);
-                            let next = ui.label("Center");
-                            assert!(
-                                (next.rect.left() - border_x - ui.spacing().item_spacing.x).abs()
-                                    < 0.1
-                            );
-                        });
-                    });
-                });
-                let text = output
-                    .shapes
-                    .iter()
-                    .find_map(|shape| match &shape.shape {
-                        egui::Shape::Text(text) if text.galley.job.text.starts_with("Cursor:") => {
-                            Some(text)
-                        }
-                        _ => None,
-                    })
-                    .expect("cursor label is painted");
-                let font_size = text.galley.job.sections[0].format.font_id.size;
-                assert!(font_size >= normal_font_size * 0.75);
-                assert!(font_size <= normal_font_size);
-                if border_x == 120.0 {
-                    assert!(text.galley.elided);
-                } else {
-                    assert!(
-                        !text.galley.elided,
-                        "width={border_x} cursor={cursor:?} font={font_size} actual={:?}",
-                        text.galley.size()
-                    );
-                }
-            }
-        }
-    }
 }

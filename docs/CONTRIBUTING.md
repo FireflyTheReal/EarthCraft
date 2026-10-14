@@ -336,8 +336,9 @@ animation. The sidebar is open at startup; toggling it does not reset layer,
 placemark, ruler or section state. Reopening restores its width and scroll state.
 Closing or opening sidebar sections must keep the default or manually resized
 panel width. Oversized widgets scroll within the panel instead of changing its
-width; narrow cursor readouts truncate with a full-text tooltip and retain the
-normal UI font size. The map uses the space released by the panel. While it animates, frame submission
+width; cursor readouts shrink their font, then reduce decimal precision to keep
+both coordinates visible without ellipsis. The comma stays in place when the
+pointer leaves the globe. The map uses the space released by the panel. While it animates, frame submission
 and publication pause; in-flight jobs can finish without blocking egui. Keep the
 previous frame and overlays at their original rectangle, clipped to the available
 map area, until a compatible frame for the settled viewport arrives. KML drops
