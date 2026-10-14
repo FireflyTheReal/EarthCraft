@@ -137,8 +137,9 @@ def package(version, target, binary, output):
                 stream.write(executable, executable.name)
     with archive.open("rb") as stream:
         digest = hashlib.file_digest(stream, "sha256").hexdigest()
-    archive.with_name(archive.name + ".sha256").write_text(
-        f"{digest}  {archive.name}\n", encoding="utf-8"
+    # Checksum manifests are consumed on Linux; never translate LF to Windows CRLF.
+    archive.with_name(archive.name + ".sha256").write_bytes(
+        f"{digest}  {archive.name}\n".encode("utf-8")
     )
     print(archive)
 

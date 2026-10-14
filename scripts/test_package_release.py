@@ -1,6 +1,7 @@
 """Offline archive, metadata and release-version regression checks."""
 
 import hashlib
+import os
 from pathlib import Path
 import tarfile
 import tempfile
@@ -33,7 +34,8 @@ class ReleasePackagingTests(unittest.TestCase):
                         with tarfile.open(archive) as contents:
                             self.assertEqual(contents.getnames(), ["earthcraft"])
                             executable = contents.getmember("earthcraft")
-                            self.assertEqual(executable.mode & 0o777, 0o755)
+                            if os.name != "nt":
+                                self.assertEqual(executable.mode & 0o777, 0o755)
                             self.assertEqual(contents.extractfile(executable).read(), binary.read_bytes())
                     else:
                         with zipfile.ZipFile(archive) as contents:
@@ -41,8 +43,8 @@ class ReleasePackagingTests(unittest.TestCase):
                             self.assertEqual(contents.read("earthcraft.exe"), binary.read_bytes())
                     expected = hashlib.sha256(archive.read_bytes()).hexdigest()
                     self.assertEqual(
-                        archive.with_name(archive.name + ".sha256").read_text(),
-                        f"{expected}  {archive.name}\n",
+                        archive.with_name(archive.name + ".sha256").read_bytes(),
+                        f"{expected}  {archive.name}\n".encode("utf-8"),
                     )
 
     def test_version_and_binary_validation(self):
