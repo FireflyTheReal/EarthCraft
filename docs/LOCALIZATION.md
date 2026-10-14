@@ -33,10 +33,10 @@ punctuation and word order in Fluent rather than joining translated fragments.
 Static labels are cached after first use; the shared concurrent bundles can also
 be used by background KML imports. There is no runtime file I/O.
 
-Pass counts and preformatted coordinates as strings when preserving the
-ungrouped numbers and decimal precision. Numeric Fluent values and plural/select
-expressions are available for deliberate wording improvements; review those as
-UI changes. Fluent isolation is disabled for the current English/Portuguese
+Pass preformatted coordinates as strings to preserve decimal precision. Use
+numeric counts and Fluent select expressions for singular/plural messages rather
+than parenthesized endings such as `result(s)`. Search and KML import messages
+cover zero, one and multiple items; tests retain ungrouped counts. Fluent isolation is disabled for the current English/Portuguese
 catalogs to retain output. Review bidirectional text handling before
 introducing an RTL language.
 
@@ -68,8 +68,9 @@ para rótulos estáticos e `Lang::format` para mensagens completas com argumento
 Pontuação e ordem das palavras pertencem ao catálogo. Os arquivos ficam embutidos
 no executável e exigem uma recompilação depois de editar.
 
-Mantenha contagens e coordenadas como strings quando precisar conservar a
-formatação original. Mensagens ausentes usam inglês como fallback; falhas nas duas
+Mantenha coordenadas pré-formatadas como strings para conservar a precisão.
+Use contagens numéricas e expressões de seleção do Fluent para singular e plural,
+sem terminações entre parênteses como `resultado(s)`. Mensagens ausentes usam inglês como fallback; falhas nas duas
 línguas mostram a chave. Os testes verificam sintaxe, chaves, variáveis, resolução
 e os textos originais. Execute os testes de core e confira a troca de idioma na
 interface. Nomes geográficos continuam vindos dos serviços. Logs e mensagens de erro do

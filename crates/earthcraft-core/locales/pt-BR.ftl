@@ -190,7 +190,11 @@ kml-save-success = Salvo em { $path }
 
 kml-save-error = Erro ao salvar: { $error }
 
-kml-import-success = { $count } local(is) importado(s). — { $path }
+kml-import-success =
+    { $count ->
+        [1] { $count } local importado.
+       *[other] { $count } locais importados.
+    } — { $path }
 
 kml-open-error = Erro ao abrir: { $error }
 
@@ -200,7 +204,11 @@ screenshot-save-error = Erro: { $error }
 
 search-navigation-status = Indo para { $destination }
 
-search-results-status = { $count } resultado(s).
+search-results-status =
+    { $count ->
+        [1] { $count } resultado encontrado.
+       *[other] { $count } resultados encontrados.
+    }
 
 search-request-error = Erro na busca: { $error }
 

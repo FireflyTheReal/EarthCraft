@@ -99,6 +99,9 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
 - Switch satellite/streets/topography/historical imagery; verify loading,
   release selection, fallback and attribution.
 - Search by coordinates and address; select suggestions with mouse and keyboard.
+  Clear the field after results arrive and during a pending lookup; the old count,
+  result list and late responses must not return. Check singular/plural result
+  and KML import messages in both languages.
 - Toggle borders, city/metropolitan layers, labels, grid, atmosphere and sunlight.
 - For overlay caching, toggle label/border layers while stationary, switch
   language/map text size, and resize. Verify updates without camera movement;

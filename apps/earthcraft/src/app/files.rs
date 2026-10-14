@@ -48,7 +48,7 @@ impl App {
                     self.status = self.lang.format(
                         "kml-import-success",
                         &[
-                            ("count", placemarks.len().to_string().into()),
+                            ("count", placemarks.len().into()),
                             ("path", path.display().to_string().into()),
                         ],
                     );
