@@ -280,7 +280,7 @@ impl eframe::App for App {
             self.status = format!("Local prefix index failed: {error}");
         }
         self.poll_search();
-        self.poll_cache_clear();
+        self.poll_cache_clear(ctx);
         if let Some(snapshot) = self.boundaries_rx.take_latest() {
             self.merge_snapshot(snapshot);
         }
