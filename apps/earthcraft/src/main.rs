@@ -10,8 +10,9 @@
 
 mod app;
 mod presentation;
-use app::App;
+use app::{App, RestartRequest};
 use eframe::egui;
+use std::sync::{Arc, atomic::Ordering};
 const INITIAL_WINDOW_SIZE_POINTS: [f32; 2] = [1280.0, 800.0];
 const APP_ICON_PNG: &[u8] = std::cfg_select! {
     target_os = "macos" => include_bytes!("../../../assets/macos/icon.png"),
@@ -21,27 +22,47 @@ const APP_ICON_PNG: &[u8] = std::cfg_select! {
 fn main() -> Result<(), eframe::Error> {
     #[cfg(feature = "profiling")]
     earthcraft_data::profiling::init();
-    let settings = earthcraft_data::settings::Settings::load();
-    let mut viewport = egui::ViewportBuilder::default()
-        .with_inner_size(INITIAL_WINDOW_SIZE_POINTS)
-        .with_title("EarthCraft")
-        .with_app_id("earthcraft");
-    if let Ok(img) = image::load_from_memory(APP_ICON_PNG) {
-        let img = img.to_rgba8();
-        viewport = viewport.with_icon(egui::IconData {
-            width: img.width(),
-            height: img.height(),
-            rgba: img.into_raw(),
-        });
+    let restart = Arc::new(RestartRequest::default());
+    loop {
+        let settings = earthcraft_data::settings::Settings::load();
+        let mut viewport = egui::ViewportBuilder::default()
+            .with_inner_size(INITIAL_WINDOW_SIZE_POINTS)
+            .with_title("EarthCraft")
+            .with_app_id("earthcraft");
+        if let Ok(img) = image::load_from_memory(APP_ICON_PNG) {
+            let img = img.to_rgba8();
+            viewport = viewport.with_icon(egui::IconData {
+                width: img.width(),
+                height: img.height(),
+                rgba: img.into_raw(),
+            });
+        }
+        let options = eframe::NativeOptions {
+            viewport,
+            wgpu_options: presentation::configuration(settings.uncap_fps),
+            ..Default::default()
+        };
+        let app_restart = restart.clone();
+        eframe::run_native(
+            "EarthCraft",
+            options,
+            Box::new(move |cc| Ok(Box::new(App::new(cc, settings, app_restart)))),
+        )?;
+        // run_native has closed the window and dropped App, flushing preferences and
+        // stopping its workers before the updated executable replaces this process.
+        if !restart.requested.swap(false, Ordering::AcqRel) {
+            return Ok(());
+        }
+        if restart.error.lock().unwrap().is_some() {
+            continue;
+        }
+        match self_update::restart::restart() {
+            Ok(never) => match never {},
+            Err(error) => {
+                *restart.error.lock().unwrap() = Some(format!(
+                    "Restart failed: {error}. Save your work and relaunch EarthCraft manually, or click Restart to update to retry."
+                ));
+            }
+        }
     }
-    let options = eframe::NativeOptions {
-        viewport,
-        wgpu_options: presentation::configuration(settings.uncap_fps),
-        ..Default::default()
-    };
-    eframe::run_native(
-        "EarthCraft",
-        options,
-        Box::new(move |cc| Ok(Box::new(App::new(cc, settings)))),
-    )
 }

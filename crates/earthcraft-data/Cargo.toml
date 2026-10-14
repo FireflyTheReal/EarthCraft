@@ -30,3 +30,5 @@ rayon.workspace = true
 rusqlite.workspace = true
 tokio-rusqlite.workspace = true
 fst.workspace = true
+self_update.workspace = true
+semver.workspace = true

@@ -49,12 +49,12 @@ impl Explorer {
         );
     }
 
-    pub(super) fn request_open(&mut self, path: PathBuf, jobs: &FileJobs) {
+    pub(in crate::app) fn request_open(&mut self, path: PathBuf, jobs: &FileJobs) {
         self.submitted(jobs.open_planet(path), true);
     }
 
-    pub(super) fn request_save(&mut self, path: PathBuf, jobs: &FileJobs) {
-        let snapshot = PlanetSave {
+    pub(in crate::app) fn save_snapshot(&self, path: PathBuf) -> PlanetSave {
+        PlanetSave {
             path,
             name: self.name.clone(),
             texture: source(&self.image_path, &self.image_bytes),
@@ -63,8 +63,11 @@ impl Explorer {
             } else {
                 Some(source(&self.sky_path, &self.sky_bytes))
             },
-        };
-        self.submitted(jobs.save_planet(snapshot), false);
+        }
+    }
+
+    pub(super) fn request_save(&mut self, path: PathBuf, jobs: &FileJobs) {
+        self.submitted(jobs.save_planet(self.save_snapshot(path)), false);
     }
 
     fn finished(&mut self) {

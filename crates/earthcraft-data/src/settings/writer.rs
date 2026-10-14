@@ -103,14 +103,26 @@ impl SettingsWriter {
     pub fn take_error(&self) -> Option<String> {
         self.shared.pending.lock().unwrap().error.take()
     }
+    /// Final shutdown only: wait for the latest writes and report failures.
+    pub fn finish(&mut self) -> Result<(), crate::Error> {
+        self.shared.pending.lock().unwrap().stopped = true;
+        self.shared.wake.notify_one();
+        if let Some(thread) = self.thread.take() {
+            thread
+                .join()
+                .map_err(|_| crate::Error::from("Settings writer panicked during shutdown"))?;
+        }
+        match self.take_error() {
+            Some(error) => Err(crate::Error::from(error)),
+            None => Ok(()),
+        }
+    }
 }
 impl Drop for SettingsWriter {
     fn drop(&mut self) {
-        self.shared.pending.lock().unwrap().stopped = true;
-        self.shared.wake.notify_one();
         // Flush on final application shutdown only; normal UI updates never wait.
-        if let Some(thread) = self.thread.take() {
-            let _ = thread.join();
+        if let Err(error) = self.finish() {
+            eprintln!("Settings persistence failed during shutdown: {error}");
         }
     }
 }
@@ -118,6 +130,19 @@ impl Drop for SettingsWriter {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn explicit_shutdown_reports_final_write_failures() {
+        let root = std::env::temp_dir().join(format!(
+            "earthcraft-settings-failure-{}",
+            std::process::id()
+        ));
+        std::fs::write(&root, "not a directory").unwrap();
+        let mut writer = SettingsWriter::at(root.clone(), || {}).unwrap();
+        writer.settings(&Settings::default());
+        let result = writer.finish();
+        std::fs::remove_file(root).unwrap();
+        assert!(result.is_err());
+    }
     #[test]
     fn shutdown_flushes_latest_settings_and_language_without_touching_other_files() {
         struct Fixture(PathBuf);

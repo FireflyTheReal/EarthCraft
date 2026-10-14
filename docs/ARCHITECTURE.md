@@ -226,6 +226,23 @@ meshes and text galleys for the current geometry, preserving paint order; glyph 
 are not baked into cached meshes. No aircraft decoding, deduplication, sorting or
 geographic projection runs in a widget callback.
 
+## Application updates
+
+Data's `updater` service uses the async GitHub backend from `self_update` 1.3
+on the injected service runtime. It retains the selected stable version, exact
+tag and asset identity, requires GitHub's SHA-256 digest, coalesces progress through
+one watch snapshot and wakes the UI after publication. Downloads/installations are
+click-triggered and single-flight. Library verification/extraction/replacement
+runs off the UI thread; macOS replaces and verifies the whole app bundle.
+Development and managed installations use the official release-page fallback.
+
+The desktop owns the centered bottom-bar notice and restart/save orchestration.
+It reuses native save dialogs and the bounded file service, waits for file
+completions without blocking egui, and closes normally. Startup relaunches only
+after `run_native` returns, so preference flushing and app teardown precede restart.
+A failed restart reopens the desktop with an inline error and the saved documents.
+See [releases](RELEASING.md) for artifact names, install policy and integrity limits.
+
 ## Cache ownership
 
 | Storage | Policy |

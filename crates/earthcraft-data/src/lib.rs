@@ -26,4 +26,5 @@ pub mod planet;
 pub mod roads;
 pub mod satellites;
 pub mod traffic;
+pub mod updater;
 pub mod vessels;

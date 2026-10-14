@@ -64,6 +64,7 @@ impl App {
             {
                 continue;
             }
+            self.update_restart.file_completed(kind, &result);
             match result {
                 Ok(FileOutcome::KmlRestored { files }) => {
                     for file in files {
@@ -178,7 +179,7 @@ impl App {
         }
     }
 
-    pub(super) fn pick_kml_save_as(&mut self) {
+    pub(super) fn choose_kml_save_path(&self) -> Option<PathBuf> {
         let dir = PathBuf::from(&self.settings.kml_dir);
         let name = std::path::Path::new(&self.kml_path)
             .file_name()
@@ -197,6 +198,14 @@ impl App {
             if path.extension().is_none() {
                 path.set_extension("kml");
             }
+            Some(path)
+        } else {
+            None
+        }
+    }
+
+    pub(super) fn pick_kml_save_as(&mut self) {
+        if let Some(path) = self.choose_kml_save_path() {
             self.save_kml_to(path);
         }
     }

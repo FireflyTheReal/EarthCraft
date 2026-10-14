@@ -6,7 +6,11 @@ pub use images::{ImageSource, ImageTarget, LoadedImage, PlanetSave};
 pub use session::RestoredKml;
 use std::{
     path::PathBuf,
-    sync::{Arc, mpsc},
+    sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+        mpsc,
+    },
 };
 const PENDING_FILE_JOBS: usize = 4;
 
@@ -125,6 +129,7 @@ impl Job {
 }
 pub struct FileJobs {
     sender: tokio::sync::mpsc::Sender<Job>,
+    outstanding: Arc<AtomicUsize>,
 }
 impl FileJobs {
     pub fn new(
@@ -134,17 +139,27 @@ impl FileJobs {
         let (sender, mut jobs) = tokio::sync::mpsc::channel::<Job>(PENDING_FILE_JOBS);
         let (results, receiver) = mpsc::channel();
         let repaint: Arc<dyn Fn() + Send + Sync> = Arc::new(repaint);
+        let outstanding = Arc::new(AtomicUsize::new(0));
+        let worker_outstanding = outstanding.clone();
         runtime.spawn(async move {
             while let Some(job) = jobs.recv().await {
                 let kind = job.kind();
                 let result = crate::cpu::run(crate::cpu::Service::Files, move || job.run()).await;
-                if results.send(FileCompletion { kind, result }).is_err() {
+                let published = results.send(FileCompletion { kind, result });
+                worker_outstanding.fetch_sub(1, Ordering::Release);
+                if published.is_err() {
                     return;
                 }
                 repaint();
             }
         });
-        (Self { sender }, receiver)
+        (
+            Self {
+                sender,
+                outstanding,
+            },
+            receiver,
+        )
     }
     fn reserve(&self) -> Result<tokio::sync::mpsc::Permit<'_, Job>, crate::Error> {
         self.sender.try_reserve().map_err(|error| match error {
@@ -156,21 +171,28 @@ impl FileJobs {
             }
         })
     }
+    /// Includes queued and active work; restart waits without blocking the UI.
+    pub fn is_busy(&self) -> bool {
+        self.outstanding.load(Ordering::Acquire) != 0
+    }
+    fn submit(&self, job: Job) -> Result<(), crate::Error> {
+        let permit = self.reserve()?;
+        self.outstanding.fetch_add(1, Ordering::Release);
+        permit.send(job);
+        Ok(())
+    }
     /// Restore saved sources on the ordered file worker, without blocking the UI.
     pub fn restore_kml(&self, lang: Lang) -> Result<(), crate::Error> {
-        self.reserve()?.send(Job::Restore(
+        self.submit(Job::Restore(
             crate::paths::cache_dir().join("open-kml.json"),
             lang,
-        ));
-        Ok(())
+        ))
     }
     pub fn open_kml(&self, path: PathBuf, lang: Lang) -> Result<(), crate::Error> {
-        self.reserve()?.send(Job::Open(path, lang));
-        Ok(())
+        self.submit(Job::Open(path, lang))
     }
     pub fn save_kml(&self, path: PathBuf, marks: &Places) -> Result<(), crate::Error> {
-        self.reserve()?.send(Job::Save(path, marks.clone()));
-        Ok(())
+        self.submit(Job::Save(path, marks.clone()))
     }
     pub fn screenshot(
         &self,
@@ -179,21 +201,16 @@ impl FileJobs {
         height: u32,
         pixels: &Arc<Vec<u8>>,
     ) -> Result<(), crate::Error> {
-        self.reserve()?
-            .send(Job::Screenshot(path, width, height, pixels.clone()));
-        Ok(())
+        self.submit(Job::Screenshot(path, width, height, pixels.clone()))
     }
     pub fn load_image(&self, target: ImageTarget, source: ImageSource) -> Result<(), crate::Error> {
-        self.reserve()?.send(Job::Image(target, source));
-        Ok(())
+        self.submit(Job::Image(target, source))
     }
     pub fn open_planet(&self, path: PathBuf) -> Result<(), crate::Error> {
-        self.reserve()?.send(Job::OpenPlanet(path));
-        Ok(())
+        self.submit(Job::OpenPlanet(path))
     }
     pub fn save_planet(&self, snapshot: PlanetSave) -> Result<(), crate::Error> {
-        self.reserve()?.send(Job::SavePlanet(snapshot));
-        Ok(())
+        self.submit(Job::SavePlanet(snapshot))
     }
 }
 

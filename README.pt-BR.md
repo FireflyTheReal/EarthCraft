@@ -27,6 +27,7 @@ Consulte as [instruções da Apple](https://support.apple.com/pt-br/102445).
 - Globo 3D com órbita, zoom, rotação da vista, rumo na barra inferior e bússola nos controles; os controles de navegação podem ser ocultados nas Configurações
 - Imagens de satélite (Esri), ruas (OSM) e topografia (OpenTopoMap) com tiles em múltiplos níveis de zoom e cache em disco
 - Carregamento em segundo plano da visão de satélite de todo o globo na distância inicial; tiles detalhados carregam ao aproximar
+- Aviso discreto de atualização na barra inferior: clique para baixar/instalar e depois salvar e reiniciar; no macOS, o pacote completo do app é atualizado (veja [os detalhes](docs/RELEASING.md#in-app-updates))
 - Limpeza dos tiles baixados em disco pelas configurações
 - Busca de lugares/endereços (Nominatim) e entrada direta de coordenadas "lat, lon"
 - Voo animado até o destino (duplo clique, busca ou lista)

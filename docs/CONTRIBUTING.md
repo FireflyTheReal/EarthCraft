@@ -470,3 +470,23 @@ Its scientific Earth-model dropdown must remain unchanged. Verify the illustrati
 still matches its original layout, rotation, UV seam and rim; resize and change
 DPI, exit while its image loads, then reopen. Stationary repaints should reuse
 cached meshes. Automated headless tests do not replace these native checks.
+
+## Update notice and restart smoke checks
+
+Use isolated settings/cache and a disposable portable installation, never the
+only working app. Check startup without GitHub access: it must remain responsive,
+with a retry tooltip rather than a dialog. Confirm the bottom-bar notice is
+centered between tile status and heading in both languages and hidden when current
+or when no matching target asset exists. Resize and change UI scale; the heading
+and existing status must retain their space. Keyboard-focus and activate the
+notice. Repeated clicks must start only one download. Keep using the globe during
+check/download/install and confirm the spinner wakes through the final result.
+
+On a disposable macOS app bundle, install from the updater ZIP and verify the
+whole bundle with `codesign --verify --deep --strict`. A bad digest/signature must
+keep the installed app intact. Repeat portable replacement and restart on native
+Windows/Linux. Managed or protected installs must open Releases without elevation.
+For restart, cancel each save dialog and simulate a save failure: the process must
+stay open. Save places/custom planet, restart and reopen their contents; settings
+and language must survive. Close normally during a check/download. Do not report
+real replacement/restart as verified unless run against disposable native builds.

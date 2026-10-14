@@ -32,7 +32,9 @@ mod ruler_history;
 mod search;
 mod traffic;
 mod ui;
+mod update_restart;
 mod wayback;
+pub(crate) use update_restart::RestartRequest;
 const INITIAL_CAMERA: Cam = Cam {
     lat: -15.0,
     lon: -50.0,
@@ -48,6 +50,8 @@ pub(crate) struct App {
     #[cfg(target_os = "macos")]
     native_menu: Option<menu::NativeMenu>,
     runtime: earthcraft_data::runtime::ServiceRuntime,
+    updater: earthcraft_data::updater::UpdateService,
+    update_restart: update_restart::UpdateRestart,
     explorer: explorer::Explorer,
     flat_earth: flat_earth::FlatEarth,
     boundary_loader: earthcraft_data::boundaries::BoundaryLoader,
@@ -156,7 +160,12 @@ impl App {
         self.settings.distance_units.resolve(self.system_units)
     }
 
-    pub(crate) fn new(cc: &eframe::CreationContext<'_>, settings: Settings) -> Self {
+    pub(crate) fn new(
+        cc: &eframe::CreationContext<'_>,
+        settings: Settings,
+        restart: Arc<RestartRequest>,
+    ) -> Self {
+        let settings = restart.settings.lock().unwrap().take().unwrap_or(settings);
         let mut vis = egui::Visuals::dark();
         vis.handle_shape = egui::style::HandleShape::Circle;
         vis.window_corner_radius = 6.0.into();
@@ -188,6 +197,11 @@ impl App {
             move || ctx.request_repaint()
         });
         let mut app = App {
+            updater: earthcraft_data::updater::UpdateService::new(runtime.handle(), {
+                let ctx = cc.egui_ctx.clone();
+                move || ctx.request_repaint()
+            }),
+            update_restart: update_restart::UpdateRestart::new(restart.clone()),
             #[cfg(target_os = "macos")]
             native_menu: None,
             explorer: explorer::Explorer::default(),
@@ -297,6 +311,15 @@ impl App {
             runtime,
         };
         app.restore_kml_session();
+        if let Some(error) = &app.update_restart.error {
+            app.status = error.clone();
+        }
+        if let Some(version) = restart.installed_version.lock().unwrap().as_deref() {
+            app.updater.resume_installed(version);
+        }
+        if let Some(path) = restart.planet.lock().unwrap().take() {
+            app.explorer.request_open(path, &app.file_jobs);
+        }
         #[cfg(target_os = "macos")]
         {
             app.with_native_menu(cc)
@@ -308,11 +331,24 @@ impl App {
     }
 }
 impl eframe::App for App {
-    #[cfg(feature = "profiling")]
     fn on_exit(&mut self) {
+        if self
+            .update_restart
+            .request
+            .requested
+            .load(std::sync::atomic::Ordering::Acquire)
+            && let Err(error) = self.settings_writer.finish()
+        {
+            *self.update_restart.request.error.lock().unwrap() = Some(format!(
+                "Settings save before restart failed: {error}. Click Restart to update to retry."
+            ));
+        }
+        #[cfg(feature = "profiling")]
         earthcraft_data::profiling::flush();
     }
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.updater.start_once();
+        self.updater.poll();
         let aircraft_enabled = self.show_flights
             && self.explorer.active == earthcraft_core::body::Body::Earth
             && !self.flat_earth.open;
@@ -366,6 +402,7 @@ impl eframe::App for App {
             ctx.request_repaint_after(Duration::from_secs(30));
         }
         self.poll_files(ctx);
+        self.poll_update_restart(ctx);
         self.ensure_wayback(ctx);
         self.poll_wayback();
         self.poll_suggestions(ctx);
@@ -397,13 +434,17 @@ impl eframe::App for App {
         if let Some(error) = self.settings_writer.take_error() {
             self.status = format!("Settings persistence failed: {error}");
         }
-        #[cfg(target_os = "macos")]
-        self.poll_native_menu(ui);
-        #[cfg(not(target_os = "macos"))]
-        self.file_shortcuts(ui);
-        self.ruler_shortcuts(ui);
-        self.flat_earth_shortcuts(ui.ctx());
-        self.handle_dropped_files(ui);
+        if self.update_restart.is_saving() {
+            ui.disable();
+        } else {
+            #[cfg(target_os = "macos")]
+            self.poll_native_menu(ui);
+            #[cfg(not(target_os = "macos"))]
+            self.file_shortcuts(ui);
+            self.ruler_shortcuts(ui);
+            self.flat_earth_shortcuts(ui.ctx());
+            self.handle_dropped_files(ui);
+        }
         self.step_fly(dt);
         if self.fly.is_some() {
             ui.request_repaint();
