@@ -384,3 +384,12 @@ ruler-point-apply-action = Apply
 ruler-point-add-action = Add point
 ruler-point-new-action = New point
 ruler-point-close-action = Close
+
+places-root-name = My Places
+places-document-name = Document
+places-folder-name = New folder
+places-add-folder-action = + Folder
+places-delete-action = Delete
+places-visible-help = Show this place and its children on the globe
+places-empty-help = Open a KML file or add a place. Drag places into folders to organize them.
+places-description-placeholder = Description

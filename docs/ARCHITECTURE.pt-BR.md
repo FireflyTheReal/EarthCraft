@@ -121,3 +121,5 @@ de arquivos nativos ou leitura de GPU compatíveis com WebAssembly. O frontend w
 ainda precisa de adaptadores de rede, armazenamento e execução do navegador.
 A projeção meteorológica e a construção das malhas mantêm seu agendamento atual;
 essa mudança não adiciona tarefas em segundo plano.
+
+A árvore de lugares pertence ao core e preserva Documentos/Pastas KML, ordem, nomes, descrições, pastas vazias e visibilidade herdada. A interface permite seleção, edição e movimentos sem ciclos; a leitura e gravação continuam no serviço de arquivos. Geometrias não suportadas mantêm a política de importar apenas a primeira coordenada.
