@@ -76,11 +76,7 @@ O painel Explorar e a barra superior acompanham o seletor de idioma no canto sup
 ### Aceleração por GPU (experimental e opcional)
 
 O EarthCraft possui um renderizador experimental e opcional via `wgpu`.
-Toda renderização do globo na GPU é **experimental** em todas as plataformas e
-pode travar ou falhar em alguns dispositivos ou drivers. O retorno à CPU não
-recupera uma chamada bloqueada no driver da GPU. A CPU continua sendo o padrão.
-Os downloads de releases usam somente CPU. Use `EARTHCRAFT_RENDERER=cpu` para
-evitar a inicialização do renderizador do globo na GPU. Para experimentar GPU, use
+A CPU continua sendo o padrão. Para experimentar GPU, use
 `EARTHCRAFT_RENDERER=auto` (quadros grandes) ou `EARTHCRAFT_RENDERER=gpu`
 (forçar tentativa). Falhas de inicialização ou indisponibilidade de GPU
 retornam à CPU. Visualizações muito próximas e a grade usam CPU.
