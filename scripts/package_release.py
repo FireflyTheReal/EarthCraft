@@ -71,7 +71,7 @@ def package(version, target, binary, output):
             executable.parent.mkdir(parents=True)
             resources = contents / "Resources"
             resources.mkdir()
-            shutil.copy2(ROOT / "assets" / "icon.icns", resources / "EarthCraft.icns")
+            shutil.copy2(ROOT / "assets" / "macos" / "icon.icns", resources / "EarthCraft.icns")
             with (contents / "Info.plist").open("wb") as stream:
                 plistlib.dump(
                     {
@@ -99,10 +99,34 @@ def package(version, target, binary, output):
                 ["codesign", "--verify", "--deep", "--strict", str(app)], check=True
             )
         if extension == ".dmg":
-            subprocess.run(
-                ["hdiutil", "create", "-volname", "EarthCraft", "-srcfolder",
-                 str(payload), "-format", "UDZO", "-ov", str(archive)],
-                check=True,
+            try:
+                import dmgbuild
+            except ImportError as error:
+                raise ValueError(
+                    "macOS packaging requires dmgbuild; install with "
+                    "python -m pip install dmgbuild==1.6.7"
+                ) from error
+            # Hiding .app extensions writes FinderInfo onto the signed bundle,
+            # which fails strict signature verification. Leave its metadata intact.
+            dmgbuild.build_dmg(
+                str(archive),
+                "EarthCraft",
+                settings={
+                    "format": "UDZO",
+                    "files": [str(app)],
+                    "symlinks": {"Applications": "/Applications"},
+                    "background": str(ROOT / "assets" / "macos" / "dmg-background.png"),
+                    "window_rect": ((200, 200), (640, 270)),
+                    "default_view": "icon-view",
+                    "icon_size": 128,
+                    "text_size": 14,
+                    # Finder adds padding inside each icon cell. The background
+                    # arrow aligns with the displayed centers, including that inset.
+                    "icon_locations": {
+                        "EarthCraft.app": (150, 70),
+                        "Applications": (490, 70),
+                    },
+                },
             )
             subprocess.run(["hdiutil", "verify", str(archive)], check=True)
         elif extension == ".tar.gz":

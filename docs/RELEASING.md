@@ -27,7 +27,10 @@ does not establish a trusted publisher or remove Gatekeeper prompts.
 The separate macOS build
 artifacts are intermediate files and are not published as release downloads.
 Windows/Linux archives contain just the executable at their root. On macOS,
-open the DMG and copy `EarthCraft.app` to Applications. There are no bundled
+open the DMG and drag EarthCraft along the arrow onto the Applications shortcut.
+The window opens in icon view with the app on the left and Applications on the
+right. Only those two items are visible; Finder layout/background metadata stays
+hidden. There are no bundled
 READMEs, agent rules, contributor docs, changelogs or release text files. Build/package checks do not verify
 interactive runtime behavior: manually test downloads on the supported platforms
 before announcing them.
@@ -130,16 +133,23 @@ python3 scripts/package_release.py package --version 0.1.0 --target x86_64-unkno
 Use the target and executable name for your native platform. For explicit-target
 builds, the executable lives under `target/<target>/release/`.
 The helper packages binaries; it does not cross-compile them. The universal macOS
-packaging target additionally requires `lipo`, `codesign` and `hdiutil`. It verifies
+packaging target additionally requires `lipo`, `codesign`, `hdiutil` and the
+packaging-only Python tool `dmgbuild==1.6.7`. It verifies
 both architecture slices, signs the app, creates a compressed read-only DMG and
 verifies the disk image.
 
+`dmgbuild` writes the Finder layout directly, using the white background and gray
+arrow in `assets/macos/dmg-background{,@2x}.png` and an `/Applications` symlink. No
+Finder automation or app runtime dependency is needed. The standard and Retina
+backgrounds are checked-in image assets; packaging uses them directly.
 To reproduce the universal macOS artifact:
 
 ```sh
+python3 -m venv /tmp/earthcraft-packaging
+/tmp/earthcraft-packaging/bin/python -m pip install dmgbuild==1.6.7
 rustup target add aarch64-apple-darwin x86_64-apple-darwin
 MACOSX_DEPLOYMENT_TARGET=11.0 cargo build -p earthcraft --release --no-default-features --locked --target aarch64-apple-darwin
 MACOSX_DEPLOYMENT_TARGET=11.0 cargo build -p earthcraft --release --no-default-features --locked --target x86_64-apple-darwin
 lipo -create target/aarch64-apple-darwin/release/earthcraft target/x86_64-apple-darwin/release/earthcraft -output /tmp/earthcraft-universal
-python3 scripts/package_release.py package --version 0.1.0 --target universal-apple-darwin --binary /tmp/earthcraft-universal --output /tmp/earthcraft-release
+/tmp/earthcraft-packaging/bin/python scripts/package_release.py package --version 0.1.0 --target universal-apple-darwin --binary /tmp/earthcraft-universal --output /tmp/earthcraft-release
 ```
