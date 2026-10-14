@@ -18,14 +18,14 @@ impl App {
             egui::SidePanel::left("side_collapsed")
                 .frame(egui::Frame::none())
                 .exact_width(0.0),
-            egui::SidePanel::left("side").default_width(DEFAULT_SIDEBAR_WIDTH_POINTS),
+            expanded_sidebar_panel(),
             |ui, openness| {
                 let settled_openness = if self.sidebar_open { 1.0 } else { 0.0 };
                 self.sidebar_animating = openness != settled_openness;
                 if openness < 1.0 {
                     return;
                 }
-                egui::ScrollArea::vertical().show(ui, |ui| {
+                sidebar_scroll_area().show(ui, |ui| {
                     egui::CollapsingHeader::new(lg.text("layers-section-title"))
                         .default_open(true)
                         .show(ui, |ui| {
@@ -356,3 +356,15 @@ impl App {
         }
     }
 }
+
+fn expanded_sidebar_panel() -> egui::SidePanel {
+    egui::SidePanel::left("side").default_width(DEFAULT_SIDEBAR_WIDTH_POINTS)
+}
+fn sidebar_scroll_area() -> egui::ScrollArea {
+    // Keep the allocated viewport when sections close, and scroll oversized
+    // widgets rather than letting them resize the panel when sections reopen.
+    egui::ScrollArea::both().auto_shrink([false, false])
+}
+
+#[cfg(test)]
+mod tests;

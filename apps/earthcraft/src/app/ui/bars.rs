@@ -200,7 +200,7 @@ fn cursor_readout(ui: &mut egui::Ui, cursor: Option<(f64, f64)>, sidebar_border_
     const CURSOR_LAYOUT_SAMPLE: &str = "Cursor: -90.00000°, -180.00000°";
     let width = (sidebar_border_x - ui.next_widget_position().x - ui.spacing().item_spacing.x)
         .clamp(0.0, ui.available_width().max(0.0));
-    let mut font = egui::TextStyle::Monospace.resolve(ui.style());
+    let font = egui::TextStyle::Monospace.resolve(ui.style());
     let size = ui
         .painter()
         .layout_no_wrap(
@@ -209,21 +209,55 @@ fn cursor_readout(ui: &mut egui::Ui, cursor: Option<(f64, f64)>, sidebar_border_
             ui.visuals().text_color(),
         )
         .size();
-    // Fit all five decimals without expanding the sidebar-aligned status slot.
-    font.size = (font.size * (width / size.x).min(1.0)).max(1.0);
     ui.allocate_ui_with_layout(
         egui::vec2(width, size.y),
         egui::Layout::left_to_right(egui::Align::Center),
         |ui| {
             ui.set_min_width(width);
+            ui.set_max_width(width);
             let text = match cursor {
                 Some((latitude, longitude)) => {
                     format!("Cursor: {latitude:>9.5}°, {longitude:>10.5}°")
                 }
                 None => format!("Cursor: {:>10}, {:>11}", "-", "-"),
             };
-            ui.add(egui::Label::new(egui::RichText::new(text).font(font)).wrap(false));
+            ui.add(egui::Label::new(egui::RichText::new(&text).font(font)).truncate(true))
+                .on_hover_text(text);
         },
     );
     ui.add(egui::Separator::default().vertical().spacing(0.0));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn narrow_cursor_slot_preserves_text_size_and_does_not_push_other_fields() {
+        let ctx = egui::Context::default();
+        let mut normal_font_size = 0.0;
+        let output = ctx.run(egui::RawInput::default(), |ctx| {
+            egui::TopBottomPanel::bottom("test_status").show(ctx, |ui| {
+                normal_font_size = egui::TextStyle::Monospace.resolve(ui.style()).size;
+                ui.horizontal(|ui| {
+                    cursor_readout(ui, Some((-90.0, -180.0)), 120.0);
+                    let next = ui.label("Center");
+                    assert!((next.rect.left() - 120.0 - ui.spacing().item_spacing.x).abs() < 0.1);
+                });
+            });
+        });
+        let text = output
+            .shapes
+            .iter()
+            .find_map(|shape| match &shape.shape {
+                egui::Shape::Text(text) if text.galley.job.text.starts_with("Cursor:") => {
+                    Some(text)
+                }
+                _ => None,
+            })
+            .expect("cursor label is painted");
+        assert_eq!(
+            text.galley.job.sections[0].format.font_id.size,
+            normal_font_size
+        );
+    }
 }
