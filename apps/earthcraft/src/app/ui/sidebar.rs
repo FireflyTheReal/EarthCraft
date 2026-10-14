@@ -52,6 +52,12 @@ impl App {
                                                 .selected_text(self.wayback_list[idx].date.clone())
                                                 .height(320.0)
                                                 .show_ui(ui, |ui| {
+                                                    super::selection::size_menu(
+                                                        ui,
+                                                        self.wayback_list
+                                                            .iter()
+                                                            .map(|release| release.date.as_str()),
+                                                    );
                                                     for (i, r) in
                                                         self.wayback_list.iter().enumerate()
                                                     {
@@ -310,7 +316,11 @@ impl App {
                                     ],
                                 ),
                             );
-                            ui.weak(lg.text("ruler-point-edit-help"));
+                            ui.weak(lg.text(if cfg!(target_os = "macos") {
+                                "ruler-point-edit-help-macos"
+                            } else {
+                                "ruler-point-edit-help"
+                            }));
                             if let Some(pair) = self.ruler_paths.last_leg() {
                                 let bearing =
                                     earthcraft_core::compass::initial_bearing(pair[0], pair[1])

@@ -15,6 +15,12 @@ pub(super) fn unit_selector(
             .wrap(true)
             .selected_text(selected.selector_label(lang, us_locale))
             .show_ui(ui, |ui| {
+                super::selection::size_menu(
+                    ui,
+                    RulerUnit::ALL
+                        .into_iter()
+                        .map(|unit| unit.selector_label(lang, us_locale)),
+                );
                 for unit in RulerUnit::ALL {
                     super::selection::full_width_value(
                         ui,

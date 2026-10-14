@@ -102,6 +102,10 @@ impl App {
                         egui::ComboBox::from_id_source("lang_select")
                             .selected_text(format!("🌐 {}", chosen.label()))
                             .show_ui(ui, |ui| {
+                                super::selection::size_menu(
+                                    ui,
+                                    Lang::ALL.into_iter().map(|lang| lang.label()),
+                                );
                                 for l in Lang::ALL {
                                     super::selection::full_width_value(
                                         ui,

@@ -31,6 +31,16 @@ impl App {
                     egui::ComboBox::from_id_source("distance_units")
                         .selected_text(label(self.settings.distance_units))
                         .show_ui(ui, |ui| {
+                            super::selection::size_menu(
+                                ui,
+                                [
+                                    UnitPreference::System,
+                                    UnitPreference::Metric,
+                                    UnitPreference::Imperial,
+                                ]
+                                .into_iter()
+                                .map(label),
+                            );
                             for units in [
                                 UnitPreference::System,
                                 UnitPreference::Metric,

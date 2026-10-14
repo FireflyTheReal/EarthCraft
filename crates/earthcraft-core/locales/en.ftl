@@ -346,7 +346,8 @@ settings-hide-navigation-controls-toggle = Hide navigation controls
 
 settings-close-action = Close
 
-ruler-point-edit-help = Click to extend the current path. Alt-click (Option-click on Mac) starts a separate path. Drag a point to move it; hover and press Delete or Backspace to remove it.
+ruler-point-edit-help = Alt-click: new path · Drag: move · Hover + Delete: remove
+ruler-point-edit-help-macos = Option-click: new path · Drag: move · Hover + Delete: remove
 compass-north = N
 compass-northeast = NE
 compass-east = E

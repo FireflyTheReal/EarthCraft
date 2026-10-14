@@ -346,7 +346,8 @@ settings-hide-navigation-controls-toggle = Ocultar controles de navegação
 
 settings-close-action = Fechar
 
-ruler-point-edit-help = Clique para continuar o trajeto atual. Alt+clique (Option+clique no Mac) inicia um trajeto separado. Arraste um ponto para movê-lo; passe o cursor sobre ele e pressione Delete ou Backspace para removê-lo.
+ruler-point-edit-help = Alt+clique: novo trajeto · Arraste para mover · Cursor + Delete: remover
+ruler-point-edit-help-macos = Option+clique: novo trajeto · Arraste para mover · Cursor + Delete: remover
 compass-north = N
 compass-northeast = NE
 compass-east = L

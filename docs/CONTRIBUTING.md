@@ -128,7 +128,11 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
   language/map text size, and resize. Verify updates without camera movement;
   late boundary patches and ruler/placemark edits must appear immediately.
 - Create placemarks; save/open/drop KML; export a screenshot and use the ruler.
+- Open language, distance-unit, ruler-unit and historical-imagery dropdowns with
+  a short option selected. The selected/hovered rectangle must fill every row,
+  including empty space to the right, even on the first opening.
 - Switch English/Portuguese, change UI/map scales, then restart to verify persistence.
+  Ruler help uses Option-click on macOS and Alt-click elsewhere.
 
 Report which checks actually ran and which platforms/services remain unverified.
 For packaging, use the app manifest/package, e.g. a package-selecting command
