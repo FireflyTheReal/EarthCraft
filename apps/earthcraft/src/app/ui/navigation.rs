@@ -1,7 +1,7 @@
 use super::super::App;
 use crate::app::PAN_SPEED_POINTS_PER_SECOND;
 use earthcraft_core::math::wrap_lon;
-use eframe::egui::{self, Align2, Color32, FontId, Pos2, Rect, Sense, Stroke, Vec2};
+use eframe::egui::{self, Color32, Pos2, Rect, Sense, Stroke, Vec2};
 // Navigation palette and geometry in egui points before UI scaling.
 const MIN_CONTROL_SCALE: f32 = 0.8;
 const MAX_CONTROL_SCALE: f32 = 1.8;
@@ -83,35 +83,10 @@ impl App {
             .renderer
             .displayed_view()
             .map_or(self.cam.heading, |(cam, _)| cam.heading);
-        if self.settings.navigation_compass {
-            super::compass::draw_cardinals(
-                &painter,
-                c1,
-                r_ring - 6.5 * k,
-                k,
-                displayed_heading,
-                lg,
-            );
-        }
-        let compass_heading = if self.settings.navigation_compass {
-            displayed_heading
-        } else {
-            self.cam.heading
-        };
-        let hr = compass_heading.to_radians() as f32;
+        super::compass::draw_cardinals(&painter, c1, r_ring - 6.5 * k, k, displayed_heading, lg);
+        let hr = displayed_heading.to_radians() as f32;
         let nd = Vec2::new(-hr.sin(), -hr.cos()); // screen direction of north
         let n_pos = c1 + nd * (r_ring - 6.5 * k);
-        if !self.settings.navigation_compass {
-            painter.circle_filled(n_pos, 8.0 * k, Color32::from_rgb(220, 50, 50));
-            painter.circle_stroke(n_pos, 8.0 * k, Stroke::new(1.0_f32, Color32::WHITE));
-            painter.text(
-                n_pos,
-                Align2::CENTER_CENTER,
-                "N",
-                FontId::proportional(10.5 * k),
-                Color32::WHITE,
-            );
-        }
         // eye icon
         let eye: Vec<Pos2> = (0..=EYE_OUTLINE_SEGMENTS)
             .map(|i| {

@@ -22,7 +22,7 @@ Anyway** for EarthCraft and confirm **Open**. See [Apple's instructions](https:/
 
 ### Features
 
-- 3D globe with orbit, zoom, view rotation, bottom-bar heading and an optional navigation compass; navigation controls can be hidden in Settings
+- 3D globe with orbit, zoom, view rotation, bottom-bar heading and a navigation compass; navigation controls can be hidden in Settings
 - Satellite imagery (Esri), streets (OSM) and topography (OpenTopoMap), with multi-level tile zoom and on-disk caching
 - Background satellite overview loading for the whole globe at the initial distance; detailed tiles load as you zoom in
 - Clear downloaded map tiles from disk through Settings

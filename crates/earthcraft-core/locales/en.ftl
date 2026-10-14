@@ -357,7 +357,6 @@ compass-west = W
 compass-northwest = NW
 compass-heading = { $degrees }° { $direction }
 compass-heading-tooltip = Direction at the top of the map, clockwise from true north. Click to reset north.
-settings-compass-toggle = Compass in navigation controls
 layers-grid-numbers-toggle = Show numbers
 ruler-bearing-label = Last segment bearing: { $bearing }
 ruler-bearing-tooltip = Initial great-circle bearing from the previous point to the last point, clockwise from true north.

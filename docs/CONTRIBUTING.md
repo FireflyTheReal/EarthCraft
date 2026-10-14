@@ -110,11 +110,12 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
   Toggle numbers while stationary, change map text size/language and resize.
   Disable the grid: numbers disappear but their preference is retained.
 - Check the bottom-right heading through rotation and flight; click it to reset
-  north. In Settings enable Compass in navigation controls, then verify localized
-  cardinal directions rotate with the displayed view, clicking N resets north,
-  and the original north-up, 180° flip and held left/right rotation buttons
-  remain available inside the compass. Drag the outer ring to rotate. Disable
-  the option to restore the original north badge. Both options default off and persist.
+  north. Verify the top compass's localized cardinal directions rotate with the
+  displayed view, clicking N resets north, and the north-up, 180° flip and held
+  left/right rotation buttons remain available inside it. Drag the outer ring to
+  rotate. The combined control is always used when navigation controls are visible.
+  Grid labels should share a left column and bottom row inside the visible globe;
+  their axes swap as the view rotates. Grid numbers default off and persist.
   Add two ruler points, check the last segment's initial true-north bearing;
   add/remove/edit points and verify the bearing updates. Coincident or antipodal
   points must show an undefined bearing rather than an arbitrary direction.

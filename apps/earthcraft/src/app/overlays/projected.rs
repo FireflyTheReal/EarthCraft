@@ -150,19 +150,27 @@ fn build_parts<'a>(
         };
         let galley = painter.layout_no_wrap(
             text,
-            FontId::proportional(GRID_LABEL_FONT_POINTS * ms),
+            FontId::monospace(GRID_LABEL_FONT_POINTS * ms),
             Color32::WHITE,
         );
         let half_size = galley.size() * 0.5 + Vec2::splat(LABEL_PADDING_POINTS);
         if half_size.x * 2.0 > viewport.width() || half_size.y * 2.0 > viewport.height() {
             continue;
         }
+        let anchor = match label.edge {
+            earthcraft_render::overlays::grid::GridLabelEdge::Left => {
+                label.position + Vec2::new(half_size.x, 0.0)
+            }
+            earthcraft_render::overlays::grid::GridLabelEdge::Bottom => {
+                label.position - Vec2::new(0.0, half_size.y)
+            }
+        };
         let position = egui::pos2(
-            label.position.x.clamp(
+            anchor.x.clamp(
                 viewport.left() + half_size.x,
                 viewport.right() - half_size.x,
             ),
-            label.position.y.clamp(
+            anchor.y.clamp(
                 viewport.top() + half_size.y,
                 viewport.bottom() - half_size.y,
             ),

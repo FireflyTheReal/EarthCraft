@@ -357,7 +357,6 @@ compass-west = O
 compass-northwest = NO
 compass-heading = { $degrees }° { $direction }
 compass-heading-tooltip = Direção no topo do mapa, no sentido horário a partir do norte verdadeiro. Clique para alinhar ao norte.
-settings-compass-toggle = Bússola nos controles de navegação
 layers-grid-numbers-toggle = Mostrar números
 ruler-bearing-label = Rumo do último segmento: { $bearing }
 ruler-bearing-tooltip = Rumo inicial do círculo máximo do penúltimo ao último ponto, no sentido horário a partir do norte verdadeiro.

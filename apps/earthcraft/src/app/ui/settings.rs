@@ -84,10 +84,6 @@ impl App {
                     lg.text("settings-uncap-fps-toggle"),
                 );
                 ui.weak(lg.text("settings-frame-sync-help"));
-                ui.checkbox(
-                    &mut self.settings.navigation_compass,
-                    lg.text("settings-compass-toggle"),
-                );
                 ui.separator();
                 ui.strong(lg.text("settings-folders-section-title"));
                 let folder_row =

@@ -63,8 +63,9 @@ final label occupancy and styled shapes remain on egui. Mutable `rstar` indexes
 accepted screen rectangles in priority order, including touching-edge rejection,
 padding and the 500-label limit. Placemarks and ruler edits remain immediate. Optional graticule label candidates
 are prepared by the same background worker using the displayed raster grid step.
-The desktop measures localized labels and rejects collisions with place names
-and other grid labels. Core owns true-north heading formatting and initial
+Render aligns candidates on shared column/row guides inside the visible globe,
+swapping axes with view orientation. The desktop measures monospaced labels,
+anchors them consistently and rejects collisions with place names and other grid labels. Core owns true-north heading formatting and initial
 great-circle bearings; the desktop draws the status heading and optional compass.
 
 ## Async services and files

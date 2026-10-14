@@ -4,10 +4,15 @@ use earthcraft_core::{
     math::{ll_to_v3, v3_to_ll, wrap_lon},
 };
 use emath::{Pos2, Rect};
+use glam::DVec3;
 const VIEW_SAMPLES: usize = 16;
 const LINE_SAMPLES: usize = 96;
 const MAX_LINES_PER_AXIS: usize = 64;
 const LABEL_INSET_POINTS: f32 = 18.0;
+const GUIDE_INSET_RATIO: f32 = 0.15;
+const MAX_GUIDE_INSET_POINTS: f32 = 48.0;
+const CROSSING_REFINEMENT_STEPS: usize = 20;
+const ORIENTATION_TIE_EPSILON: f64 = 1e-9;
 const DUPLICATE_STEP_RATIO: f64 = 0.01;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -15,11 +20,17 @@ pub enum GridAxis {
     Latitude,
     Longitude,
 }
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum GridLabelEdge {
+    Left,
+    Bottom,
+}
 #[derive(Clone, Copy, Debug)]
 pub struct GridLabel {
     pub position: Pos2,
     pub degrees: f64,
     pub axis: GridAxis,
+    pub edge: GridLabelEdge,
 }
 
 /// Uses the displayed raster's exact grid step. Longitudes are unwrapped about
@@ -32,7 +43,14 @@ pub fn project_grid_labels(basis: &Basis, rect: Rect, step_deg: f64) -> Vec<Grid
     {
         return vec![];
     }
-    let center_lon = v3_to_ll(basis.c.normalize()).1;
+    let (center_lat, center_lon) = v3_to_ll(basis.c.normalize());
+    let (lat, lon) = (center_lat.to_radians(), center_lon.to_radians());
+    let east = DVec3::new(-lon.sin(), lon.cos(), 0.0);
+    let north = DVec3::new(-lat.sin() * lon.cos(), -lat.sin() * lon.sin(), lat.cos());
+    let screen_up = basis.rotation_from_view().y_axis;
+    let latitude_on_left =
+        north.dot(screen_up).abs() + ORIENTATION_TIE_EPSILON >= east.dot(screen_up).abs();
+    let mut visible = Rect::NOTHING;
     let mut lat_min = f64::INFINITY;
     let mut lat_max = f64::NEG_INFINITY;
     let mut lon_min = f64::INFINITY;
@@ -44,6 +62,7 @@ pub fn project_grid_labels(basis: &Basis, rect: Rect, step_deg: f64) -> Vec<Grid
                 rect.top() + rect.height() * row as f32 / VIEW_SAMPLES as f32,
             );
             if let Some((lat, lon)) = basis.pick(rect, pos) {
+                visible.extend_with(pos);
                 let lon = center_lon + wrap_lon(lon - center_lon);
                 lat_min = lat_min.min(lat);
                 lat_max = lat_max.max(lat);
@@ -60,6 +79,10 @@ pub fn project_grid_labels(basis: &Basis, rect: Rect, step_deg: f64) -> Vec<Grid
     lon_min = (lon_min - step_deg).max(center_lon - 180.0);
     lon_max = (lon_max + step_deg).min(center_lon + 180.0);
     let inside = rect.shrink(LABEL_INSET_POINTS);
+    let left_guide =
+        visible.left() + (visible.width() * GUIDE_INSET_RATIO).min(MAX_GUIDE_INSET_POINTS);
+    let bottom_guide =
+        visible.bottom() - (visible.height() * GUIDE_INSET_RATIO).min(MAX_GUIDE_INSET_POINTS);
     let mut labels = Vec::new();
     for (axis, min, max) in [
         (GridAxis::Latitude, lat_min, lat_max),
@@ -75,25 +98,56 @@ pub fn project_grid_labels(basis: &Basis, rect: Rect, step_deg: f64) -> Vec<Grid
             if axis == GridAxis::Latitude && degrees.abs() >= 90.0 {
                 continue;
             }
-            let mut best: Option<(f32, Pos2)> = None;
-            for sample in 0..=LINE_SAMPLES {
-                let t = sample as f64 / LINE_SAMPLES as f64;
+            let edge = if (axis == GridAxis::Latitude) == latitude_on_left {
+                GridLabelEdge::Left
+            } else {
+                GridLabelEdge::Bottom
+            };
+            let point_at = |t: f64| {
                 let (lat, lon) = match axis {
                     GridAxis::Latitude => (degrees, lon_min + (lon_max - lon_min) * t),
                     GridAxis::Longitude => (lat_min + (lat_max - lat_min) * t, degrees),
                 };
-                if let Some(pos) = basis
-                    .project(ll_to_v3(lat, wrap_lon(lon)), rect)
-                    .filter(|pos| inside.contains(*pos))
-                {
-                    let distance = (pos.x - inside.left())
-                        .min(inside.right() - pos.x)
-                        .min(pos.y - inside.top())
-                        .min(inside.bottom() - pos.y);
-                    if best.is_none_or(|(old, _)| distance < old) {
-                        best = Some((distance, pos));
+                basis.project(ll_to_v3(lat, wrap_lon(lon)), rect)
+            };
+            let signed_distance = |pos: Pos2| match edge {
+                GridLabelEdge::Left => pos.x - left_guide,
+                GridLabelEdge::Bottom => pos.y - bottom_guide,
+            };
+            let mut best: Option<(f32, Pos2)> = None;
+            let mut previous = point_at(0.0).map(|pos| (0.0, pos));
+            for sample in 1..=LINE_SAMPLES {
+                let t = sample as f64 / LINE_SAMPLES as f64;
+                let current = point_at(t);
+                if let (Some((previous_t, previous_pos)), Some(pos)) = (previous, current) {
+                    let from_distance = signed_distance(previous_pos);
+                    let to_distance = signed_distance(pos);
+                    if (from_distance <= 0.0 && to_distance >= 0.0)
+                        || (from_distance >= 0.0 && to_distance <= 0.0)
+                    {
+                        let (mut low, mut high) = (previous_t, t);
+                        for _ in 0..CROSSING_REFINEMENT_STEPS {
+                            let mid = (low + high) * 0.5;
+                            let Some(mid_pos) = point_at(mid) else {
+                                break;
+                            };
+                            if (signed_distance(mid_pos) < 0.0) == (from_distance < 0.0) {
+                                low = mid;
+                            } else {
+                                high = mid;
+                            }
+                        }
+                        if let Some(position) =
+                            point_at((low + high) * 0.5).filter(|pos| inside.contains(*pos))
+                        {
+                            let distance = position.distance_sq(rect.center());
+                            if best.is_none_or(|(old, _)| distance < old) {
+                                best = Some((distance, position));
+                            }
+                        }
                     }
                 }
+                previous = current.map(|pos| (t, pos));
             }
             if let Some((_, position)) = best {
                 let degrees = if axis == GridAxis::Longitude {
@@ -109,6 +163,7 @@ pub fn project_grid_labels(basis: &Basis, rect: Rect, step_deg: f64) -> Vec<Grid
                         position,
                         degrees,
                         axis,
+                        edge,
                     });
                 }
             }
@@ -141,6 +196,22 @@ mod tests {
             let labels = project_grid_labels(&basis, rect, step);
             assert!(!labels.is_empty(), "{lat} {lon} {alt}");
             assert!(labels.len() <= MAX_LINES_PER_AXIS * 2);
+            for edge in [GridLabelEdge::Left, GridLabelEdge::Bottom] {
+                let positions: Vec<_> = labels
+                    .iter()
+                    .filter(|label| label.edge == edge)
+                    .map(|label| match edge {
+                        GridLabelEdge::Left => label.position.x,
+                        GridLabelEdge::Bottom => label.position.y,
+                    })
+                    .collect();
+                if let Some(first) = positions.first() {
+                    assert!(
+                        positions.iter().all(|value| (value - first).abs() < 0.01),
+                        "labels share a guide: {positions:?}"
+                    );
+                }
+            }
             for label in labels {
                 assert!(rect.contains(label.position));
                 let picked = basis.pick(rect, label.position).unwrap();
