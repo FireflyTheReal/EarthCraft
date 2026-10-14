@@ -100,6 +100,9 @@ supported by your packaging tool or run it from `apps/earthcraft`. Release
 artifacts still go to the root `target/release`. macOS bundles use
 `assets/macos/icon.icns`, generated from the unchanged `assets/icon.png` artwork with
 transparent Dock padding and standard and Retina sizes (16–1024 pixels).
+The macOS runtime icon is `assets/macos/icon.png`, with the same padding as the
+bundle icon: eframe applies it to the Dock at startup. Keep both assets aligned;
+Windows/Linux retain `assets/icon_256.png`.
 The `packaging/earthcraft.desktop` asset must still be supplied before validating
 deb output.
 
