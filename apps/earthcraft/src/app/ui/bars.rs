@@ -143,7 +143,12 @@ impl App {
                         ctx.screen_rect().left() + super::sidebar::DEFAULT_SIDEBAR_WIDTH_POINTS,
                         |state| state.rect.right(),
                     );
-                cursor_readout(ui, self.cursor, sidebar_right);
+                // egui 0.27 paints the SidePanel separator one point inside its rect.
+                const SIDEBAR_SEPARATOR_INSET_POINTS: f32 = 1.0;
+                let sidebar_border_x = ui
+                    .painter()
+                    .round_to_pixel(sidebar_right - SIDEBAR_SEPARATOR_INSET_POINTS);
+                cursor_readout(ui, self.cursor, sidebar_border_x);
                 ui.monospace(lg.format(
                     "statusbar-camera-center",
                     &[
@@ -191,9 +196,9 @@ impl App {
 }
 
 /// Keep the coordinate slots and separator fixed at the remembered sidebar edge.
-fn cursor_readout(ui: &mut egui::Ui, cursor: Option<(f64, f64)>, sidebar_right: f32) {
+fn cursor_readout(ui: &mut egui::Ui, cursor: Option<(f64, f64)>, sidebar_border_x: f32) {
     const CURSOR_LAYOUT_SAMPLE: &str = "Cursor: -90.00000°, -180.00000°";
-    let width = (sidebar_right - ui.next_widget_position().x - ui.spacing().item_spacing.x)
+    let width = (sidebar_border_x - ui.next_widget_position().x - ui.spacing().item_spacing.x)
         .clamp(0.0, ui.available_width().max(0.0));
     let mut font = egui::TextStyle::Monospace.resolve(ui.style());
     let size = ui
