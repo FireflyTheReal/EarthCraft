@@ -65,9 +65,11 @@ starts with the same arguments. A failed restart reopens the window with an Engl
 error and the saved documents. Ruler history follows normal quit behavior and is
 not persisted. An ordinary quit and relaunch also activates the installed update.
 
-Development/debug executables, known package-manager/system locations, and macOS
-apps on a mounted volume or under App Translocation use a release-page link instead
-of replacement. Move a macOS app into a writable application folder first. A
+Debug builds and executables running from Cargo's `target` directory never check
+for updates, regardless of their version. This includes `cargo run --release`.
+Release builds installed outside Cargo output are eligible for checking.
+Known package-manager/system locations and macOS apps on a mounted volume or
+under App Translocation use a release-page link instead of replacement. Move a macOS app into a writable application folder first. A
 protected install also falls back to the release page without elevation. Package
 maintainers should set `EARTHCRAFT_UPDATE_MODE=manual` for managed installations in
 other locations; `EARTHCRAFT_UPDATE_MODE=off` disables the startup check entirely.

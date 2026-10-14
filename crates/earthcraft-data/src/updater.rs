@@ -64,16 +64,21 @@ impl UpdateService {
         repaint: impl Fn() + Send + Sync + 'static,
     ) -> Self {
         let mode = std::env::var("EARTHCRAFT_UPDATE_MODE").unwrap_or_default();
+        let executable = std::env::current_exe().ok();
+        let development_build = cfg!(debug_assertions)
+            || executable
+                .as_deref()
+                .is_some_and(release::is_development_path);
         Self::configured(
             runtime,
             Arc::new(repaint),
-            mode == "off",
+            development_build || mode == "off",
             if mode == "manual" {
                 Some("This installation uses manual or package-manager updates.".into())
             } else {
-                std::env::current_exe()
-                    .ok()
-                    .and_then(|path| release::manual_install_reason(&path))
+                executable
+                    .as_deref()
+                    .and_then(release::manual_install_reason)
             },
         )
     }
@@ -123,6 +128,9 @@ impl UpdateService {
         }
     }
     pub fn activate(&mut self) {
+        if self.disabled {
+            return;
+        }
         match self.state {
             UpdateState::Available { .. }
             | UpdateState::Failed {

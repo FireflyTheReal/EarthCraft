@@ -4,6 +4,25 @@ fn service(runtime: &ServiceRuntime) -> UpdateService {
     UpdateService::configured(runtime.handle(), Arc::new(|| {}), true, None)
 }
 #[test]
+fn development_constructor_disables_startup_and_retry_before_any_version_check() {
+    let runtime = ServiceRuntime::new().unwrap();
+    let mut service =
+        UpdateService::new(runtime.handle(), || panic!("No update job should publish"));
+    // Tests themselves run in Cargo's target directory, including release-profile tests.
+    assert!(service.disabled);
+    service.start_once();
+    service.poll();
+    assert_eq!(service.state(), &UpdateState::Idle);
+    let failed = UpdateState::Failed {
+        operation: UpdateOperation::Check,
+        message: "fixture".into(),
+    };
+    service.state = failed.clone();
+    service.activate();
+    assert_eq!(service.state(), &failed);
+    assert!(!service.receiver.has_changed().unwrap());
+}
+#[test]
 fn disabled_startup_and_duplicate_actions_do_not_launch_jobs() {
     let runtime = ServiceRuntime::new().unwrap();
     let mut service = service(&runtime);

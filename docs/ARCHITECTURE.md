@@ -234,7 +234,8 @@ tag and asset identity, requires GitHub's SHA-256 digest, coalesces progress thr
 one watch snapshot and wakes the UI after publication. Downloads/installations are
 click-triggered and single-flight. Library verification/extraction/replacement
 runs off the UI thread; macOS replaces and verifies the whole app bundle.
-Development and managed installations use the official release-page fallback.
+Debug builds and executables in Cargo output skip update checks independently
+of their version. Managed installations use the official release-page fallback.
 
 The desktop owns the centered bottom-bar notice and restart/save orchestration.
 It reuses native save dialogs and the bounded file service, waits for file

@@ -27,6 +27,11 @@ fn platform_suffix() -> Option<&'static str> {
         _ => None,
     }
 }
+/// Cargo output is a development installation, including `cargo run --release`.
+pub(super) fn is_development_path(path: &Path) -> bool {
+    path.components().any(|part| part.as_os_str() == "target")
+}
+
 pub(super) fn manual_install_reason(path: &Path) -> Option<String> {
     let managed = path.components().any(|part| {
         matches!(
@@ -222,6 +227,22 @@ pub(super) async fn install(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn cargo_debug_and_release_outputs_are_development_installations() {
+        for path in [
+            "/project/target/debug/earthcraft",
+            "/project/target/release/earthcraft",
+            "/project/target/aarch64-apple-darwin/release/EarthCraft.app/Contents/MacOS/earthcraft",
+        ] {
+            assert!(is_development_path(Path::new(path)));
+        }
+        assert!(!is_development_path(Path::new(
+            "/Applications/EarthCraft.app/Contents/MacOS/earthcraft"
+        )));
+        assert!(!is_development_path(Path::new(
+            "/home/user/Downloads/earthcraft"
+        )));
+    }
     fn release(version: &str, asset: ReleaseAsset) -> Release {
         Release::builder()
             .name("fixture")
