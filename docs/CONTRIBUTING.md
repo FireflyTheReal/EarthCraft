@@ -78,6 +78,8 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
 - Launch from the root and verify the icon, initial view and panels.
 - Orbit, zoom under the cursor, rotate with right-drag/Shift, use arrow keys,
   compass/north reset, navigation widgets, double-click and fly-to.
+  Hold each pan, rotation and zoom button for at least ten seconds; verify
+  movement continues until release, including with slight pointer movement.
   Toggle Settings → Hide navigation controls; verify the top-right controls
   disappear immediately, their area accepts normal map input, reopening restores
   controls, and the choice persists after restart (default: controls visible).
