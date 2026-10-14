@@ -131,7 +131,7 @@ impl App {
         rect: egui::Rect,
         pixels_per_point: f32,
     ) {
-        let basis = self.cam.basis(aspect);
+        let basis = self.cam.basis_for_model(aspect, self.active_earth_model());
         let grid_step = earthcraft_render::grid_step(self.cam.alt, w, h);
         let sun = if self.show_sun {
             let (la, lo) = subsolar(now_unix());
@@ -258,7 +258,9 @@ mod tests {
         let requested = Cam { lon: 90.0, ..shown };
         let rect = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(800.0, 600.0));
         let shown_basis = shown.basis(4.0 / 3.0);
-        let requested_basis = requested.basis(4.0 / 3.0);
+        let requested_basis =
+            requested.basis_for_model(4.0 / 3.0, earthcraft_core::earth_model::EarthModel::Wgs84);
+        assert!(displayed_basis(Some((shown, shown_basis)), requested_basis) == shown_basis);
         let pick = displayed_basis(Some((shown, shown_basis)), requested_basis)
             .pick(rect, rect.center())
             .unwrap();

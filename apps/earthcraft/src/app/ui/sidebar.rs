@@ -136,42 +136,64 @@ impl App {
                             );
                             ui.checkbox(&mut self.show_vessels, lg.text("layers-vessels-toggle"));
                             if self.show_vessels {
-                                ui.small(self.live_vessels.status(lg == earthcraft_core::language::Lang::PtBr));
+                                ui.small(
+                                    self.live_vessels
+                                        .status(lg == earthcraft_core::language::Lang::PtBr),
+                                );
                                 ui.hyperlink_to("OpenSeaFeed AIS", "https://openseafeed.com/");
-                                ui.hyperlink_to("Fintraffic (contingência)", "https://www.digitraffic.fi/en/marine-traffic/");
+                                ui.hyperlink_to(
+                                    "Fintraffic (contingência)",
+                                    "https://www.digitraffic.fi/en/marine-traffic/",
+                                );
                             }
-                            ui.checkbox(&mut self.show_satellites, lg.text("layers-satellites-toggle"));
+                            ui.checkbox(
+                                &mut self.show_satellites,
+                                lg.text("layers-satellites-toggle"),
+                            );
                             if self.show_satellites {
-                                ui.small(self.live_satellites.status(lg == earthcraft_core::language::Lang::PtBr));
+                                ui.small(
+                                    self.live_satellites
+                                        .status(lg == earthcraft_core::language::Lang::PtBr),
+                                );
                                 ui.hyperlink_to("CelesTrak", "https://celestrak.org/");
                             }
                             ui.checkbox(&mut self.show_roads, lg.text("layers-roads-toggle"));
                             if self.show_roads {
-                                ui.small(self.roads.service.status(self.cam.alt,
-                                    lg == earthcraft_core::language::Lang::PtBr));
-                                ui.hyperlink_to("© OpenStreetMap contributors (ODbL)", "https://www.openstreetmap.org/copyright");
+                                ui.small(self.roads.service.status(
+                                    self.cam.alt,
+                                    lg == earthcraft_core::language::Lang::PtBr,
+                                ));
+                                ui.hyperlink_to(
+                                    "© OpenStreetMap contributors (ODbL)",
+                                    "https://www.openstreetmap.org/copyright",
+                                );
                             }
                             ui.checkbox(&mut self.show_traffic, lg.text("layers-traffic-toggle"));
                             if self.show_traffic {
-                                ui.add(egui::TextEdit::singleline(&mut self.tomtom_key)
-                                    .password(true).hint_text(lg.text("layers-traffic-key")));
-                                ui.small(self.traffic.service.status(&self.tomtom_key,self.cam.alt,
-                                    lg == earthcraft_core::language::Lang::PtBr));
+                                ui.add(
+                                    egui::TextEdit::singleline(&mut self.tomtom_key)
+                                        .password(true)
+                                        .hint_text(lg.text("layers-traffic-key")),
+                                );
+                                ui.small(self.traffic.service.status(
+                                    &self.tomtom_key,
+                                    self.cam.alt,
+                                    lg == earthcraft_core::language::Lang::PtBr,
+                                ));
                                 ui.hyperlink_to("TomTom Traffic", "https://developer.tomtom.com/");
                             }
                             ui.checkbox(&mut self.show_weather, lg.text("layers-weather-toggle"));
-                            ui.checkbox(&mut self.show_clouds, lg.text("layers-clouds-toggle"));
-                            ui.small(lg.text("layers-live-overlays-help"));
-                            if self.show_clouds {
-                                ui.hyperlink_to(
-                                    lg.text("sidebar-cloud-source"),
-                                    "https://github.com/matteason/live-cloud-maps",
-                                );
-                            }
                             if self.show_weather {
                                 ui.hyperlink_to(
                                     lg.text("sidebar-radar-source"),
                                     "https://www.rainviewer.com/",
+                                );
+                            }
+                            ui.checkbox(&mut self.show_clouds, lg.text("layers-clouds-toggle"));
+                            if self.show_clouds {
+                                ui.hyperlink_to(
+                                    lg.text("sidebar-cloud-source"),
+                                    "https://github.com/matteason/live-cloud-maps",
                                 );
                             }
                             ui.checkbox(&mut self.show_flights, lg.text("layers-flights-toggle"));
@@ -184,6 +206,7 @@ impl App {
                                 ui.hyperlink_to("OpenSky Network", "https://opensky-network.org/");
                                 ui.hyperlink_to("ADSB.lol (ODbL)", "https://www.adsb.lol/");
                             }
+                            ui.small(lg.text("layers-live-overlays-help"));
                         });
 
                     egui::CollapsingHeader::new(lg.text("navigation-section-title"))
@@ -274,6 +297,9 @@ impl App {
                                 &[("path", short_folder(&self.settings.kml_dir).into())],
                             ))
                             .on_hover_text(&self.settings.kml_dir);
+                            if ui.button(lg.text("places-clear-all-action")).clicked() {
+                                self.clear_places();
+                            }
                         });
 
                     egui::CollapsingHeader::new(lg.text("ruler-section-title"))
@@ -297,7 +323,8 @@ impl App {
                                     self.cam.lon,
                                 )));
                             }
-                            let total = self.ruler_paths.total_distance_km();
+                            let model = self.active_earth_model();
+                            let total = self.ruler_paths.distance_km(model);
                             ui.label(
                                 lg.format(
                                     "ruler-measurement-summary",
@@ -310,7 +337,13 @@ impl App {
                                             "distance",
                                             self.settings
                                                 .ruler_unit
-                                                .format(total, self.distance_units(), lg)
+                                                .format_with_angle(
+                                                    total,
+                                                    self.ruler_paths
+                                                        .angular_distance_degrees(model),
+                                                    self.distance_units(),
+                                                    lg,
+                                                )
                                                 .into(),
                                         ),
                                     ],
@@ -322,12 +355,12 @@ impl App {
                                 "ruler-point-edit-help"
                             }));
                             if let Some(pair) = self.ruler_paths.last_leg() {
-                                let bearing =
-                                    earthcraft_core::compass::initial_bearing(pair[0], pair[1])
-                                        .map(|bearing| {
-                                            earthcraft_core::compass::heading_text(bearing, lg)
-                                        })
-                                        .unwrap_or_else(|| "—".into());
+                                let bearing = model
+                                    .initial_bearing(pair[0], pair[1])
+                                    .map(|bearing| {
+                                        earthcraft_core::compass::heading_text(bearing, lg)
+                                    })
+                                    .unwrap_or_else(|| "—".into());
                                 ui.label(
                                     lg.format(
                                         "ruler-bearing-label",

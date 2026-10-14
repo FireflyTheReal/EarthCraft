@@ -1,5 +1,6 @@
 //! Manual CPU-frame comparison using isolated disk-cache fixtures and production APIs.
 use super::*;
+mod kernels;
 use earthcraft_core::{camera::Cam, math::now_unix};
 use std::{
     hint::black_box,
@@ -64,6 +65,15 @@ impl Drop for FixtureCache {
 #[test]
 #[ignore = "manual warm CPU-frame benchmark; run alone with --ignored --nocapture --test-threads=1"]
 fn warm_cpu_frame_time() {
+    warm_cpu_frame_for_model(earthcraft_core::earth_model::EarthModel::PerfectSphere);
+}
+#[test]
+#[ignore = "manual ellipsoid CPU-frame benchmark; run alone with --ignored --nocapture --test-threads=1"]
+fn warm_ellipsoid_cpu_frame_time() {
+    warm_cpu_frame_for_model(earthcraft_core::earth_model::EarthModel::Wgs84);
+}
+
+fn warm_cpu_frame_for_model(model: earthcraft_core::earth_model::EarthModel) {
     let fixture = FixtureCache::new();
     let keys = fixture.prepare();
     let runtime = earthcraft_data::runtime::ServiceRuntime::new().unwrap();
@@ -97,7 +107,7 @@ fn warm_cpu_frame_time() {
         heading: 25.0,
         alt: 14000.0,
     }
-    .basis(FRAME_WIDTH_PX as f64 / FRAME_HEIGHT_PX as f64);
+    .basis_for_model(FRAME_WIDTH_PX as f64 / FRAME_HEIGHT_PX as f64, model);
     let config = RenderCfg {
         provider: Provider::Satellite,
         rel: 0,
@@ -116,7 +126,7 @@ fn warm_cpu_frame_time() {
                 heading: 25.0,
                 alt: 14_000.0,
             }
-            .basis(FRAME_WIDTH_PX as f64 / FRAME_HEIGHT_PX as f64);
+            .basis_for_model(FRAME_WIDTH_PX as f64 / FRAME_HEIGHT_PX as f64, model);
             black_box(render_frame(
                 FRAME_WIDTH_PX,
                 FRAME_HEIGHT_PX,

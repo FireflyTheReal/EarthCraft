@@ -393,10 +393,17 @@ ruler-point-add-action = Adicionar ponto
 ruler-point-new-action = Novo ponto
 ruler-point-close-action = Fechar
 
+settings-earth-model-label = Modelo da Terra
+earth-model-sphere = Esfera perfeita
+earth-model-wgs84 = Realista — WGS 84 (G2296)
+earth-model-sphere-help = Esfera original de raio médio. Alternativa opcional ao modelo realista da Terra.
+earth-model-wgs84-help = Modelo padrão da Terra, com geometria e geodésicas no elipsoide WGS 84. Referencial G2296: EPSG:10606 (2D), EPSG:10605 (3D); sem transformações de época, movimento tectônico, relevo ou alturas geoidais. Usa o renderizador de globo na CPU.
+
 places-root-name = Meus lugares
 places-document-name = Documento
 places-folder-name = Nova pasta
 places-add-folder-action = + Pasta
+places-clear-all-action = Limpar tudo
 places-delete-action = Excluir
 places-visible-help = Mostrar este lugar e seus filhos no globo
 places-empty-help = Abra um arquivo KML ou adicione um lugar. Arraste lugares para pastas para organizá-los.

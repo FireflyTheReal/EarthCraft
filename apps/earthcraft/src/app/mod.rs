@@ -16,20 +16,20 @@ use std::{
 };
 mod cache;
 mod explorer;
-mod flat_earth;
 mod files;
+mod flat_earth;
 mod frame_timing;
 mod globe;
 mod live_layers;
 mod live_maps;
-mod roads;
-mod traffic;
 mod menu;
 mod navigation;
 mod overlays;
 mod rendering;
+mod roads;
 mod ruler_history;
 mod search;
+mod traffic;
 mod ui;
 mod wayback;
 const INITIAL_CAMERA: Cam = Cam {
@@ -87,6 +87,7 @@ pub(crate) struct App {
     aircraft_overlay: live_layers::AircraftOverlay,
 
     renderer: rendering::Renderer,
+    scale_bar_cache: earthcraft_render::scale_bar::ScaleBarCache,
     texture: Option<egui::TextureHandle>,
     image: Option<(usize, usize, Arc<Vec<u8>>)>,
     last_state: u64,
@@ -110,6 +111,7 @@ pub(crate) struct App {
     place_selection: Option<u64>,
     new_name: String,
     kml_path: String,
+    kml_session: files::KmlSession,
     menu_pick: Option<(f64, f64)>,
 
     ruler: bool,
@@ -182,7 +184,7 @@ impl App {
             let ctx = cc.egui_ctx.clone();
             move || ctx.request_repaint()
         });
-        let app = App {
+        let mut app = App {
             #[cfg(target_os = "macos")]
             native_menu: None,
             explorer: explorer::Explorer::default(),
@@ -192,6 +194,7 @@ impl App {
             fly: None,
             cache,
             renderer,
+            scale_bar_cache: earthcraft_render::scale_bar::ScaleBarCache::default(),
             provider: Provider::Satellite,
             tile_warmup: TileWarmup::startup_satellite(),
             cache_controls: cache::CacheControls::default(),
@@ -252,6 +255,7 @@ impl App {
             file_results,
             new_name: String::new(),
             kml_path: "placemarks.kml".into(),
+            kml_session: files::KmlSession::default(),
             menu_pick: None,
             ruler: false,
             ruler_drag: None,
@@ -287,6 +291,7 @@ impl App {
             ring_drag: false,
             runtime,
         };
+        app.restore_kml_session();
         #[cfg(target_os = "macos")]
         {
             app.with_native_menu(cc)
@@ -303,8 +308,9 @@ impl eframe::App for App {
         earthcraft_data::profiling::flush();
     }
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let aircraft_enabled =
-            self.show_flights && self.explorer.active == earthcraft_core::body::Body::Earth && !self.flat_earth.open;
+        let aircraft_enabled = self.show_flights
+            && self.explorer.active == earthcraft_core::body::Body::Earth
+            && !self.flat_earth.open;
         self.live_aircraft
             .update(earthcraft_data::aircraft::AircraftQuery {
                 enabled: aircraft_enabled,
@@ -316,24 +322,42 @@ impl eframe::App for App {
             ctx.request_repaint_after(live_layers::FLIGHT_REPAINT_INTERVAL);
         }
         // Independent realtime layers, loaded only for the globe while enabled.
-        let earth = self.explorer.active == earthcraft_core::body::Body::Earth
-            && !self.flat_earth.open;
+        let earth =
+            self.explorer.active == earthcraft_core::body::Body::Earth && !self.flat_earth.open;
         let vessel_wake = ctx.clone();
-        self.live_vessels.update(&self.runtime, earth && self.show_vessels,
-            move || vessel_wake.request_repaint());
+        self.live_vessels
+            .update(&self.runtime, earth && self.show_vessels, move || {
+                vessel_wake.request_repaint()
+            });
         let satellite_wake = ctx.clone();
-        self.live_satellites.update(&self.runtime, earth && self.show_satellites,
-            move || satellite_wake.request_repaint());
+        self.live_satellites
+            .update(&self.runtime, earth && self.show_satellites, move || {
+                satellite_wake.request_repaint()
+            });
         let road_wake = ctx.clone();
-        self.roads.service.update(&self.runtime, earth && self.show_roads,
-            self.cam.lat, self.cam.lon, self.cam.alt,
-            move || road_wake.request_repaint());
+        self.roads.service.update(
+            &self.runtime,
+            earth && self.show_roads,
+            self.cam.lat,
+            self.cam.lon,
+            self.cam.alt,
+            move || road_wake.request_repaint(),
+        );
         let traffic_wake = ctx.clone();
-        self.traffic.service.update(&self.runtime, earth && self.show_traffic,
-            &self.tomtom_key, self.cam.lat, self.cam.lon, self.cam.alt,
-            move || traffic_wake.request_repaint());
-        if earth && (self.show_vessels || self.show_satellites
-            || self.show_roads || self.show_traffic) {
+        self.traffic.service.update(
+            &self.runtime,
+            earthcraft_data::traffic::TrafficQuery {
+                enabled: earth && self.show_traffic,
+                key: &self.tomtom_key,
+                latitude: self.cam.lat,
+                longitude: self.cam.lon,
+                altitude_km: self.cam.alt,
+            },
+            move || traffic_wake.request_repaint(),
+        );
+        if earth
+            && (self.show_vessels || self.show_satellites || self.show_roads || self.show_traffic)
+        {
             ctx.request_repaint_after(Duration::from_secs(30));
         }
         self.poll_files(ctx);
@@ -389,8 +413,12 @@ impl eframe::App for App {
         self.live_maps
             .update(ui, &self.runtime, self.show_clouds, self.show_weather);
         self.boundary_loader.request_world_cities(
-            self.show_city_boundaries && self.explorer.active == earthcraft_core::body::Body::Earth && !self.flat_earth.open,
-            self.cam.alt, self.cam.lat, self.cam.lon,
+            self.show_city_boundaries
+                && self.explorer.active == earthcraft_core::body::Body::Earth
+                && !self.flat_earth.open,
+            self.cam.alt,
+            self.cam.lat,
+            self.cam.lon,
         );
         self.boundary_loader.request_visible_layers(
             self.show_city_boundaries,

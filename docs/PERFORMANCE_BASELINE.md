@@ -115,3 +115,110 @@ cargo test -p earthcraft aircraft_mesh_repaint_cost --locked -- --ignored --noca
 Headless regressions cover source priority/expiry and request cadence, failure wakeups, coalescing, displayed-frame
 alignment and shared mesh identity. Optional profiling adds `aircraft.snapshot`,
 `aircraft.project` and `ui.aircraft_shapes` through the bounded background recorder.
+
+
+## Earth-model CPU fixture, 2026-10-14
+
+On the same M1 Pro / Rust 1.99 optimized development profile, the isolated warm
+512×384 CPU fixture uses eight Rayon threads, 341 local 256×256 tiles (85.25 MiB),
+grid, atmosphere and sunlight. Each invocation has five rounds of 200 frames.
+The sphere comparison alternates the existing pre-model test executable and the
+new executable (both profiling-enabled, with no active capture). Neither executable
+opens a native window or uses user settings/caches or public services.
+
+| Model/run | Median CPU frame |
+| --- | ---: |
+| Sphere before, initial invocations 1 / 2 | 2.224 / 2.390 ms |
+| Sphere after, initial invocations 1 / 2 | 2.158 / 2.132 ms |
+| Sphere before / after merging KML, before the inline hint | 2.186 / 2.307 ms |
+| Sphere before / final combined implementation | 2.057 / 2.102 ms |
+| WGS 84, final combined implementation | 2.460 ms |
+
+The final WGS 84 round samples were 2.437–2.561 ms. The final sphere invocation
+ranged 2.049–2.184 ms before and 2.073–2.169 ms after. The earlier second
+invocation included a 3.078 ms after sample; it was retained in its round results.
+After the merge, specializing the sphere's normal use and retaining the inline
+ray-kernel boundary avoids carrying ellipsoid-only work into that pixel path.
+Paired results vary in both directions; the last pair is about 2% slower. These
+limited runs do not establish zero overhead or a general speedup/regression.
+Scheduling, thermal state and code layout remain uncontrolled. The selected
+ellipsoid performs additional intersection/normal/curvature work; that math is
+not imposed on sphere pixel loops. Other views, GUI latency, GPU execution and
+total app FPS are not established by this fixture.
+
+Reproduce the current model runs separately, without concurrent compilation:
+
+```sh
+RAYON_NUM_THREADS=8 cargo test -p earthcraft-render warm_cpu_frame_time --locked -- --ignored --nocapture --test-threads=1
+RAYON_NUM_THREADS=8 cargo test -p earthcraft-render warm_ellipsoid_cpu_frame_time --locked -- --ignored --nocapture --test-threads=1
+```
+
+See [Earth models](EARTH_MODELS.md) for numerical checks and extension boundaries.
+
+### Earth-model review rerun
+
+The review additionally tested stable spherical antipodal paths/distances,
+forward/inside/on-surface ray intersections and ellipsoidal grid widths. It reused
+geodesic route coefficients and cached quadric ray coefficients per frame.
+The existing warm-frame workload above was rerun against a saved pre-review
+all-features test executable and the final reviewed executable, without concurrent
+Cargo builds. Each entry is the median of five rounds, in milliseconds:
+
+| Model | Execution order | Before review | After review |
+| --- | --- | --- | --- |
+| Perfect Sphere | Before, then after | 2.412 | 2.499 |
+| Perfect Sphere | After, then before | 2.432 | 2.448 |
+| WGS 84 | Before, then after | 2.837 | 3.071 |
+| WGS 84 | After, then before | 2.597 | 2.580 |
+
+Individual final-run round samples ranged from 2.126–3.044 ms for the sphere and
+2.502–3.826 ms for WGS 84 across the two binaries. Earlier invocations also varied
+substantially. These overlapping, variable samples do not establish a speedup or
+zero overhead. This remains a CPU raster benchmark; it does not measure ruler
+projection, native UI interaction, GPU execution or live service readiness.
+
+### Ellipsoid sampling microbenchmarks
+
+On the same M1 Pro / Rust 1.99 optimized development profile, matched
+`earthcraft-render --all-features` test executables compare the pre-optimization
+code with normal reuse and all-sky ray-batch short-circuiting. No native window,
+capture recorder or service is active. Seven rounds of 32 repetitions exercise
+three 128×96 views: 150 m altitude near the dateline, 500 km near the north pole,
+and the 14,000 km overview. Surface timing uses 29,137 WGS 84 hits (29,140 sphere
+hits), with grid, sunlight and atmosphere enabled; sampling and tile access are
+outside that isolated phase. The ray harness includes model dispatch and complete
+four-lane sample construction. Before/after and after/before invocation pairs
+give these round medians, in nanoseconds:
+
+| Phase | Before, two invocations | After, two invocations |
+| --- | ---: | ---: |
+| Sphere, four-ray batch | 45.177 / 44.695 | 45.120 / 44.856 |
+| Sphere, surface hit | 56.506 / 56.112 | 56.290 / 56.119 |
+| WGS 84, four-ray batch | 71.754 / 71.108 | 68.749 / 68.995 |
+| WGS 84, surface hit | 68.328 / 67.858 | 48.503 / 48.228 |
+
+The WGS 84 surface phase is about 29% cheaper in these runs. Reusing the existing
+unit normal removes repeated angle/trigonometric conversions; f64 precision and
+the sphere arithmetic are retained. Sky-only batches avoid unused surface work.
+The existing eight-thread warm-frame fixture measured WGS 84 at 2.635 → 2.204 ms
+and the sphere at 2.165 → 2.201 ms in the final matched run. Earlier intermediate
+invocations varied more widely, including 3.200 → 2.643 ms for WGS 84; scheduling,
+thermal state and code layout remain uncontrolled. These figures do not establish
+application FPS, a general improvement for every view, or zero sphere overhead.
+
+Before/after differential captures cover both models, four views (including poles,
+dateline and altitude limits) and all four providers. All 32 127×95 RGBA frames and
+32 sorted missing-tile/priority lists matched byte for byte. These temporary
+captures stay outside Git; the original raster fixtures are unchanged. Independent
+tests check Mercator coordinates and curvature from surface normals. This does
+not validate native UI delivery, public imagery or GPU execution.
+
+```sh
+cargo test -p earthcraft-render --all-features earth_model_kernel_time --locked -- --ignored --nocapture --test-threads=1
+EARTHCRAFT_BENCH_OUTPUT=/tmp/earthcraft-kernel-capture cargo test -p earthcraft-render --all-features earth_model_raster_capture --locked -- --ignored --nocapture --test-threads=1
+```
+
+Use different isolated capture directories for before and after versions. Compile
+each version with the same package/features/profile, save its executable, and
+alternate runs without concurrent builds. Workspace feature unification can
+produce a different test executable from the focused package command above.

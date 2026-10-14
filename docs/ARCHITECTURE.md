@@ -94,8 +94,12 @@ Data owns JSON/XML decoding and longitude-first format adaptation. Invalid
 service coordinates are skipped; invalid KML coordinates return a typed error
 before an import completes or an export touches its destination. The editor adds/edits points through
 the same history. Input and editing preserve the stored f64 values without display
-rounding. Distances still use the existing 6,371.0088 km spherical Earth model;
-precise coordinate entry does not imply ellipsoidal or survey-grade accuracy.
+rounding. Realistic — WGS 84 (G2296) is the default; the 6,371.0088 km sphere remains
+an optional model. The persisted selection routes camera, picking, rendering, geographic overlays and
+geodesics through core's Earth-model boundary; model changes invalidate compatible
+frame/overlay caches. See [Earth models](EARTH_MODELS.md) for supported calculations,
+reference-frame limits and extension points. Precise entry alone does not establish
+survey-grade accuracy.
 
 ## Async services and files
 
@@ -121,7 +125,11 @@ repeated saves do not introduce additional Document wrappers. The existing
 first-coordinate policy for line/polygon Placemarks remains; this is not a
 lossless editor for unsupported KML geometry, styles or network links.
 The desktop draws disclosure arrows, full-width selectable rows and visibility
-checkboxes, with a details editor for the selection. Double-click flies to a
+checkboxes, with a details editor for the selection. Compact rows use eight-point
+indentation and vector folder/pin icons, independent of font glyph coverage.
+The tree reserves a scrollable 128-point height; descriptions use a separate
+three-line scrolling editor so long imported text cannot expand the sidebar.
+Double-click flies to a
 marker; drag onto a folder or My Places to move it. Creating a place/folder uses
 the selected folder, otherwise the root. Hidden ancestors suppress map markers
 without changing children's own visibility. File jobs capture the whole tree
@@ -129,6 +137,13 @@ at submission; decoding, encoding and filesystem work stay off the UI thread.
 KML I/O and screenshot encoding use an ordered bounded file service. Native dialogs
 and result application belong to the app. Settings/language writes coalesce on a
 filesystem worker and flush at shutdown; startup reads the small preference files.
+Open KML source paths are stored separately in `open-kml.json` by that worker.
+Startup reopens them in order on the file service, silently drops missing files
+and rewrites the retained list; other failures remain visible and retry next launch.
+Only paths are remembered, so unsaved tree edits require an explicit KML save.
+A whole-tree save replaces the remembered sources with its destination to avoid
+loading both the combined snapshot and its former inputs. Clear All empties the
+tree and remembered list and discards pending KML results, without deleting sources.
 
 Explorer image decoding (including the embedded Moon image) and planet document
 I/O use that same file service. Texture upload remains on egui's thread. Planet

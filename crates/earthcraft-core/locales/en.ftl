@@ -371,7 +371,7 @@ compass-heading = { $degrees }° { $direction }
 compass-heading-tooltip = Direction at the top of the map, clockwise from true north. Click to reset north.
 layers-grid-numbers-toggle = Show numbers
 ruler-bearing-label = Last segment bearing: { $bearing }
-ruler-bearing-tooltip = Initial great-circle bearing from the previous point to the last point, clockwise from true north.
+ruler-bearing-tooltip = Initial geodesic bearing from the previous point to the last point, clockwise from true north.
 grid-coordinate-label = { $degrees }° { $direction }
 
 menu-edit-title = Edit
@@ -393,10 +393,17 @@ ruler-point-add-action = Add point
 ruler-point-new-action = New point
 ruler-point-close-action = Close
 
+settings-earth-model-label = Earth model
+earth-model-sphere = Perfect Sphere
+earth-model-wgs84 = Realistic — WGS 84 (G2296)
+earth-model-sphere-help = Original mean-radius sphere. Optional alternative to the realistic Earth model.
+earth-model-wgs84-help = Default Earth model, with WGS 84 ellipsoid geometry and geodesics. G2296 reference frame: EPSG:10606 (2D), EPSG:10605 (3D); no epoch transformations, tectonic motion, terrain or geoid heights. Uses the CPU globe renderer.
+
 places-root-name = My Places
 places-document-name = Document
 places-folder-name = New folder
 places-add-folder-action = + Folder
+places-clear-all-action = Clear All
 places-delete-action = Delete
 places-visible-help = Show this place and its children on the globe
 places-empty-help = Open a KML file or add a place. Drag places into folders to organize them.

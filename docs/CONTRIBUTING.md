@@ -143,7 +143,13 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
   out-of-range input without changing points. Delete or undo a selected point
   on the map: Apply must require reselection, never overwrite a shifted index.
   Enter submits a coordinate field; Escape/Close cancels unsubmitted input.
-  Repeat in both UI languages. Measurements retain the current spherical model.
+  Repeat in both UI languages. Measurements follow the selected Earth model; Realistic — WGS 84 (G2296) is the default.
+  In Settings → Earth model, switch Perfect Sphere / Realistic — WGS 84 (G2296).
+  Verify camera center/heading/altitude and ruler coordinates remain intact;
+  totals, arc geometry, grid, labels, aircraft/weather and scale bar must agree
+  with the displayed model. Exercise poles/dateline, anchored zoom, pending frames
+  during a switch, restore defaults and restart persistence in both languages.
+  WGS 84 must use the CPU renderer even with the GPU diagnostic preference.
   Add two ruler points, check the last segment's initial true-north bearing;
   add/remove/edit points and verify the bearing updates. Coincident or antipodal
   points must show an undefined bearing rather than an arbitrary direction.
@@ -151,6 +157,12 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
   language/map text size, and resize. Verify updates without camera movement;
   late boundary patches and ruler/placemark edits must appear immediately.
 - Create placemarks; save/open/drop KML; export a screenshot and use the ruler.
+  Open several KML files, restart and verify their saved contents reopen in order.
+  Remove one source externally, restart and verify it is silently pruned from
+  `open-kml.json`; malformed/unreadable sources should report errors and remain
+  remembered. Clear All during a pending import must leave the tree empty, retain
+  source files and stay empty after restart. Restore Defaults must retain sources.
+  Save the combined tree to a new file and restart: no duplicate imports should appear.
   Import nested Documents/Folders (including empty folders and repeated names).
   Expand/collapse, select and edit names/descriptions, double-click a marker to
   fly, and toggle parent/child visibility. Move markers/folders by dragging onto
@@ -159,6 +171,12 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
   hierarchy, order and visibility must survive without extra wrapper nesting.
   Check both languages and narrow/resized sidebars. Native tree interaction is
   separate from the automated core mutation and KML round-trip tests.
+  At the default sidebar width, expand six nested folders: rows and indentation
+  should remain compact, with distinct outlined folder and pin icons. Hover a
+  truncated name for its full text; selection must still cover the row's width.
+  Select a place with a long HTML description: its text remains editable in a
+  three-line scrolling viewport while the tree retains its taller area. Check
+  radar/cloud attribution directly beneath its matching layer toggle.
 - In Explorer, display large planet/sky images and load/save `.earthplanet` files;
   the UI should remain responsive while the file work runs. Check the busy
   indicator and disabled file controls, including after a failed operation.
