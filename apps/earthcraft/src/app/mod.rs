@@ -131,14 +131,6 @@ impl App {
         self.settings.distance_units.resolve(self.system_units)
     }
 
-    fn ruler_unit(&self) -> earthcraft_core::units::RulerUnit {
-        if self.settings.ruler_unit.available(self.us_locale) {
-            self.settings.ruler_unit
-        } else {
-            earthcraft_core::units::RulerUnit::Automatic
-        }
-    }
-
     pub(crate) fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let mut vis = egui::Visuals::dark();
         vis.window_rounding = 6.0.into();

@@ -123,9 +123,10 @@ unit; verify Enter/Apply updates altitude without changing the center/heading an
 cancels an active flight. Escape/Cancel must leave altitude unchanged. Check
 invalid, non-finite and out-of-range values, and repeat in both languages. Try each explicit ruler unit and verify that both segment labels and totals
 change while altitude and scale keep their own settings. Check degrees/arcseconds,
-smoots and the US-only football fields option (100 yards without end zones).
-Restart to check the ruler preference; non-US locales hide football fields and
-fall back to Automatic if that preference was saved elsewhere. Restart and verify the override persists; switching UI language must not
+smoots and football fields (100 yards without end zones). The field option is
+available everywhere: verify “Football fields” in the US selector and “American
+football fields” elsewhere, with the shorter name in totals/segment labels.
+Restart to check that the ruler preference persists across locales. Restart and verify the override persists; switching UI language must not
 change it. System locales use the regional defaults listed in ARCHITECTURE.md. Inspect folder labels and KML
 import/save/screenshot statuses: home paths use `~/…` on macOS/Linux and
 `%USERPROFILE%\…` on Windows, other long paths retain their tail with `.../`.

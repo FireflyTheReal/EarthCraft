@@ -309,10 +309,11 @@ ruler-unit-nautical-miles = Milhas náuticas
 ruler-unit-smoots = Smoots
 ruler-unit-degrees = Graus
 ruler-unit-arcseconds = Segundos de arco
-ruler-unit-football-fields = Campos de futebol americano
+ruler-unit-football-fields = Campos de futebol
+ruler-unit-american-football-fields = Campos de futebol americano
 ruler-units-label = Unidades
 ruler-distance-smoots = { $value } smoots
-ruler-distance-football-fields = { $value } campos de futebol americano
+ruler-distance-football-fields = { $value } campos de futebol
 ruler-unit-automatic-help = Usa as unidades de distância selecionadas nas Configurações.
 ruler-unit-centimeters-help = 1 centímetro = 0,01 metro.
 ruler-unit-meters-help = 1 metro = 100 centímetros.

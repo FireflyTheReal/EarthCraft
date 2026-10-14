@@ -99,7 +99,7 @@ impl DistanceUnits {
         format!("{} {unit}", (distance_m / divisor * 100.0).round() / 100.0)
     }
 }
-/// The football-field ruler option is specific to US system locales, not English UI.
+/// Select US-specific ruler naming independently of the UI language.
 pub fn is_us_locale(locale: &str) -> bool {
     locale_region(locale).is_some_and(|region| region.as_str() == "US")
 }

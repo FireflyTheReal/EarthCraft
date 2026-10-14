@@ -68,9 +68,6 @@ impl RulerUnit {
     pub fn from_code(code: &str) -> Option<Self> {
         Self::ALL.into_iter().find(|unit| unit.code() == code)
     }
-    pub fn available(self, us_locale: bool) -> bool {
-        self != Self::FootballFields || us_locale
-    }
     pub fn label(self, lang: Lang) -> &'static str {
         lang.text(match self {
             Self::Automatic => "ruler-unit-automatic",
@@ -87,6 +84,14 @@ impl RulerUnit {
             Self::Arcseconds => "ruler-unit-arcseconds",
             Self::FootballFields => "ruler-unit-football-fields",
         })
+    }
+    /// A selector may clarify a unit's name without lengthening measurement labels.
+    pub fn selector_label(self, lang: Lang, us_locale: bool) -> &'static str {
+        let override_id = match self {
+            Self::FootballFields if !us_locale => Some("ruler-unit-american-football-fields"),
+            _ => None,
+        };
+        override_id.map_or_else(|| self.label(lang), |id| lang.text(id))
     }
     pub fn help(self, lang: Lang) -> &'static str {
         lang.text(match self {
@@ -232,23 +237,41 @@ mod tests {
         );
     }
     #[test]
-    fn easter_egg_depends_on_us_region_and_translates_with_ui() {
+    fn selector_names_can_differ_from_measurement_labels_by_region() {
         assert!(super::super::is_us_locale("es-US"));
         assert!(super::super::is_us_locale("en_US.UTF-8"));
         assert!(!super::super::is_us_locale("en-GB"));
         assert!(!super::super::is_us_locale("en"));
         for unit in RulerUnit::ALL {
-            assert!(unit.available(true));
-            assert_eq!(unit.available(false), unit != RulerUnit::FootballFields);
             assert_eq!(RulerUnit::from_code(unit.code()), Some(unit));
             for lang in Lang::ALL {
                 assert!(!unit.label(lang).starts_with("ruler-unit-"));
                 assert!(!unit.help(lang).starts_with("ruler-unit-"));
+                for us_locale in [true, false] {
+                    assert!(!unit
+                        .selector_label(lang, us_locale)
+                        .starts_with("ruler-unit-"));
+                    if unit != RulerUnit::FootballFields {
+                        assert_eq!(unit.selector_label(lang, us_locale), unit.label(lang));
+                    }
+                }
             }
         }
         assert_eq!(
+            RulerUnit::FootballFields.selector_label(Lang::En, true),
+            "Football fields"
+        );
+        assert_eq!(
+            RulerUnit::FootballFields.selector_label(Lang::En, false),
+            "American football fields"
+        );
+        assert_eq!(
+            RulerUnit::FootballFields.format(0.18288, DistanceUnits::Metric, Lang::En),
+            "2.00 football fields"
+        );
+        assert_eq!(
             RulerUnit::FootballFields.format(0.18288, DistanceUnits::Metric, Lang::PtBr),
-            "2.00 campos de futebol americano"
+            "2.00 campos de futebol"
         );
     }
 }

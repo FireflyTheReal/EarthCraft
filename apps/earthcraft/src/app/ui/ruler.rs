@@ -13,13 +13,11 @@ pub(super) fn unit_selector(
         egui::ComboBox::from_id_source("ruler_units")
             .width(ui.available_width())
             .wrap(true)
-            .selected_text(selected.label(lang))
+            .selected_text(selected.selector_label(lang, us_locale))
             .show_ui(ui, |ui| {
                 for unit in RulerUnit::ALL {
-                    if unit.available(us_locale) {
-                        ui.selectable_value(&mut selected, unit, unit.label(lang))
-                            .on_hover_text(unit.help(lang));
-                    }
+                    ui.selectable_value(&mut selected, unit, unit.selector_label(lang, us_locale))
+                        .on_hover_text(unit.help(lang));
                 }
             });
     });
@@ -34,22 +32,27 @@ mod tests {
         let ctx = egui::Context::default();
         for lang in Lang::ALL {
             for unit in RulerUnit::ALL {
-                let _ = ctx.run(
-                    egui::RawInput {
-                        screen_rect: Some(egui::Rect::from_min_size(
-                            egui::Pos2::ZERO,
-                            egui::vec2(240.0, 200.0),
-                        )),
-                        ..Default::default()
-                    },
-                    |ctx| {
-                        egui::CentralPanel::default().show(ctx, |ui| {
-                            let bounds = ui.max_rect();
-                            assert_eq!(unit_selector(ui, unit, true, lang), unit);
-                            assert!(ui.min_rect().right() <= bounds.right(), "{lang:?} {unit:?}");
-                        });
-                    },
-                );
+                for us_locale in [true, false] {
+                    let _ = ctx.run(
+                        egui::RawInput {
+                            screen_rect: Some(egui::Rect::from_min_size(
+                                egui::Pos2::ZERO,
+                                egui::vec2(240.0, 200.0),
+                            )),
+                            ..Default::default()
+                        },
+                        |ctx| {
+                            egui::CentralPanel::default().show(ctx, |ui| {
+                                let bounds = ui.max_rect();
+                                assert_eq!(unit_selector(ui, unit, us_locale, lang), unit);
+                                assert!(
+                                    ui.min_rect().right() <= bounds.right(),
+                                    "{lang:?} {unit:?}"
+                                );
+                            });
+                        },
+                    );
+                }
             }
         }
     }

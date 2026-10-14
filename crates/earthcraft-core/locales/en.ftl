@@ -310,6 +310,7 @@ ruler-unit-smoots = Smoots
 ruler-unit-degrees = Degrees
 ruler-unit-arcseconds = Arcseconds
 ruler-unit-football-fields = Football fields
+ruler-unit-american-football-fields = American football fields
 ruler-units-label = Units
 ruler-distance-smoots = { $value } smoots
 ruler-distance-football-fields = { $value } football fields

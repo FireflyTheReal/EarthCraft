@@ -273,11 +273,11 @@ impl App {
                             ui.checkbox(&mut self.ruler, lg.text("ruler-enable-toggle"));
                             let selected = super::ruler::unit_selector(
                                 ui,
-                                self.ruler_unit(),
+                                self.settings.ruler_unit,
                                 self.us_locale,
                                 lg,
                             );
-                            if selected != self.ruler_unit() {
+                            if selected != self.settings.ruler_unit {
                                 self.settings.ruler_unit = selected;
                             }
                             let total: f64 = self
@@ -292,7 +292,8 @@ impl App {
                                         ("count", self.ruler_pts.len().to_string().into()),
                                         (
                                             "distance",
-                                            self.ruler_unit()
+                                            self.settings
+                                                .ruler_unit
                                                 .format(total, self.distance_units(), lg)
                                                 .into(),
                                         ),
