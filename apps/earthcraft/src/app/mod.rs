@@ -98,6 +98,7 @@ pub(crate) struct App {
     ruler: bool,
     ruler_drag: Option<earthcraft_core::ruler::RulerPointId>,
     ruler_paths: earthcraft_core::ruler::Ruler,
+    ruler_point_editor: Option<ui::ruler::PointEditor>,
     cursor: Option<(f64, f64)>,
     sidebar_open: bool,
     sidebar_animating: bool,
@@ -222,6 +223,7 @@ impl App {
             ruler: false,
             ruler_drag: None,
             ruler_paths: earthcraft_core::ruler::Ruler::default(),
+            ruler_point_editor: None,
             cursor: None,
             sidebar_open: true,
             sidebar_animating: false,
@@ -314,6 +316,7 @@ impl eframe::App for App {
         self.settings_window(ctx);
         self.explorer_window(ctx);
         self.altitude_window(ctx);
+        self.ruler_points_window(ctx);
         self.live_maps
             .update(ctx, &self.runtime, self.show_clouds, self.show_weather);
         self.boundary_loader.request_visible_layers(

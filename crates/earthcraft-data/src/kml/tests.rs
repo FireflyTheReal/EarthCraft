@@ -151,3 +151,29 @@ fn deep_nesting_is_rejected_and_empty_imports_are_valid() {
         assert!(parse_kml(empty, Lang::En).unwrap().is_empty());
     }
 }
+
+#[test]
+fn invalid_import_and_export_coordinates_use_shared_validation() {
+    for coords in ["0,91", "181,0", "NaN,0"] {
+        let xml =
+            format!("<Placemark><Point><coordinates>{coords}</coordinates></Point></Placemark>");
+        assert!(parse_kml(&xml, Lang::En).is_err(), "{coords}");
+    }
+    let path = std::env::temp_dir().join(format!(
+        "earthcraft-invalid-coordinates-{}.kml",
+        std::process::id()
+    ));
+    std::fs::write(&path, "keep original").unwrap();
+    let pm = Placemark {
+        name: "Invalid".into(),
+        desc: String::new(),
+        lat: 91.0,
+        lon: 0.0,
+    };
+    assert!(matches!(
+        save_kml(path.to_str().unwrap(), &[pm]),
+        Err(crate::Error::Coordinates(_))
+    ));
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "keep original");
+    std::fs::remove_file(path).unwrap();
+}

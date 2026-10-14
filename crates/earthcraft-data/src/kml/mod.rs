@@ -12,6 +12,9 @@ use quick_xml::{
 mod guard;
 
 pub fn save_kml(path: &str, pms: &[Placemark]) -> Result<(), crate::Error> {
+    for pm in pms {
+        earthcraft_core::coordinates::validate_coordinates(pm.lat, pm.lon)?;
+    }
     let marks = pms.iter().map(|pm| {
         Kml::Placemark(KmlPlacemark {
             name: Some(pm.name.clone()),
@@ -41,33 +44,36 @@ pub fn save_kml(path: &str, pms: &[Placemark]) -> Result<(), crate::Error> {
     Ok(std::fs::write(path, bytes)?)
 }
 
-fn collect(document: Kml<f64>, lg: Lang, out: &mut Vec<Placemark>) {
+fn collect(document: Kml<f64>, lg: Lang, out: &mut Vec<Placemark>) -> Result<(), crate::Error> {
     match document {
         Kml::KmlDocument(doc) => {
             for element in doc.elements {
-                collect(element, lg, out);
+                collect(element, lg, out)?;
             }
         }
         Kml::Document { elements, .. } | Kml::Folder(::kml::types::Folder { elements, .. }) => {
             for element in elements {
-                collect(element, lg, out);
+                collect(element, lg, out)?;
             }
         }
         Kml::Placemark(pm) => {
             if let Some(coord) = pm.geometry.as_ref().and_then(first_coordinate) {
+                let (lat, lon) =
+                    earthcraft_core::coordinates::validate_coordinates(coord.y, coord.x)?;
                 out.push(Placemark {
                     name: pm
                         .name
                         .map(|s| s.trim().to_owned())
                         .unwrap_or_else(|| lg.text("placemarks-fallback-name").into()),
                     desc: pm.description.unwrap_or_default().trim().to_owned(),
-                    lat: coord.y,
-                    lon: coord.x,
+                    lat,
+                    lon,
                 });
             }
         }
         _ => {}
     }
+    Ok(())
 }
 
 // EarthCraft imports one marker per Placemark, at its first coordinate. Decoding
@@ -93,7 +99,7 @@ fn parse_kml(txt: &str, lg: Lang) -> Result<Vec<Placemark>, crate::Error> {
         Err(error) => return Err(error.into()),
     };
     let mut out = Vec::new();
-    collect(document, lg, &mut out);
+    collect(document, lg, &mut out)?;
     Ok(out)
 }
 

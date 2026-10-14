@@ -1,7 +1,8 @@
 use super::App;
+use earthcraft_core::coordinates::parse_latlon;
 use earthcraft_core::language::{fold_name, Lang};
 use earthcraft_data::search::merge_suggestions;
-use earthcraft_data::search::{geocode, parse_latlon, photon_suggest};
+use earthcraft_data::search::{geocode, photon_suggest};
 use eframe::egui;
 use std::{
     sync::mpsc,

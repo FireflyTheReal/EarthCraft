@@ -29,7 +29,7 @@ Anyway** for EarthCraft and confirm **Open**. See [Apple's instructions](https:/
 - Place and address search (Nominatim), plus direct "lat, lon" coordinate input
 - Animated fly-to (double-click, search or list)
 - Placemarks with KML import/export
-- Geodesic distance ruler (great-circle), with undo/redo, separate paths (Alt-click), selectable metric, imperial, nautical, angular and novelty units and initial bearing for the last segment
+- Geodesic distance ruler (great-circle), with exact decimal-degree point entry/editing, undo/redo, separate paths (Alt-click), selectable metric, imperial, nautical, angular and novelty units and initial bearing for the last segment
 - Lat/lon grid with optional coordinate labels, atmosphere, stars, real-time sunlight (day/night)
 - Scale bar, cursor coordinates, PNG screenshot, context menu
 - Background CPU rendering; experimental GPU globe renderer can be enabled via `EARTHCRAFT_RENDERER=auto` or `EARTHCRAFT_RENDERER=gpu` (with CPU fallback). See [experimental GPU rendering](docs/GPU_RENDERER.md).

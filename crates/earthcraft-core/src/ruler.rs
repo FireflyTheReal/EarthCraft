@@ -40,6 +40,9 @@ impl Ruler {
     pub fn point_count(&self) -> usize {
         self.paths.iter().map(Vec::len).sum()
     }
+    pub fn point(&self, id: RulerPointId) -> Option<(f64, f64)> {
+        self.paths.get(id.path)?.get(id.point).copied()
+    }
     /// Capture a whole pointer drag as one edit, without cloning on each movement.
     pub fn begin_move(&mut self) {
         self.end_move();

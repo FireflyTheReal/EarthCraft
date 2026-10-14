@@ -1,3 +1,4 @@
+use earthcraft_core::coordinates::{parse_coordinates, validate_coordinates};
 const SEARCH_KM_PER_DEGREE: f64 = 111.2;
 const SEARCH_VIEW_PADDING_RATIO: f64 = 1.6;
 const MIN_SEARCH_ALTITUDE_KM: f64 = 0.5;
@@ -20,20 +21,6 @@ pub struct GeoResult {
     pub alt: f64,
 }
 
-pub fn parse_latlon(s: &str) -> Option<(f64, f64)> {
-    let cleaned = s.replace([',', ';'], " ");
-    let parts: Vec<&str> = cleaned.split_whitespace().collect();
-    if parts.len() != 2 {
-        return None;
-    }
-    let (a, b) = (parts[0].parse::<f64>().ok()?, parts[1].parse::<f64>().ok()?);
-    if a.abs() <= 90.0 && b.abs() <= 180.0 {
-        Some((a, b))
-    } else {
-        None
-    }
-}
-
 pub async fn geocode(q: &str, lang: &str) -> Result<Vec<GeoResult>, crate::Error> {
     let request = crate::http::client(crate::http::Policy::Search)?
         .get("https://nominatim.openstreetmap.org/search")
@@ -49,10 +36,10 @@ pub async fn geocode(q: &str, lang: &str) -> Result<Vec<GeoResult>, crate::Error
 
 #[derive(serde::Deserialize)]
 struct NominatimResult {
-    #[serde(default, deserialize_with = "crate::json_fields::string_number")]
-    lat: Option<f64>,
-    #[serde(default, deserialize_with = "crate::json_fields::string_number")]
-    lon: Option<f64>,
+    #[serde(default, deserialize_with = "crate::json_fields::string")]
+    lat: Option<String>,
+    #[serde(default, deserialize_with = "crate::json_fields::string")]
+    lon: Option<String>,
     #[serde(default, deserialize_with = "crate::json_fields::string_numbers")]
     boundingbox: Vec<f64>,
     #[serde(default, deserialize_with = "crate::json_fields::string")]
@@ -67,8 +54,14 @@ fn parse_geocode_response(value: serde_json::Value) -> Result<Vec<GeoResult>, cr
         let (Some(lat), Some(lon)) = (row.lat, row.lon) else {
             continue;
         };
+        let Ok((lat, lon)) = parse_coordinates(&lat, &lon) else {
+            continue;
+        };
         let bb = row.boundingbox;
-        let alt = if bb.len() == 4 {
+        let alt = if bb.len() == 4
+            && validate_coordinates(bb[0], bb[2]).is_ok()
+            && validate_coordinates(bb[1], bb[3]).is_ok()
+        {
             let span = (bb[1] - bb[0]).max((bb[3] - bb[2]) * lat.to_radians().cos().abs());
             (span * SEARCH_KM_PER_DEGREE * SEARCH_VIEW_PADDING_RATIO)
                 .clamp(MIN_SEARCH_ALTITUDE_KM, MAX_SEARCH_ALTITUDE_KM)
@@ -103,14 +96,16 @@ pub async fn photon_suggest(q: &str, lang: &str) -> Result<Vec<Suggestion>, crat
         request = request.query(&[("lang", "en")]);
     }
     let v = crate::http::parse_json(crate::http::body(request, 1 << 30).await?).await?;
+    Ok(parse_photon_response(v))
+}
+
+fn parse_photon_response(v: serde_json::Value) -> Vec<Suggestion> {
     let mut out: Vec<Suggestion> = Vec::new();
     for f in v["features"].as_array().into_iter().flatten() {
-        let (Some(lon), Some(lat)) = (
-            f.pointer("/geometry/coordinates/0")
-                .and_then(|x| x.as_f64()),
-            f.pointer("/geometry/coordinates/1")
-                .and_then(|x| x.as_f64()),
-        ) else {
+        let Some((lat, lon)) = f
+            .pointer("/geometry/coordinates")
+            .and_then(crate::json_fields::coordinates)
+        else {
             continue;
         };
         let pr = &f["properties"];
@@ -143,7 +138,10 @@ pub async fn photon_suggest(q: &str, lang: &str) -> Result<Vec<Suggestion>, crat
             .as_array()
             .map(|a| a.iter().filter_map(|x| x.as_f64()).collect())
             .unwrap_or_default();
-        let alt = if ex.len() == 4 {
+        let alt = if ex.len() == 4
+            && validate_coordinates(ex[1], ex[0]).is_ok()
+            && validate_coordinates(ex[3], ex[2]).is_ok()
+        {
             let span = (ex[1] - ex[3])
                 .abs()
                 .max((ex[2] - ex[0]).abs() * lat.to_radians().cos().abs());
@@ -171,17 +169,31 @@ pub async fn photon_suggest(q: &str, lang: &str) -> Result<Vec<Suggestion>, crat
             });
         }
     }
-    Ok(out)
+    out
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
+    fn photon_coordinates_share_validation_and_keep_longitude_first_order() {
+        let rows = parse_photon_response(serde_json::json!({"features": [
+            {"geometry":{"coordinates":[-50, -15]},"properties":{"name":"Valid"}},
+            {"geometry":{"coordinates":[181, 10]},"properties":{"name":"Bad longitude"}},
+            {"geometry":{"coordinates":[10, 91]},"properties":{"name":"Bad latitude"}},
+            {"geometry":{"coordinates":[10]},"properties":{"name":"Incomplete"}}
+        ]}));
+        assert_eq!(rows.len(), 1);
+        assert_eq!((rows[0].lat, rows[0].lon), (-15.0, -50.0));
+    }
+    #[test]
     fn typed_search_skips_invalid_rows_and_retains_defaults() {
         let rows = parse_geocode_response(serde_json::json!([
             {"lat":"-15","lon":"-50","display_name":"Brasília"},
             {"lat":"invalid","lon":"10"},
+            {"lat":"91","lon":"10"},
+            {"lat":"NaN","lon":"10"},
+            {"lat":"10","lon":"181"},
             {"lat":"1","lon":"2","display_name":42,"boundingbox":["bad"]}
         ]))
         .unwrap();
@@ -189,17 +201,6 @@ mod tests {
         assert_eq!(rows[0].name, "Brasília");
         assert_eq!(rows[1].name, "?");
         assert_eq!(rows[1].alt, DEFAULT_SEARCH_ALTITUDE_KM);
-    }
-
-    #[test]
-    fn coordinates_accept_existing_separators_and_bounds() {
-        for input in ["-15, -50", "-15; -50", " -15  -50 "] {
-            assert_eq!(parse_latlon(input), Some((-15.0, -50.0)));
-        }
-        assert_eq!(parse_latlon("90, 180"), Some((90.0, 180.0)));
-        for input in ["91, 0", "0, 181", "NaN, 0", "inf, 0", "one, two", "1, 2, 3"] {
-            assert_eq!(parse_latlon(input), None, "{input}");
-        }
     }
 }
 

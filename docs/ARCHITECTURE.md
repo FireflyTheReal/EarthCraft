@@ -70,7 +70,18 @@ labels. Core owns disconnected ruler paths, bounded undo/redo history (100 edits
 path-aware distance totals, true-north heading formatting and initial great-circle
 bearings; the desktop draws the status heading and compass. Pointer drags use core
 move transactions so one drag is one history step. Native Edit menu commands
-and keyboard shortcuts route to ruler history unless a text edit has focus.
+and keyboard shortcuts route to ruler history unless a text edit has focus. The
+ruler coordinate editor accepts separate latitude/longitude decimal-degree fields,
+uses core’s shared `coordinates` module to validate finite values within
+±90°/±180°. Search coordinate queries use the same parser after splitting
+comma, semicolon or whitespace separators. Core also validates decoded numeric
+coordinates for geocoding, suggestions, GeoJSON boundaries/labels and KML I/O.
+Data owns JSON/XML decoding and longitude-first format adaptation. Invalid
+service coordinates are skipped; invalid KML coordinates return a typed error
+before an import completes or an export touches its destination. The editor adds/edits points through
+the same history. Input and editing preserve the stored f64 values without display
+rounding. Distances still use the existing 6,371.0088 km spherical Earth model;
+precise coordinate entry does not imply ellipsoidal or survey-grade accuracy.
 
 ## Async services and files
 

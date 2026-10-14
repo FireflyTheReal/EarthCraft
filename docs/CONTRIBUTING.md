@@ -127,6 +127,14 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
   Use Cmd+Z / Cmd+Shift+Z and Edit → Undo/Redo on macOS; use Ctrl+Z /
   Ctrl+Shift+Z or Ctrl+Y on Windows/Linux. Focus a search/KML text field: its
   undo/redo must affect text without altering ruler points.
+  Open Ruler → Edit coordinates. Add exact decimal-degree points, including ±90°
+  latitude and ±180° longitude, and start a separate path with the checkbox.
+  Select an existing point, edit it and apply; reopening/selecting must preserve
+  its full input precision. Undo/redo each add/edit. Reject NaN, infinity and
+  out-of-range input without changing points. Delete or undo a selected point
+  on the map: Apply must require reselection, never overwrite a shifted index.
+  Enter submits a coordinate field; Escape/Close cancels unsubmitted input.
+  Repeat in both UI languages. Measurements retain the current spherical model.
   Add two ruler points, check the last segment's initial true-north bearing;
   add/remove/edit points and verify the bearing updates. Coincident or antipodal
   points must show an undefined bearing rather than an arbitrary direction.

@@ -5,7 +5,7 @@ mod compass;
 mod cursor;
 mod navigation;
 mod paths;
-mod ruler;
+pub(in crate::app) mod ruler;
 mod scale_slider;
 mod selection;
 mod settings;
