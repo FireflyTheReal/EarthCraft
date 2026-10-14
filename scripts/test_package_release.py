@@ -63,7 +63,7 @@ class ReleasePackagingTests(unittest.TestCase):
             release.write_update_archive(app, archive)
             with zipfile.ZipFile(archive) as contents:
                 for entry in (executable, signature):
-                    self.assertEqual(contents.read(str(entry.relative_to(root))), entry.read_bytes())
+                    self.assertEqual(contents.read(entry.relative_to(root).as_posix()), entry.read_bytes())
                 if os.name != "nt":
                     info = contents.getinfo("EarthCraft.app/Contents/MacOS/earthcraft")
                     self.assertEqual((info.external_attr >> 16) & 0o777, 0o755)
