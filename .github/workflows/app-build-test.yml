@@ -1,14 +1,20 @@
-name: CI
+name: app-build-test
 
 on:
   push:
+    paths:
+      - 'apps/**'
+      - 'crates/**'
   pull_request:
+    paths:
+      - 'apps/**'
+      - 'crates/**'
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: app-build-test-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

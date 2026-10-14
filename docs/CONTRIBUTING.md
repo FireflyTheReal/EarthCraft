@@ -40,8 +40,9 @@ cargo run -p earthcraft
 Keep `Cargo.lock` in version control. Normal verification uses `--locked` to
 catch unintended dependency resolution changes. Intentional dependency updates
 should be reviewed separately, including compatibility with Rust 1.89.
-CI formats, lints, tests, and builds on Linux/macOS/Windows, plus Linux with the
-minimum Rust version. Use the latest supported major version tags for GitHub
+The `app-build-test` workflow runs on pushes and pull requests changing `apps/**`
+or `crates/**`. It formats, lints, tests, and builds on Linux/macOS/Windows, plus
+Linux with the minimum Rust version. Use the latest supported major version tags for GitHub
 Actions, rather than commit hashes. For actions without version tags, follow the
 maintained upstream branch. Keep Rust toolchain versions explicit.
 
