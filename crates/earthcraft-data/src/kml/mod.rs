@@ -40,7 +40,8 @@ pub fn save_kml(path: &str, pms: &[Placemark]) -> Result<(), crate::Error> {
     let mut bytes = Vec::new();
     let mut xml = Writer::new(&mut bytes);
     xml.write_event(Event::Decl(BytesDecl::new("1.0", Some("UTF-8"), None)))?;
-    KmlWriter::new(xml).write(&document)?;
+    drop(xml);
+    KmlWriter::from_writer(&mut bytes).write(&document)?;
     Ok(std::fs::write(path, bytes)?)
 }
 
