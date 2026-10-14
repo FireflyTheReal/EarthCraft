@@ -112,7 +112,10 @@ once and data persists the System/Metric/Imperial preference. EarthCraft default
 Bahamas, US Virgin Islands, Guam, Puerto Rico, Cayman Islands, Guernsey, Jersey
 and Isle of Man. This application policy extends CLDR's US/GB length defaults
 to include mixed/traditional mile usage; it does not claim uniform statutory
-units in those regions. Other locales and unknown regions use kilometers/meters. Camera altitude and scale bar share the selection; the ruler's Automatic option
+units in those regions. Other locales and unknown regions use kilometers/meters. Clicking the camera altitude opens an exact-value editor in its displayed unit.
+Core validates/converts entries within the existing camera limits; the desktop
+owns the editor and applies accepted values, cancelling active flight.
+Camera altitude and scale bar share the selection; the ruler's Automatic option
 also follows it. Its separate saved selector supports centimeters, meters,
 kilometers, inches, feet, yards, miles, nautical miles, smoots, degrees and
 arcseconds. Angular units represent accumulated central angle on the mean-radius

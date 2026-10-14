@@ -3,6 +3,8 @@ use crate::{
     math::{fmt_alt, fmt_dist},
     METERS_PER_KM,
 };
+mod altitude;
+pub use altitude::AltitudeUnit;
 mod ruler;
 pub use ruler::RulerUnit;
 

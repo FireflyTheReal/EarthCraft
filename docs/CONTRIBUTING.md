@@ -118,7 +118,10 @@ deb output.
 
 Distance and path smoke checks: select System, kilometers/meters and miles/feet
 in Settings; check ruler segments/totals, camera altitude and close-view scale
-bars. Try each explicit ruler unit and verify that both segment labels and totals
+bars. Click the bottom-bar camera altitude and enter an exact value in the shown
+unit; verify Enter/Apply updates altitude without changing the center/heading and
+cancels an active flight. Escape/Cancel must leave altitude unchanged. Check
+invalid, non-finite and out-of-range values, and repeat in both languages. Try each explicit ruler unit and verify that both segment labels and totals
 change while altitude and scale keep their own settings. Check degrees/arcseconds,
 smoots and the US-only football fields option (100 yards without end zones).
 Restart to check the ruler preference; non-US locales hide football fields and

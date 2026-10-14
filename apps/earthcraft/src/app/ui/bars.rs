@@ -151,13 +151,27 @@ impl App {
                     ],
                 ));
                 ui.separator();
-                ui.monospace(lg.format(
+                let altitude = lg.format(
                     "statusbar-camera-altitude",
                     &[(
                         "distance",
                         self.distance_units().altitude(self.cam.alt).into(),
                     )],
-                ));
+                );
+                if ui
+                    .add(
+                        egui::Label::new(egui::RichText::new(altitude).monospace())
+                            .sense(egui::Sense::click()),
+                    )
+                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                    .on_hover_text(lg.text("altitude-edit-tooltip"))
+                    .clicked()
+                {
+                    self.altitude_editor = Some(super::altitude::AltitudeEditor::new(
+                        self.cam.alt,
+                        self.distance_units(),
+                    ));
+                }
                 ui.separator();
                 let n = self.cache.inflight();
                 if n > 0 {

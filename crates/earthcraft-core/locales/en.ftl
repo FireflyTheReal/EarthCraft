@@ -326,3 +326,9 @@ ruler-unit-smoots-help = 1 smoot = 67 inches.
 ruler-unit-degrees-help = Central angle along the measured path on the globe.
 ruler-unit-arcseconds-help = 1 arcsecond = 1/3,600 of a degree of central angle.
 ruler-unit-football-fields-help = One American football field is 100 yards, excluding end zones.
+
+altitude-edit-tooltip = Set an exact camera altitude
+altitude-edit-title = Camera altitude
+altitude-apply-action = Apply
+altitude-cancel-action = Cancel
+altitude-input-error = Enter a number between { $minimum } and { $maximum } { $unit }.

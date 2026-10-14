@@ -85,6 +85,7 @@ pub(crate) struct App {
     status_file: Option<files::FileStatus>,
     system_units: earthcraft_core::units::DistanceUnits,
     us_locale: bool,
+    altitude_editor: Option<ui::altitude::AltitudeEditor>,
 
     file_jobs: earthcraft_data::files::FileJobs,
     file_results: mpsc::Receiver<earthcraft_data::files::FileCompletion>,
@@ -217,6 +218,7 @@ impl App {
             status_file: None,
             system_units: earthcraft_core::units::DistanceUnits::for_locale(&system_locale),
             us_locale: earthcraft_core::units::is_us_locale(&system_locale),
+            altitude_editor: None,
             placemarks: vec![],
             file_jobs,
             file_results,
@@ -315,6 +317,7 @@ impl eframe::App for App {
         self.side_panel(ctx);
         self.settings_window(ctx);
         self.explorer_window(ctx);
+        self.altitude_window(ctx);
         self.live_maps
             .update(ctx, &self.runtime, self.show_clouds, self.show_weather);
         self.boundary_loader.request_visible_layers(
