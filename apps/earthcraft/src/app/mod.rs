@@ -95,6 +95,7 @@ pub(crate) struct App {
     menu_pick: Option<(f64, f64)>,
 
     ruler: bool,
+    ruler_drag: Option<usize>,
     ruler_pts: Vec<(f64, f64)>,
     cursor: Option<(f64, f64)>,
     sidebar_open: bool,
@@ -218,6 +219,7 @@ impl App {
             kml_path: "placemarks.kml".into(),
             menu_pick: None,
             ruler: false,
+            ruler_drag: None,
             ruler_pts: vec![],
             cursor: None,
             sidebar_open: true,

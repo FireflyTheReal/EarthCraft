@@ -345,3 +345,5 @@ altitude-input-error = Digite um número entre { $minimum } e { $maximum } { $un
 settings-hide-navigation-controls-toggle = Ocultar controles de navegação
 
 settings-close-action = Fechar
+
+ruler-point-edit-help = Arraste um ponto para movê-lo. Passe o cursor sobre um ponto e pressione Delete ou Backspace para removê-lo.
