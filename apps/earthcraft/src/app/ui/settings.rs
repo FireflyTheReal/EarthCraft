@@ -5,6 +5,7 @@ use earthcraft_data::settings::{Settings, UnitPreference};
 use earthcraft_data::settings::{MAX_MAP_SCALE, MIN_MAP_SCALE, MIN_UI_SCALE};
 use eframe::egui;
 const MAX_UI_SLIDER_SCALE: f32 = 2.0;
+const FOOTER_MARGIN_POINTS: f32 = 8.0;
 
 impl App {
     pub(in crate::app) fn settings_window(&mut self, ctx: &egui::Context) {
@@ -154,9 +155,15 @@ impl App {
                     }
                 });
                 ui.separator();
-                if ui.button(lg.text("settings-reset-action")).clicked() {
-                    self.settings = Settings::default();
-                }
+                egui::Frame::none()
+                    .inner_margin(egui::Margin::same(FOOTER_MARGIN_POINTS))
+                    .show(ui, |ui| {
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if ui.button(lg.text("settings-reset-action")).clicked() {
+                                self.settings = Settings::default();
+                            }
+                        });
+                    });
             });
         self.show_settings = open;
     }
