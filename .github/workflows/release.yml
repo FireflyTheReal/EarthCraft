@@ -88,6 +88,9 @@ jobs:
         with:
           toolchain: '1.89'
           targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-cpu-${{ matrix.target }}
       - uses: actions/setup-python@v7
         with:
           python-version: '3.12'

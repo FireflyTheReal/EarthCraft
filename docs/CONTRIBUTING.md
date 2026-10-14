@@ -41,10 +41,19 @@ Keep `Cargo.lock` in version control. Normal verification uses `--locked` to
 catch unintended dependency resolution changes. Intentional dependency updates
 should be reviewed separately, including compatibility with Rust 1.89.
 The `app-build-test` workflow runs on pushes and pull requests changing `apps/**`
-or `crates/**`. It formats, lints, tests, and builds on Linux/macOS/Windows, plus
+or `crates/**`, and can also be run manually from Actions. It formats, lints,
+tests, and builds on Linux/macOS/Windows, plus
 Linux with the minimum Rust version. Use the latest supported major version tags for GitHub
 Actions, rather than commit hashes. For actions without version tags, follow the
 maintained upstream branch. Keep Rust toolchain versions explicit.
+
+Both app checks and release builds use `Swatinem/rust-cache@v2` after selecting
+the Rust toolchain. It caches downloaded Cargo dependencies and compiled dependency
+artifacts, while workspace crates still rebuild. App-check caches are separated
+by runner/toolchain; CPU-only release caches are separated by target architecture
+and from the app-check profile. The action also keys caches by compiler and Cargo
+manifest/lockfile changes. Initial runs are cold; subsequent compatible runs can
+reuse their dependencies. Builds and tests still run on every workflow invocation.
 
 For preview artifacts, version tags and publication, see [releases](RELEASING.md).
 

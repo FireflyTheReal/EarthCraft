@@ -6,6 +6,12 @@ on Linux/Windows or `EarthCraft.app` inside a macOS disk image.
 These artifacts use `--no-default-features`: experimental GPU globe rendering is excluded
 from release downloads on every platform. CPU rendering remains the default.
 
+Each native build restores Cargo dependency caches through `Swatinem/rust-cache@v2`
+after installing Rust. Release cache keys include the target architecture and stay
+separate from development checks. An initial run still compiles dependencies;
+compatible later runs can reuse them. Caching does not reuse previously published
+application binaries: every release still builds and packages its tagged source.
+
 | Platform | Artifact |
 | --- | --- |
 | Linux x86-64 | `earthcraft-0.1.0-linux-x64.tar.gz` |
