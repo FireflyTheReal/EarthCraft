@@ -134,7 +134,15 @@ marker; drag onto a folder or My Places to move it. Creating a place/folder uses
 the selected folder, otherwise the root. Hidden ancestors suppress map markers
 without changing children's own visibility. File jobs capture the whole tree
 at submission; decoding, encoding and filesystem work stay off the UI thread.
-KML I/O and screenshot encoding use an ordered bounded file service. Native dialogs
+KML/KMZ I/O and screenshot encoding use an ordered bounded file service.
+KMZ imports use GeoRust's `KmlReader::from_kmz_path`, which selects the first
+KML entry in archive order without extracting resources to disk. Reader errors
+are reported directly; KMZ does not use the plain-KML XML repair pass. Folder
+visibility and malformed-document handling follow the upstream reader's behavior.
+Export writes the supported places tree as compressed `doc.kml`; its ZIP writer
+shares GeoRust's ZIP dependency version. Embedded resources, styles and network
+links retain the existing importer limitations.
+Native dialogs
 and result application belong to the app. Settings/language writes coalesce on a
 filesystem worker and flush at shutdown; startup reads the small preference files.
 Open KML source paths are stored separately in `open-kml.json` by that worker.

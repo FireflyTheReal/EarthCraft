@@ -1,4 +1,4 @@
-//! Read and write EarthCraft placemarks through GeoRust KML.
+//! Read and write KML/KMZ places through the shared GeoRust KML pipeline.
 use ::kml::{
     Kml, KmlReader, KmlWriter,
     types::{
@@ -15,6 +15,7 @@ use quick_xml::{
 };
 
 mod guard;
+mod kmz;
 
 fn element(name: &str, content: &str) -> Kml<f64> {
     Kml::Element(Element {
@@ -94,6 +95,11 @@ pub fn save_kml(path: &str, places: &Places) -> Result<(), crate::Error> {
     xml.write_event(Event::Decl(BytesDecl::new("1.0", Some("UTF-8"), None)))?;
     drop(xml);
     KmlWriter::from_writer(&mut bytes).write(&document)?;
+    let bytes = if is_kmz(path) {
+        kmz::encode(&bytes)?
+    } else {
+        bytes
+    };
     Ok(std::fs::write(path, bytes)?)
 }
 fn metadata(elements: &[Kml<f64>], field: &str) -> Option<String> {
@@ -203,13 +209,33 @@ fn parse_tree(txt: &str, lg: Lang) -> Result<Places, crate::Error> {
         Err(::kml::Error::NoElements) => return Ok(Places::default()),
         Err(error) => return Err(error.into()),
     };
+    places_from_document(document, lg)
+}
+
+fn places_from_document(document: Kml<f64>, lg: Lang) -> Result<Places, crate::Error> {
     let mut out = Vec::new();
     collect(document, lg, &mut out)?;
     Ok(Places { roots: out })
 }
 
+fn is_kmz(path: &str) -> bool {
+    std::path::Path::new(path)
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("kmz"))
+}
+
 pub fn load_kml(path: &str, lg: Lang) -> Result<Places, crate::Error> {
-    parse_tree(&std::fs::read_to_string(path)?, lg)
+    if is_kmz(path) {
+        let mut reader = KmlReader::<_, f64>::from_kmz_path(path).map_err(|error| match error {
+            // Preserve NotFound for startup pruning of missing KMZ sources.
+            ::kml::Error::IoError(error) => crate::Error::Io(error),
+            error => error.into(),
+        })?;
+        places_from_document(reader.read()?, lg)
+    } else {
+        parse_tree(&std::fs::read_to_string(path)?, lg)
+    }
 }
 
 #[cfg(test)]
