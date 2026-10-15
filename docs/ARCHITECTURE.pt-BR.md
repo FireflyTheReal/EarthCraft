@@ -159,3 +159,14 @@ Arquivos KMZ são lidos e gravados no mesmo serviço de arquivos do KML. A impor
 As novas camadas de estradas, navios AIS, satélites previstos e tráfego usam preparação geográfica no render, com uma solicitação ativa, uma pendente substituível e um resultado. Quadros em movimento levam geometria da própria câmera; atualizações estacionárias usam o mesmo preparador em segundo plano. A interface rejeita vistas/dados incompatíveis e guarda malhas/textos finais; conversão de feeds e imagens usa os serviços de CPU limitados do data. A aplicação troca snapshots imutáveis compartilhados. Resultados de tráfego de uma chave substituída ou apagada são descartados. O limite de estradas segue as unidades selecionadas: 180 km / 112 mi.
 
 A propagação orbital aproximada pertence ao core, enquanto o data decodifica OMM e épocas UTC. A ilustração secreta da Terra plana continua separada dos modelos científicos e mantém os controles existentes. Sua imagem é decodificada pelo serviço de arquivos; topologia e malhas são reutilizadas por vista/rotação/zoom/textura/DPI. A conclusão da imagem não reabre a cena se ela já foi fechada.
+
+## Painéis laterais
+
+A estrutura em `app/ui/sidebar.rs` reúne a barra vetorial de navegação e os
+módulos Explorar/Camadas/Lugares. Lugares pode ocupar todo o painel ou permanecer
+fixado abaixo de outro painel. A altura da árvore acompanha a área disponível;
+a edição de nomes/descrições e as alterações da árvore continuam na UI e no core.
+Data persiste `SidebarLayout` com leitura tolerante no arquivo de configurações
+existente; o desktop desenha, trata divisores e encaminha atalhos. Geometria,
+fidelidade KML e serviços ao vivo mantêm seu comportamento. Consulte os
+[painéis laterais](features/SIDEBAR.pt-BR.md) e o [plano 0.2.0](ROADMAP.md).

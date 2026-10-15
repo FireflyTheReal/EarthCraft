@@ -178,7 +178,7 @@ lossless editor for unsupported KML geometry, styles or network links.
 The desktop draws disclosure arrows, full-width selectable rows and visibility
 checkboxes, with a details editor for the selection. Compact rows use eight-point
 indentation and vector folder/pin icons, independent of font glyph coverage.
-The tree reserves a scrollable 128-point height; descriptions use a separate
+The tree uses the height supplied by the sidebar layout; descriptions use a separate
 three-line scrolling editor so long imported text cannot expand the sidebar.
 Double-click flies to a
 marker; drag onto a folder or My Places to move it. Creating a place/folder uses
@@ -343,3 +343,14 @@ This extraction prepares reusable logic; it does not make Tokio, SQLite, native
 file services or GPU readback compile for WebAssembly. A web frontend still needs
 browser transport/storage/execution adapters. Weather projection and body mesh
 construction retain their current frontend scheduling; this PR does not add jobs.
+
+## Sidebar panels
+
+The desktop shell in `app/ui/sidebar.rs` composes a vector navigation rail and
+Explore/Layers/Places modules. Places can occupy the full panel or remain pinned
+below another panel. Its tree height follows the available area; name/description
+editing and core tree mutations remain in `app/ui/places.rs` and core respectively.
+Data owns tolerant `SidebarLayout` persistence in the existing settings file;
+the desktop owns drawing, splitter interaction and shortcut routing. No geometry,
+KML fidelity or live-service behavior changes. See [sidebar](features/SIDEBAR.md)
+and the [v0.2.0 plan](ROADMAP.md).

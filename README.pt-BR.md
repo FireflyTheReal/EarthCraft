@@ -43,6 +43,7 @@ Consulte as [instruções da Apple](https://support.apple.com/pt-br/102445).
 - Posições de satélites previstas a partir de dados orbitais do CelesTrak usando um modelo aproximado de dois corpos
 - Busca de lugares e endereços (crédito: Nominatim), além de entrada direta de coordenadas "lat, lon"
 - Voo animado até o destino (duplo clique, busca ou lista)
+- Painéis Explorar/Camadas/Lugares, com árvore redimensionável, Lugares fixado e disposição salva
 - Marcadores de lugares em uma árvore editável de pastas KML, com controles de visibilidade e organização por arrastar para pastas
 - Seletor extensível de modelos geodésicos da Terra: WGS 84 (G2296) por padrão, com Esfera perfeita como alternativa
 - Régua de distância geodésica (grande círculo ou elipsoidal), com entrada e edição de pontos em graus decimais exatos, desfazer/refazer, trajetos separados (Alt+clique), unidades métricas, imperiais, náuticas, angulares e divertidas selecionáveis e rumo inicial do último segmento
@@ -59,6 +60,9 @@ Consulte as [instruções da Apple](https://support.apple.com/pt-br/102445).
 Arrastar: girar o globo · Clique com o botão direito: menu de contexto do local · Arrastar com o botão direito / Shift+arrastar: girar a vista · Roda / +/-: zoom · Duplo clique: voar até o ponto · Setas: mover · N: norte para cima
 
 Clique em **Altitude da câmera** na barra inferior para informar uma altitude exata.
+
+A barra à esquerda abre **Explorar**, **Camadas** ou **Lugares**. Use **Fixar** em
+Lugares para manter a árvore visível ao trocar de painel. Veja os [controles laterais](docs/features/SIDEBAR.pt-BR.md).
 
 Use **☰** na barra de ferramentas para ocultar ou reabrir o painel lateral e dar mais espaço ao mapa.
 O botão de régua ativa ou desativa a medição e exibe os controles ao ativá-la; o botão de câmera
