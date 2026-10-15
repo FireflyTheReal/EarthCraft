@@ -34,9 +34,6 @@ rfd = { workspace = true, features = ["gtk3"] }
 [target.'cfg(not(target_os = "linux"))'.dependencies]
 rfd = { workspace = true, default-features = true }
 
-[target.'cfg(windows)'.build-dependencies]
-winresource.workspace = true
-
 [package.metadata.bundle]
 name = "EarthCraft"
 identifier = "com.theri.earthcraft"
