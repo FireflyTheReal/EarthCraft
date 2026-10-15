@@ -59,6 +59,7 @@ fn request(longitude: f64, presentation: u64) -> RenderRequest {
         cam,
         basis: cam.basis(4.0 / 3.0),
         cfg: RenderCfg {
+            sky: None,
             provider: Provider::Satellite,
             rel: 0,
             grid: false,

@@ -353,3 +353,31 @@ fn image_jobs_queue_without_waiting_for_the_file_worker_and_wake_on_failure() {
         wakes.recv_timeout(Duration::from_secs(10)).unwrap();
     }
 }
+
+#[test]
+fn screenshot_credits_are_captured_with_the_submitted_pixels() {
+    let fixture = fixture();
+    let runtime = crate::runtime::ServiceRuntime::new().unwrap();
+    let (jobs, results) = FileJobs::new(runtime.handle(), || {});
+    let pixels = Arc::new(vec![10, 20, 30, 255]);
+    let path = fixture.0.join("credited.png");
+    let mut credits = crate::sky::CREDIT.to_string();
+    jobs.screenshot_with_credits(path.clone(), 1, 1, &pixels, credits.clone())
+        .unwrap();
+    credits.clear();
+    results
+        .recv_timeout(Duration::from_secs(10))
+        .unwrap()
+        .result
+        .unwrap();
+    let mut decoder =
+        png::Decoder::new(std::io::BufReader::new(std::fs::File::open(&path).unwrap()))
+            .read_info()
+            .unwrap();
+    let mut buffer = vec![0; decoder.output_buffer_size().unwrap()];
+    decoder.next_frame(&mut buffer).unwrap();
+    assert_eq!(buffer, *pixels);
+    let metadata = &decoder.info().utf8_text;
+    assert_eq!(metadata[0].keyword, "Source");
+    assert_eq!(metadata[0].get_text().unwrap(), crate::sky::CREDIT);
+}

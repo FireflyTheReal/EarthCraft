@@ -4,6 +4,7 @@ pub mod controllers;
 mod coordinates;
 pub mod navigation;
 pub mod sidebar;
+pub mod sky;
 mod writer;
 use crate::paths::{cache_dir, default_out_dir};
 use earthcraft_core::{earth_model::EarthModel, language::LanguagePreference, units::RulerUnit};
@@ -52,6 +53,7 @@ impl UnitPreference {
 }
 #[derive(Clone, PartialEq, Serialize)]
 pub struct Settings {
+    pub sky: sky::SkyPreferences,
     pub controllers: controllers::ControllerPreferences,
     pub appearance: appearance::AppearancePreferences,
     pub navigation: navigation::NavigationPreferences,
@@ -87,6 +89,7 @@ fn serialize_ruler_unit<S: serde::Serializer>(
 impl Default for Settings {
     fn default() -> Self {
         Settings {
+            sky: sky::SkyPreferences::default(),
             controllers: controllers::ControllerPreferences::default(),
             appearance: appearance::AppearancePreferences::default(),
             navigation: navigation::NavigationPreferences::default(),
@@ -111,6 +114,7 @@ fn settings_file() -> PathBuf {
 }
 #[derive(Default, Deserialize)]
 struct SettingsInput {
+    sky: Option<serde_json::Value>,
     controllers: Option<serde_json::Value>,
     appearance: Option<serde_json::Value>,
     navigation: Option<serde_json::Value>,
@@ -141,6 +145,9 @@ struct SettingsInput {
 impl Settings {
     fn apply_json(&mut self, bytes: &[u8]) -> Result<(), crate::Error> {
         let input: SettingsInput = serde_json::from_slice(bytes)?;
+        if let Some(value) = input.sky {
+            self.sky.apply(&value);
+        }
         if let Some(value) = input.controllers {
             self.controllers.apply(&value);
         }
@@ -207,6 +214,23 @@ impl Settings {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn celestial_preferences_roundtrip_and_ignore_bad_fields() {
+        let mut settings = Settings::default();
+        assert!(settings.sky.enabled);
+        settings
+            .apply_json(br#"{"sky":{"enabled":false,"cinematic":true}}"#)
+            .unwrap();
+        let mut restored = Settings::default();
+        restored
+            .apply_json(&serde_json::to_vec(&settings).unwrap())
+            .unwrap();
+        assert_eq!(restored.sky, settings.sky);
+        restored
+            .apply_json(br#"{"sky":{"enabled":42,"cinematic":"bad"}}"#)
+            .unwrap();
+        assert_eq!(restored.sky, settings.sky);
+    }
     #[test]
     fn categorized_preferences_roundtrip_and_validate_independent_fields() {
         let mut settings = Settings::default();
@@ -355,6 +379,7 @@ mod tests {
     #[test]
     fn partial_invalid_settings_preserve_valid_fields_and_clamping() {
         let mut settings = Settings {
+            sky: sky::SkyPreferences::default(),
             controllers: controllers::ControllerPreferences::default(),
             appearance: appearance::AppearancePreferences::default(),
             navigation: navigation::NavigationPreferences::default(),

@@ -19,6 +19,7 @@ fn raster_matches_regression_fixtures() {
     }
     .basis(w as f64 / h as f64);
     let config = |grid, atmo, sun| RenderCfg {
+        sky: None,
         provider: Provider::Satellite,
         rel: 0,
         grid,
@@ -183,6 +184,7 @@ fn batch_references() -> [BatchReference; 6] {
 }
 fn batch_reference_config(provider: Provider) -> RenderCfg {
     RenderCfg {
+        sky: None,
         provider,
         rel: 7,
         grid: true,
@@ -281,4 +283,50 @@ fn reused_buffers_overwrite_all_pixels_and_preserve_allocation() {
     let (pixels, _, _) = render_pixels_into(case.width, case.height, &basis, &cfg, &lookup, buffer);
     assert_eq!(pixels.as_ptr(), pointer);
     assert_eq!(pixels, expected);
+}
+
+#[test]
+fn celestial_backdrop_changes_only_sky_and_preserves_tile_priorities() {
+    let (width, height) = (65, 49);
+    let cam = Cam {
+        lat: 40.0,
+        lon: -100.0,
+        heading: 20.0,
+        alt: 14_000.0,
+    };
+    let basis = cam.basis(width as f64 / height as f64);
+    let mut cfg = batch_reference_config(Provider::Satellite);
+    let (off, off_misses) = render_pixels(width, height, &basis, &cfg, &|_| Lookup::Absent);
+    let image = Arc::new(
+        earthcraft_data::sky::SkyImage::decode(include_bytes!(
+            "../../../assets/sky/milkyway-2020-4k-sdr.jpg"
+        ))
+        .unwrap(),
+    );
+    cfg.sky = Some(
+        crate::celestial::SkyBackdrop::new(image, 1_760_000_000.0, cam, DVec3::X, true).unwrap(),
+    );
+    let (on, on_misses) = render_pixels(width, height, &basis, &cfg, &|_| Lookup::Absent);
+    assert_eq!(
+        off_misses
+            .into_iter()
+            .collect::<std::collections::BTreeMap<_, _>>(),
+        on_misses
+            .into_iter()
+            .collect::<std::collections::BTreeMap<_, _>>()
+    );
+    let rays = RayCaster::new(width, height, &basis);
+    let mut changed = 0;
+    for y in 0..height {
+        for x in 0..width {
+            let ray = &rays.cast(x, y)[0];
+            let offset = (y * width + x) * 4;
+            if ray.discriminant >= 0.0 && ray.camera_dot < 0.0 {
+                assert_eq!(&off[offset..offset + 4], &on[offset..offset + 4]);
+            } else if off[offset..offset + 4] != on[offset..offset + 4] {
+                changed += 1;
+            }
+        }
+    }
+    assert!(changed > 100);
 }

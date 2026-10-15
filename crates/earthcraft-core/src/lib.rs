@@ -33,3 +33,5 @@ pub mod earth_model;
 pub mod orbit;
 
 pub mod controller;
+
+pub mod celestial;

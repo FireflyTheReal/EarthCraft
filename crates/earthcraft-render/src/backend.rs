@@ -270,6 +270,7 @@ mod native_fallback_tests {
             cam,
             basis: cam.basis(65.0 / 49.0),
             cfg: crate::RenderCfg {
+                sky: None,
                 provider: earthcraft_data::tiles::Provider::Satellite,
                 rel: 0,
                 grid: false,

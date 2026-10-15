@@ -109,6 +109,7 @@ fn warm_cpu_frame_for_model(model: earthcraft_core::earth_model::EarthModel) {
     }
     .basis_for_model(FRAME_WIDTH_PX as f64 / FRAME_HEIGHT_PX as f64, model);
     let config = RenderCfg {
+        sky: None,
         provider: Provider::Satellite,
         rel: 0,
         grid: true,
@@ -214,6 +215,7 @@ fn warm_gpu_frame_time() {
             cam,
             basis: cam.basis(w as f64 / h as f64),
             cfg: RenderCfg {
+                sky: None,
                 provider: Provider::Satellite,
                 rel: 0,
                 grid: false,
@@ -344,6 +346,7 @@ fn warm_gpu_frame_time() {
             cam,
             basis: cam.basis(2000.0 / 1488.0),
             cfg: RenderCfg {
+                sky: None,
                 provider: Provider::Satellite,
                 rel: 0,
                 grid: false,

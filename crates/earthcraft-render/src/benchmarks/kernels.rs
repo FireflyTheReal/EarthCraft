@@ -34,6 +34,7 @@ fn views(model: EarthModel) -> Vec<RayCaster> {
 #[ignore = "manual ray/surface microbenchmark; run alone with --ignored --nocapture"]
 fn earth_model_kernel_time() {
     let cfg = RenderCfg {
+        sky: None,
         provider: Provider::Satellite,
         rel: 0,
         grid: true,
@@ -138,6 +139,7 @@ fn earth_model_raster_capture() {
             .basis_for_model(127.0 / 95.0, model);
             for (provider, cfg_provider) in Provider::ALL.into_iter().enumerate() {
                 let cfg = RenderCfg {
+                    sky: None,
                     provider: cfg_provider,
                     rel: 0,
                     grid: true,
