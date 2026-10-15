@@ -1,3 +1,4 @@
+pub mod sidebar;
 mod writer;
 use crate::paths::{cache_dir, default_out_dir};
 use earthcraft_core::{earth_model::EarthModel, language::LanguagePreference, units::RulerUnit};
@@ -46,6 +47,7 @@ impl UnitPreference {
 }
 #[derive(Clone, PartialEq, Serialize)]
 pub struct Settings {
+    pub sidebar: sidebar::SidebarLayout,
     pub screenshot_dir: String,
     pub kml_dir: String,
     pub ui_scale: f32,  // text size of buttons/panels
@@ -74,6 +76,7 @@ fn serialize_ruler_unit<S: serde::Serializer>(
 impl Default for Settings {
     fn default() -> Self {
         Settings {
+            sidebar: sidebar::SidebarLayout::default(),
             screenshot_dir: default_out_dir("Pictures"),
             kml_dir: default_out_dir("Documents"),
             ui_scale: 1.0,
@@ -92,6 +95,7 @@ fn settings_file() -> PathBuf {
 }
 #[derive(Default, Deserialize)]
 struct SettingsInput {
+    sidebar: Option<serde_json::Value>,
     #[serde(default, deserialize_with = "crate::json_fields::string")]
     screenshot_dir: Option<String>,
     #[serde(default, deserialize_with = "crate::json_fields::string")]
@@ -116,6 +120,9 @@ struct SettingsInput {
 impl Settings {
     fn apply_json(&mut self, bytes: &[u8]) -> Result<(), crate::Error> {
         let input: SettingsInput = serde_json::from_slice(bytes)?;
+        if let Some(sidebar) = input.sidebar {
+            self.sidebar.apply_json(&sidebar);
+        }
         if let Some(path) = input.screenshot_dir.filter(|s| !s.is_empty()) {
             self.screenshot_dir = path;
         }
@@ -268,6 +275,7 @@ mod tests {
     #[test]
     fn partial_invalid_settings_preserve_valid_fields_and_clamping() {
         let mut settings = Settings {
+            sidebar: sidebar::SidebarLayout::default(),
             screenshot_dir: "pictures".into(),
             kml_dir: "documents".into(),
             ui_scale: 1.0,
