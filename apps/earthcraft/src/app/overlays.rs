@@ -1,7 +1,7 @@
 use super::App;
 use earthcraft_core::camera::Basis;
 use earthcraft_data::boundaries::BoundarySnapshot;
-use eframe::egui::{self, Align2, Color32, FontId, Rect, Stroke, Vec2};
+use eframe::egui::{self, Align2, Color32, Rect, Stroke, Vec2};
 #[cfg(test)]
 mod benchmarks;
 mod cache;
@@ -10,6 +10,12 @@ pub(super) use cache::OverlayCache;
 use cache::{OverlayLayers, OverlayStyle, OverlayView};
 
 impl App {
+    pub(super) fn invalidate_font_layout(&mut self) {
+        self.overlay_cache.invalidate();
+        self.aircraft_overlay.invalidate_text();
+        self.world_shapes = super::live_layers::WorldShapes::default();
+        self.roads.invalidate_text();
+    }
     pub(super) fn overlay_layers(&self) -> earthcraft_render::overlays::OverlayLayers {
         OverlayLayers {
             countries: self.show_country_boundaries,
@@ -75,14 +81,14 @@ impl App {
                     mid + Vec2::new(1.0, 1.0),
                     Align2::CENTER_BOTTOM,
                     &txt,
-                    FontId::proportional(13.0 * ms),
+                    crate::app::fonts::map_font(painter.ctx(), 13.0 * ms),
                     Color32::BLACK,
                 );
                 painter.text(
                     mid,
                     Align2::CENTER_BOTTOM,
                     &txt,
-                    FontId::proportional(13.0 * ms),
+                    crate::app::fonts::map_font(painter.ctx(), 13.0 * ms),
                     Color32::WHITE,
                 );
             }
@@ -105,14 +111,14 @@ impl App {
                     tp + Vec2::new(1.0, 1.0),
                     Align2::LEFT_BOTTOM,
                     &pm.name,
-                    FontId::proportional(13.0 * ms),
+                    crate::app::fonts::map_font(painter.ctx(), 13.0 * ms),
                     Color32::BLACK,
                 );
                 painter.text(
                     tp,
                     Align2::LEFT_BOTTOM,
                     &pm.name,
-                    FontId::proportional(13.0 * ms),
+                    crate::app::fonts::map_font(painter.ctx(), 13.0 * ms),
                     Color32::WHITE,
                 );
             }

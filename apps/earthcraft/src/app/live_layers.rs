@@ -9,7 +9,7 @@ use earthcraft_core::{camera::Basis, language::Lang, math::now_unix};
 use earthcraft_render::aircraft::{
     AircraftGeometry, AircraftWorker, ProjectionInput, ProjectionView,
 };
-use eframe::egui::{self, Color32, FontId, Rect, Vec2};
+use eframe::egui::{self, Color32, Rect, Vec2};
 use std::{sync::Arc, time::Duration};
 
 pub(super) const FLIGHT_REPAINT_INTERVAL: Duration = Duration::from_secs(1);
@@ -30,6 +30,9 @@ pub(super) struct AircraftOverlay {
     shape_key: Option<(usize, Lang)>,
 }
 impl AircraftOverlay {
+    pub(super) fn invalidate_text(&mut self) {
+        self.shape_key = None;
+    }
     pub(super) fn new(ctx: egui::Context) -> Self {
         Self {
             geometry: None,
@@ -194,7 +197,7 @@ fn draw_hover(painter: &egui::Painter, geometry: &AircraftGeometry, lang: Lang) 
     );
     let galley = painter.layout_no_wrap(
         text,
-        FontId::proportional(HOVER_FONT_POINTS * ms),
+        crate::app::fonts::map_font(painter.ctx(), HOVER_FONT_POINTS * ms),
         Color32::WHITE,
     );
     let position = egui::pos2(
@@ -314,7 +317,7 @@ impl App {
 fn hover_label(painter: &egui::Painter, rect: Rect, screen: egui::Pos2, text: &str, ms: f32) {
     let galley = painter.layout_no_wrap(
         text.to_string(),
-        FontId::proportional(12.0 * ms),
+        crate::app::fonts::map_font(painter.ctx(), 12.0 * ms),
         Color32::WHITE,
     );
     let pos = egui::pos2(

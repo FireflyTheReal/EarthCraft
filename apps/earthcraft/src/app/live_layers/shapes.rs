@@ -1,5 +1,5 @@
 use earthcraft_render::aircraft::{AircraftGeometry, ProjectedFlight};
-use eframe::egui::{self, Align2, Color32, FontId, Shape, Stroke, Vec2};
+use eframe::egui::{self, Align2, Color32, Shape, Stroke, Vec2};
 use std::sync::OnceLock;
 
 const TRAIL_WIDTH_POINTS: f32 = 1.2;
@@ -125,7 +125,7 @@ pub(super) fn build(painter: &egui::Painter, geometry: &AircraftGeometry) -> Vec
                         position + offset,
                         Align2::LEFT_BOTTOM,
                         &code,
-                        FontId::proportional(LABEL_FONT_POINTS * ms),
+                        crate::app::fonts::map_font(painter.ctx(), LABEL_FONT_POINTS * ms),
                         color,
                     )
                 }));

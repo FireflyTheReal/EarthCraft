@@ -1,5 +1,5 @@
 //! Keyless worldwide OSM road geometry; restrictions are not congestion reports.
-use eframe::egui::{self, Color32, FontId, Pos2, Rect, Stroke};
+use eframe::egui::{self, Color32, Pos2, Rect, Stroke};
 use std::sync::Arc;
 
 #[derive(Default)]
@@ -9,6 +9,9 @@ pub(super) struct RoadOverlay {
     shapes: Vec<egui::Shape>,
 }
 impl RoadOverlay {
+    pub(super) fn invalidate_text(&mut self) {
+        self.projected = None;
+    }
     pub fn draw(
         &mut self,
         painter: &egui::Painter,
@@ -59,8 +62,11 @@ impl RoadOverlay {
                     ("state", state.into()),
                 ],
             );
-            let galley =
-                painter.layout_no_wrap(text, FontId::proportional(12.0 * scale), Color32::WHITE);
+            let galley = painter.layout_no_wrap(
+                text,
+                crate::app::fonts::map_font(painter.ctx(), 12.0 * scale),
+                Color32::WHITE,
+            );
             let pos = Pos2::new(
                 (screen.x + 16.0)
                     .min(rect.right() - galley.size().x - 10.0)

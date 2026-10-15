@@ -12,7 +12,7 @@ pub(in crate::app) mod ruler;
 mod scale_slider;
 mod search_bar;
 mod selection;
-mod settings;
+pub(in crate::app) mod settings;
 mod sidebar;
 mod status;
 mod suggestions;
@@ -23,7 +23,7 @@ pub(in crate::app) fn apply_ui_scale(ctx: &egui::Context, scale: f32) {
         FontFamily::{Monospace, Proportional},
         TextStyle,
     };
-    ctx.global_style_mut(|style| {
+    ctx.all_styles_mut(|style| {
         style.text_styles = [
             (TextStyle::Small, FontId::new(10.0 * scale, Proportional)),
             (TextStyle::Body, FontId::new(14.0 * scale, Proportional)),

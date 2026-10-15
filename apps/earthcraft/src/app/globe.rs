@@ -1,5 +1,5 @@
 use super::App;
-use super::{INITIAL_CAMERA, PAN_SPEED_POINTS_PER_SECOND};
+use super::{OVERVIEW_WARMUP_ALTITUDE_KM, PAN_SPEED_POINTS_PER_SECOND};
 use earthcraft_core::{
     math::{now_unix, wrap_lon},
     placemark::Placemark,
@@ -41,7 +41,8 @@ impl App {
         // ── input
         let mut interacting = false;
         if !ruler_captured && resp.dragged_by(PointerButton::Primary) && !shift {
-            let d = ui.input(|i| i.pointer.delta());
+            let d =
+                ui.input(|i| i.pointer.delta()) * self.settings.navigation.pan_sensitivity as f32;
             self.fly = None;
             if self.explorer.active == earthcraft_core::body::Body::Earth {
                 self.pan(d.x as f64, d.y as f64, rect.height());
@@ -54,8 +55,12 @@ impl App {
                 || (resp.dragged_by(PointerButton::Primary) && shift))
         {
             let drag = ui.input(|i| i.pointer.delta());
-            self.cam.heading =
-                wrap_lon(self.cam.heading - drag.x as f64 * DRAG_HEADING_DEG_PER_POINT);
+            self.cam.heading = wrap_lon(
+                self.cam.heading
+                    - drag.x as f64
+                        * DRAG_HEADING_DEG_PER_POINT
+                        * self.settings.navigation.rotation_sensitivity,
+            );
             interacting = true;
         }
         if resp.hovered() {
@@ -64,7 +69,16 @@ impl App {
             let cur = resp.hover_pos();
             if sc != 0.0 {
                 self.fly = None;
-                let factor = (-sc * SCROLL_ZOOM_RATE_PER_POINT).exp();
+                let direction = if self.settings.navigation.invert_scroll {
+                    -1.0
+                } else {
+                    1.0
+                };
+                let factor = (-sc
+                    * SCROLL_ZOOM_RATE_PER_POINT
+                    * self.settings.navigation.zoom_sensitivity
+                    * direction)
+                    .exp();
                 if self.explorer.active == earthcraft_core::body::Body::Earth {
                     self.zoom_at(factor, cur, rect, aspect);
                 } else {
@@ -228,7 +242,7 @@ impl App {
         if idle
             && self.renderer.is_idle()
             && self.provider == Provider::Satellite
-            && self.cam.alt >= INITIAL_CAMERA.alt
+            && self.cam.alt >= OVERVIEW_WARMUP_ALTITUDE_KM
             && self.tile_warmup.pump(&self.cache)
         {
             ui.request_repaint_after(OVERVIEW_WARMUP_POLL_INTERVAL);

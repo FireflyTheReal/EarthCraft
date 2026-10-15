@@ -1,241 +1,211 @@
+//! Searchable settings shell; category widgets are separate from persistence.
 use super::super::App;
-use crate::app::cache::cache_size_text;
-use earthcraft_core::language::{Lang, LanguagePreference};
-use earthcraft_data::settings::{MAX_MAP_SCALE, MIN_MAP_SCALE, MIN_UI_SCALE};
-use earthcraft_data::settings::{Settings, UnitPreference};
+use earthcraft_core::language::{Lang, fold_name};
+use earthcraft_data::settings::Settings;
 use eframe::egui;
+mod sections;
 pub(super) const MAX_UI_SLIDER_SCALE: f32 = 2.0;
-const FOOTER_MARGIN_POINTS: i8 = 8;
-const RESET_BUTTON_FILL: egui::Color32 = egui::Color32::from_rgb(160, 40, 40);
+const WINDOW_SIZE_POINTS: egui::Vec2 = egui::vec2(680.0, 560.0);
+const WINDOW_MIN_SIZE_POINTS: egui::Vec2 = egui::vec2(520.0, 360.0);
+const MIN_BODY_HEIGHT_POINTS: f32 = 160.0;
+const FOOTER_HEIGHT_POINTS: f32 = 40.0;
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+enum Category {
+    #[default]
+    General,
+    Appearance,
+    Navigation,
+    Globe,
+    Graphics,
+    Cache,
+    Files,
+}
+impl Category {
+    const ALL: [Self; 7] = [
+        Self::General,
+        Self::Appearance,
+        Self::Navigation,
+        Self::Globe,
+        Self::Graphics,
+        Self::Cache,
+        Self::Files,
+    ];
+    fn name_id(self) -> &'static str {
+        match self {
+            Self::General => "settings-category-general",
+            Self::Appearance => "settings-category-appearance",
+            Self::Navigation => "settings-category-navigation",
+            Self::Globe => "settings-category-globe",
+            Self::Graphics => "settings-category-graphics",
+            Self::Cache => "settings-category-cache",
+            Self::Files => "settings-category-files",
+        }
+    }
+    fn keywords(self) -> &'static [&'static str] {
+        match self {
+            Self::General => &["settings-language-label"],
+            Self::Appearance => &[
+                "settings-theme-label",
+                "settings-ui-font-label",
+                "settings-map-font-label",
+                "settings-distance-units-label",
+                "settings-ui-scale-label",
+                "settings-map-scale-label",
+                "coordinates-format-label",
+                "coordinates-format-dd",
+                "coordinates-format-dms",
+                "coordinates-format-ddm",
+                "coordinates-format-utm",
+                "coordinates-format-mgrs",
+                "coordinates-input-help",
+            ],
+            Self::Navigation => &[
+                "settings-hide-navigation-controls-toggle",
+                "settings-pan-sensitivity",
+                "settings-rotation-sensitivity",
+                "settings-zoom-sensitivity",
+                "settings-invert-scroll",
+                "settings-startup-view-label",
+                "settings-startup-help",
+            ],
+            Self::Globe => &[
+                "settings-earth-model-label",
+                "earth-model-wgs84",
+                "earth-model-sphere",
+            ],
+            Self::Graphics => &["settings-uncap-fps-toggle", "settings-frame-sync-help"],
+            Self::Cache => &[
+                "settings-cache-section-title",
+                "settings-cache-clear-help",
+                "settings-cache-decoded-label",
+                "settings-cache-disk-label",
+                "settings-cache-restart-help",
+            ],
+            Self::Files => &[
+                "settings-screenshot-folder-label",
+                "settings-kml-folder-label",
+                "settings-folder-creation-help",
+            ],
+        }
+    }
+    fn matches(self, query: &str, lang: Lang) -> bool {
+        query.is_empty()
+            || std::iter::once(self.name_id())
+                .chain(self.keywords().iter().copied())
+                .any(|id| fold_name(lang.text(id)).contains(query))
+    }
+}
+#[derive(Default)]
+pub(in crate::app) struct SettingsUi {
+    category: Category,
+    query: String,
+    confirm_reset: bool,
+    confirm_cache: bool,
+}
 impl App {
     pub(in crate::app) fn settings_window(&mut self, ctx: &egui::Context) {
+        if !self.show_settings {
+            return;
+        }
         self.refresh_disk_usage(ctx);
-        let lg = self.lang;
+        let lang = self.lang;
         let previous_model = self.settings.earth_model;
         let mut open = self.show_settings;
         let mut close_requested = false;
         let mut language_preference = self.language_preference;
-        egui::Window::new(lg.text("settings-title"))
+        let mut state = std::mem::take(&mut self.settings_ui);
+        egui::Window::new(lang.text("settings-title"))
+            .id(egui::Id::new("settings-window"))
             .open(&mut open)
-            .resizable(false)
-            .default_width(420.0)
+            .resizable(true)
+            .default_size(WINDOW_SIZE_POINTS)
+            .min_size(WINDOW_MIN_SIZE_POINTS)
             .show(ctx, |ui| {
-                ui.horizontal(|ui| {
-                    ui.label(lg.text("settings-language-label"));
-                    let choices = LanguagePreference::ALL
-                        .map(|choice| (choice, choice.label(lg, &self.system_locale)));
-                    egui::ComboBox::from_id_salt("settings_language")
-                        .selected_text(language_preference.label(lg, &self.system_locale))
-                        .show_ui(ui, |ui| {
-                            super::selection::size_menu(
-                                ui,
-                                choices.iter().map(|(_, label)| label.as_str()),
-                            );
-                            for (choice, label) in &choices {
-                                super::selection::full_width_value(
-                                    ui,
-                                    &mut language_preference,
-                                    *choice,
-                                    label.as_str(),
-                                );
-                            }
-                        });
-                });
-                ui.horizontal(|ui| {
-                    ui.label(lg.text("settings-distance-units-label"));
-                    let label = |units| match units {
-                        UnitPreference::System => lg.format(
-                            "settings-units-system",
-                            &[(
-                                "unit",
-                                match self.system_units {
-                                    earthcraft_core::units::DistanceUnits::Metric => "km",
-                                    earthcraft_core::units::DistanceUnits::Imperial => "mi",
-                                }
-                                .into(),
-                            )],
-                        ),
-                        UnitPreference::Metric => lg.text("settings-units-metric").to_owned(),
-                        UnitPreference::Imperial => lg.text("settings-units-imperial").to_owned(),
-                    };
-                    let choices = [
-                        UnitPreference::System,
-                        UnitPreference::Metric,
-                        UnitPreference::Imperial,
-                    ]
-                    .map(|units| (units, label(units)));
-                    egui::ComboBox::from_id_salt("distance_units")
-                        .selected_text(label(self.settings.distance_units))
-                        .show_ui(ui, |ui| {
-                            super::selection::size_menu(
-                                ui,
-                                choices.iter().map(|(_, label)| label.as_str()),
-                            );
-                            for (units, label) in &choices {
-                                super::selection::full_width_value(
-                                    ui,
-                                    &mut self.settings.distance_units,
-                                    *units,
-                                    label.as_str(),
-                                );
-                            }
-                        });
-                });
-                super::coordinate_display::controls(ui, &mut self.settings.coordinate_display, lg);
-                ui.horizontal(|ui| {
-                    ui.label(lg.text("settings-earth-model-label"));
-                    let models = earthcraft_core::earth_model::EarthModel::ALL;
-                    egui::ComboBox::from_id_salt("earth_model")
-                        .selected_text(lg.text(self.settings.earth_model.name_id()))
-                        .show_ui(ui, |ui| {
-                            super::selection::size_menu(
-                                ui,
-                                models.into_iter().map(|model| lg.text(model.name_id())),
-                            );
-                            for model in models {
-                                super::selection::full_width_value(
-                                    ui,
-                                    &mut self.settings.earth_model,
-                                    model,
-                                    lg.text(model.name_id()),
-                                )
-                                .on_hover_text(lg.text(model.help_id()));
-                            }
-                        });
+                ui.add(
+                    egui::TextEdit::singleline(&mut state.query)
+                        .hint_text(lang.text("settings-search-placeholder"))
+                        .desired_width(f32::INFINITY),
+                );
+                ui.horizontal_wrapped(|ui| {
+                    for category in Category::ALL {
+                        ui.selectable_value(
+                            &mut state.category,
+                            category,
+                            lang.text(category.name_id()),
+                        );
+                    }
                 });
                 ui.separator();
-                ui.strong(lg.text("settings-text-section-title"));
-                egui::Grid::new("settings_text")
-                    .num_columns(2)
-                    .spacing([12.0, 8.0])
-                    .show(ui, |ui| {
-                        ui.label(lg.text("settings-ui-scale-label"));
-                        // The window auto-sizes to its (scaled) content, so changing the scale while dragging
-                        // moves the slider under the cursor and feeds back into itself (shaking).
-                        // Fix: only commit the new scale when the drag ends.
-                        let r = super::scale_slider::relative_scale_slider(
-                            ui,
-                            &mut self.ui_scale_edit,
-                            MIN_UI_SCALE,
-                            MAX_UI_SLIDER_SCALE,
-                        );
-                        if r.drag_stopped() || (r.changed() && !r.dragged()) {
-                            self.settings.ui_scale = self.ui_scale_edit;
+                let query = fold_name(&state.query);
+                let categories: Vec<_> = Category::ALL
+                    .into_iter()
+                    .filter(|category| {
+                        if query.is_empty() {
+                            *category == state.category
+                        } else {
+                            category.matches(&query, lang)
                         }
-                        ui.end_row();
-                        ui.label(lg.text("settings-map-scale-label"));
-                        super::scale_slider::relative_scale_slider(
-                            ui,
-                            &mut self.settings.map_scale,
-                            MIN_MAP_SCALE,
-                            MAX_MAP_SCALE,
-                        );
-                        ui.end_row();
-                    });
-                ui.separator();
-                ui.checkbox(
-                    &mut self.settings.hide_navigation_controls,
-                    lg.text("settings-hide-navigation-controls-toggle"),
-                );
-                ui.checkbox(
-                    &mut self.settings.uncap_fps,
-                    lg.text("settings-uncap-fps-toggle"),
-                );
-                ui.weak(lg.text("settings-frame-sync-help"));
-                ui.separator();
-                ui.strong(lg.text("settings-folders-section-title"));
-                let folder_row =
-                    |ui: &mut egui::Ui, label: &str, value: &mut String, title: &str| {
-                        ui.label(label);
-                        ui.horizontal(|ui| {
-                            ui.add(egui::TextEdit::singleline(value).desired_width(300.0));
-                            if ui
-                                .button(lg.text("settings-folder-browse-action"))
-                                .clicked()
-                            {
-                                let mut dlg = rfd::FileDialog::new().set_title(title);
-                                if std::path::Path::new(value.as_str()).is_dir() {
-                                    dlg = dlg.set_directory(value.as_str());
-                                }
-                                if let Some(dir) = dlg.pick_folder() {
-                                    *value = dir.to_string_lossy().into_owned();
-                                }
-                            }
-                        });
-                    };
-                folder_row(
-                    ui,
-                    lg.text("settings-screenshot-folder-label"),
-                    &mut self.settings.screenshot_dir,
-                    lg.text("settings-screenshot-folder-dialog-title"),
-                );
-                folder_row(
-                    ui,
-                    lg.text("settings-kml-folder-label"),
-                    &mut self.settings.kml_dir,
-                    lg.text("settings-kml-folder-dialog-title"),
-                );
-                ui.weak(lg.text("settings-folder-creation-help"));
-                ui.separator();
-                ui.strong(lg.text("settings-cache-section-title"));
-                ui.weak(lg.text("settings-cache-clear-help"));
-                let clearing = self.cache_controls.clearing();
-                ui.horizontal(|ui| {
-                    let label = lg.text(if clearing {
-                        "settings-cache-clearing-label"
-                    } else {
-                        "settings-cache-clear-action"
-                    });
-                    if ui
-                        .add_enabled(!clearing, egui::Button::new(label))
-                        .clicked()
-                    {
-                        self.clear_disk_cache(ctx);
-                    }
-                    if clearing {
-                        ui.spinner();
-                    }
-                    match &self.cache_controls.usage {
-                        Some(Ok(bytes)) => {
-                            ui.label(lg.format(
-                                "settings-cache-disk-usage",
-                                &[("size", cache_size_text(*bytes).into())],
+                    })
+                    .collect();
+                let height =
+                    (ui.available_height() - FOOTER_HEIGHT_POINTS).max(MIN_BODY_HEIGHT_POINTS);
+                egui::ScrollArea::vertical()
+                    .id_salt("settings-body")
+                    .max_height(height)
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| {
+                        if categories.is_empty() {
+                            ui.label(lang.format(
+                                "settings-search-empty",
+                                &[("query", state.query.as_str().into())],
                             ));
                         }
-                        Some(Err(error)) => {
-                            ui.label(Lang::En.text("settings-cache-usage-unavailable"))
-                                .on_hover_text(error);
-                        }
-                        None => {
-                            ui.weak(lg.text("settings-cache-measuring-label"));
-                        }
-                    }
-                });
-                ui.separator();
-                egui::Frame::NONE
-                    .inner_margin(egui::Margin::same(FOOTER_MARGIN_POINTS))
-                    .show(ui, |ui| {
-                        ui.horizontal(|ui| {
-                            let reset = egui::Button::new(
-                                egui::RichText::new(lg.text("settings-reset-action"))
-                                    .color(egui::Color32::WHITE),
-                            )
-                            .fill(RESET_BUTTON_FILL);
-                            if ui.add(reset).clicked() {
-                                self.settings = Settings::default();
-                                self.ui_scale_edit = self.settings.ui_scale;
-                            }
-                            ui.with_layout(
-                                egui::Layout::right_to_left(egui::Align::Center),
-                                |ui| {
-                                    if ui.button(lg.text("settings-close-action")).clicked() {
-                                        close_requested = true;
+                        for category in categories {
+                            ui.push_id(category as u8, |ui| {
+                                ui.heading(lang.text(category.name_id()));
+                                match category {
+                                    Category::General => {
+                                        self.settings_general(ui, &mut language_preference)
                                     }
-                                },
-                            );
-                        });
+                                    Category::Appearance => self.settings_appearance(ui),
+                                    Category::Navigation => self.settings_navigation(ui),
+                                    Category::Globe => self.settings_globe(ui),
+                                    Category::Graphics => self.settings_graphics(ui),
+                                    Category::Cache => {
+                                        self.settings_cache(ui, &mut state.confirm_cache)
+                                    }
+                                    Category::Files => self.settings_files(ui),
+                                }
+                                ui.add_space(ui.spacing().item_spacing.y);
+                            });
+                        }
                     });
+                ui.separator();
+                ui.horizontal(|ui| {
+                    if ui.button(lang.text("settings-reset-action")).clicked() {
+                        state.confirm_reset = true;
+                    }
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if ui.button(lang.text("settings-close-action")).clicked() {
+                            close_requested = true;
+                        }
+                    });
+                });
+                if state.confirm_reset {
+                    ui.label(lang.text("settings-reset-confirm"));
+                    ui.horizontal(|ui| {
+                        if ui.button(lang.text("settings-confirm-action")).clicked() {
+                            self.settings = Settings::default();
+                            self.ui_scale_edit = self.settings.ui_scale;
+                            self.sidebar_open = self.settings.sidebar.open;
+                            state.confirm_reset = false;
+                        }
+                        if ui.button(lang.text("settings-cancel-action")).clicked() {
+                            state.confirm_reset = false;
+                        }
+                    });
+                }
             });
         if language_preference != self.language_preference {
             self.set_language_preference(language_preference);
@@ -248,6 +218,24 @@ impl App {
             self.ruler_paths.end_move();
             self.ruler_drag = None;
         }
+        self.settings_ui = state;
         self.show_settings = open && !close_requested;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn search_matches_localized_labels_and_help() {
+        assert!(Category::Appearance.matches(&fold_name("MGRS"), Lang::En));
+        assert!(Category::Appearance.matches(&fold_name("distância"), Lang::PtBr));
+        assert!(Category::Navigation.matches(&fold_name("sensibilidade"), Lang::PtBr));
+        assert!(!Category::Files.matches("mgrs", Lang::En));
+        for lang in [Lang::En, Lang::PtBr] {
+            for category in Category::ALL {
+                assert!(category.matches(&fold_name(lang.text(category.name_id())), lang));
+            }
+        }
     }
 }
