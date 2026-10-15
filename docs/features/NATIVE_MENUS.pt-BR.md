@@ -11,7 +11,7 @@ nativos continua exclusiva do macOS.
 | EarthCraft | Sobre, Configurações, Sair; macOS mantém Ocultar/Ocultar outros/Mostrar todos |
 | Arquivo | Abrir KML/KMZ, Salvar, Salvar como, Salvar captura |
 | Editar | Desfazer e Refazer, respeitando editores de texto com foco |
-| Visualizar | Painel lateral, controles de navegação, grade, atmosfera, luz solar, norte para cima, vista global |
+| Visualizar | Painel lateral, barra de navegação, painéis Explorar/Camadas/Lugares, controles de navegação, grade, atmosfera, luz solar, norte para cima, vista global |
 | Adicionar | Marcador no centro da câmera, pasta na pasta selecionada ou em Meus lugares |
 | Ferramentas | Medir distâncias, Explorar |
 | Janela | Tela cheia, Minimizar; macOS registra o menu Janela do sistema |
@@ -34,5 +34,4 @@ thread da janela. Os objetos de menu permanecem nessa thread até o encerramento
 Os dois catálogos traduzem rótulos de menus, janelas e ajuda. Links só abrem ao clicar.
 
 Os menus expõem comandos funcionais, sem itens inativos para editores de projetos,
-passeios ou geometrias ainda planejados. Comandos específicos de visibilidade dos
-painéis Lugares/Camadas podem acompanhar a entrega do painel lateral depois.
+passeios ou geometrias ainda planejados. Explorar/Camadas/Lugares abrem diretamente por Visualizar, preservando a fixação.

@@ -93,6 +93,18 @@ impl App {
             Action::Quit => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
             Action::Settings => self.show_settings = true,
             Action::Sidebar => self.sidebar_open = !self.sidebar_open,
+            Action::NavigationRail => {
+                self.settings.sidebar.rail_visible = !self.settings.sidebar.rail_visible
+            }
+            Action::ShowExplore | Action::ShowLayers | Action::ShowPlaces => {
+                use earthcraft_data::settings::sidebar::SidebarPanel;
+                self.settings.sidebar.panel = match action {
+                    Action::ShowLayers => SidebarPanel::Layers,
+                    Action::ShowPlaces => SidebarPanel::Places,
+                    _ => SidebarPanel::Explore,
+                };
+                self.sidebar_open = true;
+            }
             Action::NavigationControls => {
                 self.settings.hide_navigation_controls = !self.settings.hide_navigation_controls
             }
@@ -137,6 +149,7 @@ impl App {
             undo: ctx.egui_wants_keyboard_input() || self.ruler_paths.can_undo(),
             redo: ctx.egui_wants_keyboard_input() || self.ruler_paths.can_redo(),
             sidebar: self.sidebar_open,
+            rail: self.settings.sidebar.rail_visible,
             navigation: !self.settings.hide_navigation_controls,
             grid: self.show_grid,
             atmosphere: self.show_atmo,

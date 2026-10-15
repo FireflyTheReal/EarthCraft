@@ -11,7 +11,7 @@ macOS-only.
 | EarthCraft | About, Settings, Quit; macOS also retains Hide/Hide Others/Show All |
 | File | Open KML/KMZ, Save, Save As, Save Screenshot |
 | Edit | Undo and Redo, respecting focused text editors |
-| View | Sidebar, navigation controls, grid, atmosphere, sunlight, north-up, global view |
+| View | Sidebar, navigation rail, Explore/Layers/Places panels, navigation controls, grid, atmosphere, sunlight, north-up, global view |
 | Add | Placemark at camera center, Folder in the selected folder or My Places |
 | Tools | Measure distances, Explorer |
 | Window | Fullscreen, Minimize; macOS registers the system Window menu |
@@ -34,5 +34,4 @@ Menu objects stay on that thread and are removed on shutdown. Both catalogs
 localize captions, window labels and help. Links open only when clicked.
 
 These menus expose working commands. Future project/tour/geometry editors and
-other planned tools are not represented by inactive placeholders. Places/Layers
-panel-specific visibility commands can follow the sidebar delivery independently.
+other planned tools are not represented by inactive placeholders. Explore/Layers/Places open directly from View without clearing pin state.
