@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "id": "nasa-svs-4851-milkyway-2020-celestial-4k-sdr",
+  "source": {
+    "url": "https://svs.gsfc.nasa.gov/vis/a000000/a004800/a004851/milkyway_2020_4k.exr",
+    "item": "https://svs.gsfc.nasa.gov/4851/",
+    "release_date": "2020-09-09",
+    "filename": "milkyway_2020_4k.exr",
+    "sha256": "2eb802d6e68d170b410f766c7fec07f7518619f6b6708fdc81e9302d93e74fdb",
+    "encoding": "OpenEXR half-float linear RGB",
+    "width": 4096,
+    "height": 2048,
+    "frame": "ICRF/J2000 celestial equatorial",
+    "projection": "equirectangular; RA 0h at center; RA increases leftward; north at top",
+    "layers": "diffuse Milky Way; bright Hipparcos/Tycho foreground omitted"
+  },
+  "prepared": {
+    "filename": "milkyway-2020-4k-sdr.jpg",
+    "sha256": "12a3ce2975618ab183c20bdae3ec364ef287e4740b6215497d940b174c2b543a",
+    "encoding": "8-bit sRGB JPEG, 4:4:4, FFmpeg q=2",
+    "width": 4096,
+    "height": 2048,
+    "encoded_bytes": 2614767,
+    "decoded_rgb_bytes": 25165824,
+    "tonemap": "per-channel Reinhard x/(1+x), fixed exposure 1.0, then IEC sRGB transfer, nearest-integer quantization",
+    "orientation": "unchanged from source; no flip, crop or resampling",
+    "script": "scripts/prepare_sky.py",
+    "tool": "FFmpeg 8.0.1; Python 3 standard library",
+    "fidelity": "SDR lossy derivative; original HDR fidelity is not retained"
+  },
+  "credit": "NASA/Goddard Space Flight Center Scientific Visualization Studio; Gaia DR2: ESA/Gaia/DPAC; visualization: Ernie Wright",
+  "usage_review": {
+    "checked": "2026-10-15",
+    "basis": [
+      "https://svs.gsfc.nasa.gov/help/",
+      "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "https://svs.gsfc.nasa.gov/4851/"
+    ],
+    "determination": "SVS permits use and redistribution unless an item states otherwise. No separate copyright restriction was identified for this diffuse map. Preserve NASA and Gaia credits. No NASA logos, people, constellation figures or audio are bundled; do not imply endorsement. This dataset is separate from EarthCraft code licensing."
+  },
+  "runtime": "Bundled, offline; one bounded background decode. No runtime download, EXR decode, survey tile cache or GPU sky texture.",
+  "transform": "sofars 0.6.1 IAU 2006/2000A celestial-to-terrestrial matrix transposed; TT from UTC leap table, UT1 approximated by UTC, polar motion zero. See sofars-LICENSE.txt."
+}

@@ -7,6 +7,8 @@ on:
       - 'apps/**'
       - 'crates/**'
       - 'assets/**'
+      - 'scripts/prepare_sky.py'
+      - 'scripts/test_prepare_sky.py'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - '.github/workflows/app-build-test.yml'
@@ -15,6 +17,8 @@ on:
       - 'apps/**'
       - 'crates/**'
       - 'assets/**'
+      - 'scripts/prepare_sky.py'
+      - 'scripts/test_prepare_sky.py'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - '.github/workflows/app-build-test.yml'
@@ -68,6 +72,8 @@ jobs:
           key: app-build-test-ubuntu-latest-stable
       - name: Install Linux development libraries
         run: sudo apt-get update && sudo apt-get install -y pkg-config libudev-dev libgtk-3-dev libxkbcommon-dev libwayland-dev libx11-dev
+      - name: Verify bundled sky provenance
+        run: python3 -m unittest discover -s scripts -p 'test_prepare_sky.py'
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Lint
