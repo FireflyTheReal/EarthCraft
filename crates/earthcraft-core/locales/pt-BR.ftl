@@ -470,3 +470,13 @@ update-restart-tooltip = Atualização instalada: v{ $version } — clique para 
 update-retry-label = Tentar novamente
 update-releases-action = Abrir versões
 update-saving-label = Salvando antes de reiniciar
+
+sidebar-explore-title = Explorar
+sidebar-places-title = Lugares
+sidebar-pin-places-action = Fixar
+sidebar-pin-places-tooltip = Manter Lugares visível ao alternar painéis
+sidebar-unpin-places-tooltip = Desafixar Lugares
+sidebar-rail-toggle = Mostrar barra de navegação
+sidebar-places-files-title = Arquivos KML / KMZ
+sidebar-imagery-title = Imagem de base
+sidebar-overlays-title = Sobreposições

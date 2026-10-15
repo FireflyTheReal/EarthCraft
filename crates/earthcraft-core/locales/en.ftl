@@ -470,3 +470,13 @@ update-restart-tooltip = Update installed: v{ $version } — click to save your 
 update-retry-label = Retry update
 update-releases-action = Open releases
 update-saving-label = Saving before restart
+
+sidebar-explore-title = Explore
+sidebar-places-title = Places
+sidebar-pin-places-action = Pin
+sidebar-pin-places-tooltip = Keep Places visible when switching panels
+sidebar-unpin-places-tooltip = Unpin Places
+sidebar-rail-toggle = Show navigation rail
+sidebar-places-files-title = KML / KMZ files
+sidebar-imagery-title = Base imagery
+sidebar-overlays-title = Overlays
