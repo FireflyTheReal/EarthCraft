@@ -226,16 +226,15 @@ fn is_kmz(path: &str) -> bool {
 }
 
 pub fn load_kml(path: &str, lg: Lang) -> Result<Places, crate::Error> {
-    if is_kmz(path) {
-        let mut reader = KmlReader::<_, f64>::from_kmz_path(path).map_err(|error| match error {
-            // Preserve NotFound for startup pruning of missing KMZ sources.
-            ::kml::Error::IoError(error) => crate::Error::Io(error),
-            error => error.into(),
-        })?;
-        places_from_document(reader.read()?, lg)
+    // Both formats pass through the guard: kml 0.14 can panic, loop or recurse
+    // without bound on unprepared XML. Missing files stay `Error::Io(NotFound)`
+    // for startup pruning of missing sources.
+    let txt = if is_kmz(path) {
+        kmz::decode(path)?
     } else {
-        parse_tree(&std::fs::read_to_string(path)?, lg)
-    }
+        std::fs::read_to_string(path)?
+    };
+    parse_tree(&txt, lg)
 }
 
 #[cfg(test)]

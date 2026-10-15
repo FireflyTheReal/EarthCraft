@@ -162,8 +162,8 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
   document and extra image resources. Verify names, coordinates and folder
   hierarchy; save as KMZ and reopen, restart, and confirm missing archives are pruned.
   Invalid ZIPs, missing KML entries and invalid coordinates must report errors.
-  KMZ selects the first KML entry and uses the upstream reader directly; plain
-  KML keeps its existing XML repair and folder-visibility handling.
+  KMZ selects the first KML entry and then takes the same XML repair and
+  folder-visibility handling as plain KML.
 - Create placemarks; save/open/drop KML; export a screenshot and use the ruler.
   Open several KML files, restart and verify their saved contents reopen in order.
   Remove one source externally, restart and verify it is silently pruned from

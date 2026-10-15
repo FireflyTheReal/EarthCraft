@@ -171,13 +171,14 @@ the selected folder, otherwise the root. Hidden ancestors suppress map markers
 without changing children's own visibility. File jobs capture the whole tree
 at submission; decoding, encoding and filesystem work stay off the UI thread.
 KML/KMZ I/O and screenshot encoding use an ordered bounded file service.
-KMZ imports use GeoRust's `KmlReader::from_kmz_path`, which selects the first
-KML entry in archive order without extracting resources to disk. Reader errors
-are reported directly; KMZ does not use the plain-KML XML repair pass. Folder
-visibility and malformed-document handling follow the upstream reader's behavior.
-Export writes the supported places tree as compressed `doc.kml`; its ZIP writer
-shares GeoRust's ZIP dependency version. Embedded resources, styles and network
-links retain the existing importer limitations.
+KMZ imports select the first KML entry in archive order without extracting
+resources to disk. The entry is inflated with a 128 MiB limit on the bytes
+actually decompressed (entry headers are untrusted), then takes the same XML
+preparation pass and GeoRust `KmlReader` path as a plain KML file, so folder
+visibility and malformed-document handling match. Archive and reader errors are
+reported directly. Export writes the supported places tree as compressed
+`doc.kml`. Embedded resources, styles and network links retain the existing
+importer limitations.
 Native dialogs
 and result application belong to the app. Settings/language writes coalesce on a
 filesystem worker and flush at shutdown; startup reads the small preference files.

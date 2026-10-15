@@ -1,6 +1,34 @@
-//! Write KMZ exports; GeoRust owns KMZ import.
-use std::io::{Cursor, Write};
-use zip::{ZipWriter, write::SimpleFileOptions};
+//! Extract the KML document from KMZ imports and write KMZ exports. The
+//! extracted text takes the same guarded GeoRust path as a plain KML file.
+use std::io::{Cursor, Read, Write};
+use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
+
+/// Decompressed size accepted for the KML document inside a KMZ. Entry headers
+/// are untrusted, so the limit applies to the bytes actually inflated.
+const MAX_DOCUMENT_BYTES: u64 = 128 * 1024 * 1024;
+
+/// Return the first `.kml` entry in archive order, matching GeoRust's KMZ reader.
+pub(super) fn decode(path: &str) -> Result<String, crate::Error> {
+    let mut archive = ZipArchive::new(std::fs::File::open(path)?)?;
+    for index in 0..archive.len() {
+        let entry = archive.by_index(index)?;
+        if !entry.name().to_ascii_lowercase().ends_with(".kml") {
+            continue;
+        }
+        let mut xml = Vec::new();
+        entry.take(MAX_DOCUMENT_BYTES + 1).read_to_end(&mut xml)?;
+        if xml.len() as u64 > MAX_DOCUMENT_BYTES {
+            return Err(format!(
+                "KMZ document exceeds the {} MiB import limit",
+                MAX_DOCUMENT_BYTES / (1024 * 1024)
+            )
+            .into());
+        }
+        return String::from_utf8(xml)
+            .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidData, error).into());
+    }
+    Err("KMZ archive contains no KML document".into())
+}
 
 pub(super) fn encode(xml: &[u8]) -> Result<Vec<u8>, crate::Error> {
     let mut archive = ZipWriter::new(Cursor::new(Vec::new()));
@@ -134,14 +162,82 @@ mod tests {
             load_kml(path.to_str().unwrap(), Lang::En)
                 .unwrap_err()
                 .to_string()
-                .contains("Invalid input")
+                .contains("no KML document")
         );
         std::fs::write(&path, b"not a ZIP archive").unwrap();
         assert!(matches!(
             load_kml(path.to_str().unwrap(), Lang::En),
-            Err(crate::Error::Kml(_))
+            Err(crate::Error::Zip(_))
         ));
         let path = fixture.archive(&[("doc.kml", b"<kml><Placemark><Point><coordinates>bad,2</coordinates></Point></Placemark></kml>")], zip::CompressionMethod::Deflated);
         assert!(load_kml(path.to_str().unwrap(), Lang::En).is_err());
+        let path = fixture.archive(
+            &[("doc.kml", b"<kml>\xff</kml>")],
+            zip::CompressionMethod::Stored,
+        );
+        assert!(matches!(load_kml(path.to_str().unwrap(), Lang::En),
+            Err(crate::Error::Io(error)) if error.kind() == std::io::ErrorKind::InvalidData));
+    }
+
+    #[test]
+    fn archived_documents_take_the_guarded_plain_kml_path() {
+        let fixture = Fixture::new();
+        // Each document panics, loops at EOF or recurses without bound when
+        // handed to kml 0.14 directly.
+        let empty_point = br#"<kml><Placemark><name>Empty</name><Point></Point></Placemark><Placemark><name>Kept</name><Point><coordinates>1,2</coordinates></Point></Placemark></kml>"#;
+        let path = fixture.archive(
+            &[("doc.kml", empty_point)],
+            zip::CompressionMethod::Deflated,
+        );
+        let places = load_kml(path.to_str().unwrap(), Lang::En).unwrap();
+        let names: Vec<_> = places.markers(false).map(|pm| pm.name.as_str()).collect();
+        assert_eq!(names, ["Kept"]);
+
+        let unclosed = b"<kml><Document><Placemark><name>Open</name><Point><coordinates>3,4</coordinates></Point>";
+        let path = fixture.archive(&[("doc.kml", unclosed)], zip::CompressionMethod::Deflated);
+        let places = load_kml(path.to_str().unwrap(), Lang::En).unwrap();
+        assert_eq!(places.first().unwrap().name, "Open");
+
+        let deep = format!(
+            "<kml>{}<Placemark><Point><coordinates>1,2</coordinates></Point></Placemark>{}</kml>",
+            "<Document>".repeat(10_000),
+            "</Document>".repeat(10_000)
+        );
+        let path = fixture.archive(
+            &[("doc.kml", deep.as_bytes())],
+            zip::CompressionMethod::Deflated,
+        );
+        assert!(
+            load_kml(path.to_str().unwrap(), Lang::En)
+                .unwrap_err()
+                .to_string()
+                .contains("nesting")
+        );
+    }
+
+    #[test]
+    fn oversized_archived_documents_are_rejected_after_bounded_inflation() {
+        let fixture = Fixture::new();
+        let path = fixture.0.join("large.kmz");
+        let mut archive = ZipWriter::new(File::create(&path).unwrap());
+        archive
+            .start_file(
+                "doc.kml",
+                SimpleFileOptions::default()
+                    .compression_method(zip::CompressionMethod::Deflated)
+                    .large_file(true),
+            )
+            .unwrap();
+        let chunk = vec![b' '; 1024 * 1024];
+        for _ in 0..=MAX_DOCUMENT_BYTES / chunk.len() as u64 {
+            archive.write_all(&chunk).unwrap();
+        }
+        archive.finish().unwrap();
+        assert!(
+            load_kml(path.to_str().unwrap(), Lang::En)
+                .unwrap_err()
+                .to_string()
+                .contains("import limit")
+        );
     }
 }
