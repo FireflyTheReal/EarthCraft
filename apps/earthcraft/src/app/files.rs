@@ -216,10 +216,13 @@ impl App {
             Some((width, height, pixels)) => {
                 let path = PathBuf::from(&self.settings.screenshot_dir)
                     .join(format!("earthcraft_{}.png", now_unix() as u64));
-                if let Err(error) =
-                    self.file_jobs
-                        .screenshot(path, *width as u32, *height as u32, pixels)
-                {
+                if let Err(error) = self.file_jobs.screenshot_with_credits(
+                    path,
+                    *width as u32,
+                    *height as u32,
+                    pixels,
+                    self.renderer.displayed_credits.clone(),
+                ) {
                     self.status = Lang::En.format(
                         "screenshot-save-error",
                         &[("error", error.to_string().into())],

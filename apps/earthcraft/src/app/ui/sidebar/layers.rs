@@ -206,6 +206,7 @@ impl App {
     }
     fn layer_sky(&mut self, ui: &mut egui::Ui) {
         let lg = self.lang;
+        ui.checkbox(&mut self.settings.sky.enabled, lg.text("sky-enabled"));
         ui.checkbox(&mut self.show_atmo, lg.text("layers-atmosphere-toggle"));
         ui.checkbox(&mut self.show_sun, lg.text("layers-sunlight-toggle"));
     }

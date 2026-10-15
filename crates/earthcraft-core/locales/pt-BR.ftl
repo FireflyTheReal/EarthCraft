@@ -586,3 +586,13 @@ controllers-sensitivity = Sensibilidade
 controllers-curve = Curva de resposta
 controllers-buttons = Ações dos botões
 controllers-monitor = Entradas normalizadas ao vivo
+
+sky-enabled = Fundo celeste
+sky-cinematic = Céu cinematográfico (visível durante o dia)
+sky-help = Mapa difuso da Via Láctea da NASA, preparado como fundo SDR em 4K. O modo realista reduz o brilho perto da superfície diurna. Sem catálogo de estrelas selecionáveis ou navegação astronômica.
+sky-loading = Preparando fundo celeste…
+sky-retry = Tentar carregar o fundo novamente
+sky-short-credit = Céu: NASA SVS · Gaia DR2 (ESA/Gaia/DPAC)
+sky-combined-credit = { $map }
+    { $sky }
+sky-software-credits = Licenças do software de transformação celeste

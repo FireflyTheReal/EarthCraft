@@ -162,6 +162,8 @@ impl App {
             grid: self.show_grid,
             atmosphere: self.show_atmo,
             sunlight: self.show_sun,
+            sky: self.sky_ready(),
+            cinematic_sky: self.settings.sky.cinematic,
         }
         .keys(now_unix());
         let state = keys.state;
@@ -379,6 +381,15 @@ impl App {
                 &[
                     ("attribution", attribution.into()),
                     ("date", r.date.as_str().into()),
+                ],
+            );
+        }
+        if self.renderer.displayed_sky {
+            attribution = lg.format(
+                "sky-combined-credit",
+                &[
+                    ("map", attribution.into()),
+                    ("sky", lg.text("sky-short-credit").into()),
                 ],
             );
         }

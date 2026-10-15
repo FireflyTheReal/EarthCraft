@@ -21,6 +21,8 @@ pub(super) struct Renderer {
     displayed: Option<(Cam, Basis)>,
     displayed_rect: Option<egui::Rect>,
     displayed_grid_step: Option<f64>,
+    pub(super) displayed_sky: bool,
+    pub(super) displayed_credits: String,
     waiting: Vec<earthcraft_data::tiles::TileKey>,
     required: Vec<earthcraft_data::tiles::TileKey>,
     retry_at: Option<std::time::Instant>,
@@ -85,6 +87,8 @@ impl Renderer {
             displayed: None,
             displayed_rect: None,
             displayed_grid_step: None,
+            displayed_sky: false,
+            displayed_credits: String::new(),
             waiting: Vec::new(),
             required: Vec::new(),
             retry_at: None,
@@ -151,7 +155,28 @@ impl App {
         } else {
             0
         };
+        let sky = if self.sky_ready() {
+            let interval = earthcraft_render::view::SCENE_TIME_UPDATE_INTERVAL_SECS;
+            let time = (now_unix() / interval).floor() * interval;
+            let (latitude, longitude) = subsolar(time);
+            match earthcraft_render::celestial::SkyBackdrop::new(
+                self.sky.image.as_ref().unwrap().clone(),
+                time,
+                self.cam,
+                ll_to_v3(latitude, longitude),
+                self.settings.sky.cinematic,
+            ) {
+                Ok(sky) => Some(sky),
+                Err(error) => {
+                    self.status = error.to_string();
+                    None
+                }
+            }
+        } else {
+            None
+        };
         let cfg = RenderCfg {
+            sky,
             provider: prov,
             rel,
             grid: self.show_grid,
@@ -250,6 +275,22 @@ impl App {
             .cfg
             .grid
             .then_some(frame.request.cfg.grid_step);
+        self.renderer.displayed_sky = frame.request.cfg.sky.is_some();
+        self.renderer.displayed_credits = frame
+            .request
+            .cfg
+            .provider
+            .attribution(earthcraft_core::language::Lang::En)
+            .to_string();
+        if self.renderer.displayed_sky {
+            self.renderer.displayed_credits.push_str("; ");
+            self.renderer
+                .displayed_credits
+                .push_str(earthcraft_data::sky::CREDIT);
+            self.renderer
+                .displayed_credits
+                .push_str("; https://svs.gsfc.nasa.gov/4851/; EarthCraft SDR derivative");
+        }
         self.renderer.displayed = Some((frame.request.cam, frame.request.basis));
     }
 }
