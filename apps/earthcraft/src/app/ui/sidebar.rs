@@ -11,6 +11,7 @@ mod layers;
 mod places;
 mod rail;
 
+const SIDEBAR_TITLE_SCALE: f32 = 1.2;
 const PINNED_PLACES_MAX_HEIGHT_FRACTION: f32 = 0.65;
 
 impl App {
@@ -130,7 +131,7 @@ fn navigation_header(ui: &mut egui::Ui, layout: &mut SidebarLayout, lang: Lang) 
     ui.horizontal(|ui| {
         rail::show(ui, layout, lang);
         ui.separator();
-        ui.strong(panel_title(layout.panel, lang));
+        panel_heading(ui, layout.panel, lang);
         if layout.panel == SidebarPanel::Places {
             pin_button(ui, layout, lang);
         }
@@ -139,9 +140,18 @@ fn navigation_header(ui: &mut egui::Ui, layout: &mut SidebarLayout, lang: Lang) 
 
 fn places_header(ui: &mut egui::Ui, layout: &mut SidebarLayout, lang: Lang) {
     ui.horizontal(|ui| {
-        ui.strong(panel_title(SidebarPanel::Places, lang));
+        panel_heading(ui, SidebarPanel::Places, lang);
         pin_button(ui, layout, lang);
     });
+}
+
+fn panel_heading(ui: &mut egui::Ui, panel: SidebarPanel, lang: Lang) {
+    let size = ui.style().text_styles[&egui::TextStyle::Body].size * SIDEBAR_TITLE_SCALE;
+    ui.label(
+        egui::RichText::new(panel_title(panel, lang))
+            .size(size)
+            .strong(),
+    );
 }
 
 fn pin_button(ui: &mut egui::Ui, layout: &mut SidebarLayout, lang: Lang) {

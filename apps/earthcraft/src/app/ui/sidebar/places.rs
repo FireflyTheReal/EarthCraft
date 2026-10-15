@@ -2,7 +2,7 @@ use crate::app::App;
 use crate::app::ui::paths::short_folder;
 use eframe::egui::{self, Color32, Key, Stroke};
 const PLACES_DETAILS_HEIGHT_POINTS: f32 = 135.0;
-const PLACES_ADD_HEIGHT_POINTS: f32 = 90.0;
+const PLACES_ADD_HEIGHT_POINTS: f32 = 84.0;
 const MIN_TREE_HEIGHT_POINTS: f32 = 64.0;
 
 impl App {
@@ -40,7 +40,7 @@ impl App {
             .auto_shrink([false, false])
             .show(ui, |ui| self.places_tree(ui, tree_height))
             .inner;
-        if files.clear {
+        if files.clear.is_some_and(|response| response.clicked()) {
             self.clear_places();
         }
         self.place_reveal_requested = false;
@@ -66,12 +66,13 @@ impl App {
     }
 }
 
+const FILES_FOOTER_CLEARANCE_POINTS: f32 = 12.0;
 const FILES_FOOTER_HEIGHT_LINES: f32 = 11.0;
 const FILES_MAX_HEIGHT_FRACTION: f32 = 0.5;
 struct FileControls {
     drop_rect: egui::Rect,
     open_typed: bool,
-    clear: bool,
+    clear: Option<egui::Response>,
 }
 /// Reserve the actual file controls before sizing the scrolling placemark viewer.
 /// The footer has its own bounded scroll area for short pinned Places panels.
@@ -84,12 +85,15 @@ fn files_footer(
     let mut controls = FileControls {
         drop_rect: egui::Rect::NOTHING,
         open_typed: false,
-        clear: false,
+        clear: None,
     };
     let max_height = ui.available_height() * FILES_MAX_HEIGHT_FRACTION;
     egui::Panel::bottom("places-files-footer")
         .frame(egui::Frame::NONE)
-        .default_size(ui.text_style_height(&egui::TextStyle::Body) * FILES_FOOTER_HEIGHT_LINES)
+        .default_size(
+            ui.text_style_height(&egui::TextStyle::Body) * FILES_FOOTER_HEIGHT_LINES
+                + FILES_FOOTER_CLEARANCE_POINTS,
+        )
         .size_range(0.0..=max_height)
         .show(ui, |ui| {
             egui::ScrollArea::vertical()
@@ -137,9 +141,7 @@ fn files_footer(
                                 &[("path", short_folder(folder).into())],
                             ))
                             .on_hover_text(folder);
-                            if ui.button(lg.text("places-clear-all-action")).clicked() {
-                                controls.clear = true;
-                            }
+                            controls.clear = Some(ui.button(lg.text("places-clear-all-action")));
                         });
                 });
         });
@@ -171,6 +173,13 @@ mod tests {
                             let files = files_footer(ui, lang, &mut path, "Documents");
                             assert!(files.drop_rect.is_positive(), "KML/KMZ must start expanded");
                             assert!(clip.contains_rect(files.drop_rect));
+                            if height >= 600.0 {
+                                let clear = files.clear.as_ref().expect("expanded file controls");
+                                assert!(
+                                    clear.interact_rect.contains_rect(clear.rect),
+                                    "Clear All must fit without scrolling: {clear:?}"
+                                );
+                            }
                             assert!(
                                 ui.available_height() > height * 0.4,
                                 "viewer keeps usable space"
