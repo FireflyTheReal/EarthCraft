@@ -64,12 +64,36 @@ fn open_url(url: &str) -> Result<(), String> {
     result.map(|_| ()).map_err(|e| e.to_string())
 }
 
+#[cfg(target_os = "windows")]
+const SPEECH_TEXT_VAR: &str = "EARTHCRAFT_SPEECH_TEXT";
+
+// `powershell -Command` appends trailing arguments to the script source instead
+// of binding `$args`, so narration on the command line would be parsed as code.
+// The text travels in an environment variable and is only ever read as data.
+#[cfg(target_os = "windows")]
+fn windows_speech_command(text: &str) -> Command {
+    let mut command = Command::new("powershell");
+    command
+        .args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            &format!(
+                "Add-Type -AssemblyName System.Speech; \
+                 $s=New-Object System.Speech.Synthesis.SpeechSynthesizer; \
+                 $s.Speak($env:{SPEECH_TEXT_VAR})"
+            ),
+        ])
+        .env(SPEECH_TEXT_VAR, text);
+    command
+}
+
 fn speak(text: &str, _lang: earthcraft_core::language::Lang) -> Result<(), String> {
     // System TTS, without uploading the narration to any cloud service.
     #[cfg(target_os = "macos")]
     let result = Command::new("say").arg(text).spawn();
-    #[cfg(target_os="windows")]
-    let result = Command::new("powershell").args(["-NoProfile", "-Command", "Add-Type -AssemblyName System.Speech; $s=New-Object System.Speech.Synthesis.SpeechSynthesizer; $s.Speak($args[0])", text]).spawn();
+    #[cfg(target_os = "windows")]
+    let result = windows_speech_command(text).spawn();
     #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
     let result = Command::new("espeak")
         .args([
@@ -248,5 +272,31 @@ impl App {
                 if !self.explorer.message.is_empty(){ui.separator();ui.label(&self.explorer.message);}
             });
         self.explorer.open = open;
+    }
+}
+
+#[cfg(all(test, target_os = "windows"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn windows_speech_text_is_passed_as_data_not_script() {
+        let text = "; Write-Output INJECTED\nWe are exploring \"Paris\" & $(calc)";
+        let command = windows_speech_command(text);
+        let args: Vec<_> = command.get_args().collect();
+        assert!(
+            args.iter()
+                .all(|arg| !arg.to_string_lossy().contains("INJECTED"))
+        );
+        let script = args.last().unwrap().to_string_lossy();
+        assert!(script.ends_with(&format!("$s.Speak($env:{SPEECH_TEXT_VAR})")));
+        let envs: Vec<_> = command.get_envs().collect();
+        assert_eq!(
+            envs,
+            [(
+                std::ffi::OsStr::new(SPEECH_TEXT_VAR),
+                Some(std::ffi::OsStr::new(text))
+            )]
+        );
     }
 }
