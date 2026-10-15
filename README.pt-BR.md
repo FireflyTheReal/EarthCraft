@@ -72,6 +72,10 @@ detalhes no painel lateral. A ordem é Régua, Adicionar marcador, Captura, Conf
 Em **Configurações → Idioma**, siga o idioma do sistema (padrão) ou escolha
 English ou Português (Brasil). Idiomas do sistema sem tradução usam inglês.
 
+O macOS também oferece os menus **Visualizar**, **Adicionar**, **Ferramentas**,
+**Janela** e **Ajuda**, além de **Configurações** no menu EarthCraft. Windows/Linux
+expõem os comandos pelo botão **EarthCraft**. Veja os [menus do desktop](docs/features/NATIVE_MENUS.pt-BR.md).
+
 No macOS, o menu nativo **Arquivo** abre/salva KML e salva capturas PNG. Use Cmd+O para abrir, Cmd+S para salvar, Cmd+Shift+S para Salvar como e Cmd+Shift+E para uma captura. As capturas usam a pasta escolhida nas Configurações. Sair fica no menu do aplicativo. Windows e Linux usam os controles de arquivos do painel lateral e os mesmos atalhos com Ctrl em vez de Cmd; Ctrl+Q sai do aplicativo.
 
 Abra **Explorar +** na barra superior para acessar o módulo Explorar. A narração

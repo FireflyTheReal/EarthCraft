@@ -53,7 +53,11 @@ matrices/quaternions and SIMD colors. Batch-local tile handles avoid repeated ca
 reads and are released after the batch. Safe bytemuck casts describe byte pixels;
 workspace code forbids unsafe Rust. Native macOS menus stay in the desktop
 adapter; their callbacks queue actions and wake egui. Windows and Linux use
-sidebar controls. The sidebar can be collapsed from the persistent toolbar
+an in-window menu with the same command catalog, alongside sidebar controls.
+The macOS menu registers Window/Help with the system, while About and shortcut
+help use app-owned egui windows. Captions, enablement and checkmarks update from
+the current language and app state. See [desktop menus](features/NATIVE_MENUS.md).
+The sidebar can be collapsed from the persistent toolbar
 button; its settings and sections remain available when reopened.
 The toolbar ruler shortcut toggles the sidebar's existing ruler state and,
 when enabling it, requests that its section expand and scroll into view,

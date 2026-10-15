@@ -215,6 +215,16 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
   Check KML/KMZ starts expanded and stays visible below the shorter Places tree;
   in a short pinned panel, files and placemarks scroll independently. Check all
   six layer groups and confirm auto-rotate appears under Explore navigation.
+
+- On macOS, open every native menu. Change language while menus are closed and
+  reopen them: titles, commands and checkmarks must follow the current language
+  and state. Use Settings/Cmd+,, Sidebar, View toggles, Add Placemark/Folder,
+  Measure distances, Explorer, fullscreen/minimize, About and Controls Help.
+  Ruler/placemark actions must use the existing state and reveal controls/name.
+  Edit text and test native Undo/Redo before testing ruler Undo/Redo. Check
+  screenshot enablement before/after the first frame. On Windows/Linux, repeat
+  through the EarthCraft menu and Ctrl shortcuts. Confirm the system Window/Help
+  behavior on macOS and that closing About/Help does not close the main window.
 - In Explorer, display large planet/sky images and load/save `.earthplanet` files;
   the UI should remain responsive while the file work runs. Check the busy
   indicator and disabled file controls, including after a failed operation.

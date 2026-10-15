@@ -170,3 +170,11 @@ Data persiste `SidebarLayout` com leitura tolerante no arquivo de configuraçõe
 existente; o desktop desenha, trata divisores e encaminha atalhos. Geometria,
 fidelidade KML e serviços ao vivo mantêm seu comportamento. Consulte os
 [painéis laterais](features/SIDEBAR.pt-BR.md) e o [plano 0.2.0](ROADMAP.md).
+
+## Menus do desktop
+
+O catálogo em `app/menu/commands.rs` atende aos menus nativos do macOS e ao menu
+EarthCraft interno de Windows/Linux. As ações são enfileiradas pelos callbacks e
+aplicadas na atualização; os menus permanecem na thread da janela. Marcações,
+ativação e traduções acompanham o estado atual. Sobre e Ajuda usam janelas egui
+do aplicativo. Consulte os [menus do desktop](features/NATIVE_MENUS.pt-BR.md).
