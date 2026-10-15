@@ -8,14 +8,14 @@ impl App {
             .id_salt("layers-imagery")
             .default_open(true)
             .show(ui, |ui| self.layer_imagery(ui));
-        egui::CollapsingHeader::new(self.lang.text("sidebar-sky-title"))
-            .id_salt("layers-sky")
-            .default_open(true)
-            .show(ui, |ui| self.layer_sky(ui));
         egui::CollapsingHeader::new(self.lang.text("sidebar-geography-title"))
             .id_salt("layers-geography")
             .default_open(true)
             .show(ui, |ui| self.layer_geography(ui));
+        egui::CollapsingHeader::new(self.lang.text("sidebar-sky-title"))
+            .id_salt("layers-sky")
+            .default_open(true)
+            .show(ui, |ui| self.layer_sky(ui));
         egui::CollapsingHeader::new(self.lang.text("sidebar-weather-title"))
             .id_salt("layers-weather")
             .default_open(true)
