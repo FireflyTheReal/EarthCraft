@@ -3,6 +3,7 @@ use super::super::App;
 use earthcraft_core::language::{Lang, fold_name};
 use earthcraft_data::settings::Settings;
 use eframe::egui;
+mod controllers;
 mod sections;
 pub(super) const MAX_UI_SLIDER_SCALE: f32 = 2.0;
 const WINDOW_SIZE_POINTS: egui::Vec2 = egui::vec2(680.0, 560.0);
@@ -17,15 +18,17 @@ enum Category {
     Appearance,
     Navigation,
     Graphics,
+    Controllers,
     Cache,
     Files,
 }
 impl Category {
-    const ALL: [Self; 6] = [
+    const ALL: [Self; 7] = [
         Self::General,
         Self::Appearance,
         Self::Navigation,
         Self::Graphics,
+        Self::Controllers,
         Self::Cache,
         Self::Files,
     ];
@@ -34,6 +37,7 @@ impl Category {
             Self::General => "settings-category-general",
             Self::Appearance => "settings-category-appearance",
             Self::Navigation => "settings-category-navigation",
+            Self::Controllers => "settings-category-controllers",
             Self::Graphics => "settings-category-graphics",
             Self::Cache => "settings-category-cache",
             Self::Files => "settings-category-files",
@@ -68,6 +72,12 @@ impl Category {
                 "settings-invert-scroll",
                 "settings-startup-view-label",
                 "settings-startup-help",
+            ],
+            Self::Controllers => &[
+                "controllers-enabled",
+                "controllers-help",
+                "controllers-deadzone",
+                "controllers-invert",
             ],
             Self::Graphics => &["settings-uncap-fps-toggle", "settings-frame-sync-help"],
             Self::Cache => &[
@@ -165,6 +175,7 @@ impl App {
                                     }
                                     Category::Appearance => self.settings_appearance(ui),
                                     Category::Navigation => self.settings_navigation(ui),
+                                    Category::Controllers => self.settings_controllers(ui),
                                     Category::Graphics => self.settings_graphics(ui),
                                     Category::Cache => {
                                         self.settings_cache(ui, &mut state.confirm_cache)

@@ -39,7 +39,7 @@ impl App {
         let ruler_captured = self.edit_ruler(ui, &resp, rect, aspect);
 
         // ── input
-        let mut interacting = false;
+        let mut interacting = self.controller_input(ui, rect.height());
         if !ruler_captured && resp.dragged_by(PointerButton::Primary) && !shift {
             let d =
                 ui.input(|i| i.pointer.delta()) * self.settings.navigation.pan_sensitivity as f32;
