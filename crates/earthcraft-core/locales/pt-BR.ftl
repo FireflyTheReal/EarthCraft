@@ -504,3 +504,20 @@ menu-report-issue-action = Relatar um problema…
 about-version-label = Versão { $version }
 about-description = Explore o globo, as camadas ao vivo e seus lugares geográficos.
 about-project-link = Projeto e código-fonte
+
+coordinates-format-label = Coordenadas
+coordinates-format-dd = Graus decimais (DD)
+coordinates-format-dms = Graus, minutos e segundos (DMS)
+coordinates-format-ddm = Graus e minutos decimais (DDM)
+coordinates-format-utm = UTM / UPS
+coordinates-format-mgrs = MGRS
+coordinates-precision-degrees = Casas decimais nos graus
+coordinates-precision-seconds = Casas decimais nos segundos
+coordinates-precision-minutes = Casas decimais nos minutos
+coordinates-precision-meters = Casas decimais nos metros
+coordinates-precision-grid = Dígitos MGRS por eixo
+coordinates-cursor-readout = Cursor: { $coordinates }
+coordinates-camera-readout = Centro: { $coordinates }
+coordinates-copy-tooltip = { $coordinates }
+    Clique para copiar as coordenadas.
+coordinates-input-help = A busca aceita DD, DMS, DDM, UTM/UPS e MGRS. Entrada UTM: zona N/S leste norte. A precisão da grade descreve a resolução exibida, não a exatidão da fonte.

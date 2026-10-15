@@ -101,14 +101,29 @@ impl App {
                     const SIDEBAR_SEPARATOR_INSET_POINTS: f32 = 1.0;
                     let sidebar_border_x = (sidebar_right - SIDEBAR_SEPARATOR_INSET_POINTS)
                         .round_to_pixels(ui.pixels_per_point());
-                    super::cursor::cursor_readout(ui, self.cursor, sidebar_border_x);
-                    ui.monospace(lg.format(
-                        "statusbar-camera-center",
-                        &[
-                            ("latitude", format!("{:.4}", self.cam.lat).into()),
-                            ("longitude", format!("{:.4}", self.cam.lon).into()),
-                        ],
-                    ));
+                    super::cursor::cursor_readout(
+                        ui,
+                        self.cursor,
+                        sidebar_border_x,
+                        self.settings.coordinate_display,
+                        lg,
+                    );
+                    match self
+                        .settings
+                        .coordinate_display
+                        .format(self.cam.lat, self.cam.lon)
+                    {
+                        Ok(coordinates) => {
+                            let text = lg.format(
+                                "coordinates-camera-readout",
+                                &[("coordinates", coordinates.as_str().into())],
+                            );
+                            super::coordinate_display::copyable_label(ui, text, &coordinates, lg);
+                        }
+                        Err(error) => {
+                            ui.monospace("—").on_hover_text(error.to_string());
+                        }
+                    }
                     ui.separator();
                     let altitude = lg.format(
                         "statusbar-camera-altitude",

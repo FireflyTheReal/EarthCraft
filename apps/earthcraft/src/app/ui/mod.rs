@@ -4,6 +4,7 @@ pub(in crate::app) mod aircraft;
 pub(in crate::app) mod altitude;
 mod bars;
 mod compass;
+mod coordinate_display;
 mod cursor;
 mod navigation;
 mod paths;

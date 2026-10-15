@@ -504,3 +504,20 @@ menu-report-issue-action = Report an issue…
 about-version-label = Version { $version }
 about-description = Explore the globe, live layers and your geographic places.
 about-project-link = Project and source code
+
+coordinates-format-label = Coordinates
+coordinates-format-dd = Decimal degrees (DD)
+coordinates-format-dms = Degrees, minutes, seconds (DMS)
+coordinates-format-ddm = Degrees, decimal minutes (DDM)
+coordinates-format-utm = UTM / UPS
+coordinates-format-mgrs = MGRS
+coordinates-precision-degrees = Decimal places in degrees
+coordinates-precision-seconds = Decimal places in seconds
+coordinates-precision-minutes = Decimal places in minutes
+coordinates-precision-meters = Decimal places in meters
+coordinates-precision-grid = MGRS digits per axis
+coordinates-cursor-readout = Cursor: { $coordinates }
+coordinates-camera-readout = Center: { $coordinates }
+coordinates-copy-tooltip = { $coordinates }
+    Click to copy coordinates.
+coordinates-input-help = Search accepts DD, DMS, DDM, UTM/UPS and MGRS. UTM input: zone N/S easting northing. Grid precision describes display resolution, not source accuracy.

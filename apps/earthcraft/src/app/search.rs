@@ -1,5 +1,5 @@
 use super::App;
-use earthcraft_core::coordinates::parse_latlon;
+use earthcraft_core::coordinates::parse_coordinate_query;
 use earthcraft_core::language::{Lang, fold_name};
 use earthcraft_data::search::merge_suggestions;
 use earthcraft_data::search::{geocode, photon_suggest};
@@ -25,7 +25,7 @@ impl App {
         }
         self.sugg_sel = None;
         self.sugg_last_edit = Instant::now();
-        if q.is_empty() || parse_latlon(&q).is_some() {
+        if q.is_empty() || !matches!(parse_coordinate_query(&q), Ok(None)) {
             self.sugg_open = false;
             self.suggestions.clear();
             self.remote_sugg.clear();
@@ -135,13 +135,25 @@ impl App {
             self.unlock_flat_earth(ctx);
             return;
         }
-        if let Some((lat, lon)) = parse_latlon(&q) {
-            self.fly_to(lat, lon, 3.0);
-            self.status = self.lang.format(
-                "search-navigation-status",
-                &[("destination", format!("{lat:.5}, {lon:.5}").into())],
-            );
-            return;
+        match parse_coordinate_query(&q) {
+            Ok(Some((lat, lon))) => {
+                self.fly_to(lat, lon, 3.0);
+                match self.settings.coordinate_display.format(lat, lon) {
+                    Ok(position) => {
+                        self.status = self.lang.format(
+                            "search-navigation-status",
+                            &[("destination", position.into())],
+                        )
+                    }
+                    Err(error) => self.status = error.to_string(),
+                }
+                return;
+            }
+            Err(error) => {
+                self.status = error.to_string();
+                return;
+            }
+            Ok(None) => {}
         }
         let (tx, rx) = mpsc::channel();
         self.search_rx = Some(rx);
