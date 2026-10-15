@@ -12,10 +12,6 @@ impl App {
             .id_salt("layers-geography")
             .default_open(true)
             .show(ui, |ui| self.layer_geography(ui));
-        egui::CollapsingHeader::new(self.lang.text("sidebar-transport-title"))
-            .id_salt("layers-transport")
-            .default_open(true)
-            .show(ui, |ui| self.layer_transport(ui));
         egui::CollapsingHeader::new(self.lang.text("sidebar-weather-title"))
             .id_salt("layers-weather")
             .default_open(true)
@@ -28,6 +24,10 @@ impl App {
             .id_salt("layers-sky")
             .default_open(true)
             .show(ui, |ui| self.layer_sky(ui));
+        egui::CollapsingHeader::new(self.lang.text("sidebar-transport-title"))
+            .id_salt("layers-transport")
+            .default_open(true)
+            .show(ui, |ui| self.layer_transport(ui));
         ui.small(self.lang.text("layers-live-overlays-help"));
     }
     fn layer_imagery(&mut self, ui: &mut egui::Ui) {

@@ -11,7 +11,7 @@ mod layers;
 mod places;
 mod rail;
 
-const SIDEBAR_TITLE_SCALE: f32 = 1.2;
+const SIDEBAR_TITLE_SCALE: f32 = 1.1;
 const PINNED_PLACES_MAX_HEIGHT_FRACTION: f32 = 0.65;
 
 impl App {
