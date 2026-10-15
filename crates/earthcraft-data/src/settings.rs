@@ -1,3 +1,4 @@
+mod coordinates;
 pub mod sidebar;
 mod writer;
 use crate::paths::{cache_dir, default_out_dir};
@@ -48,6 +49,8 @@ impl UnitPreference {
 #[derive(Clone, PartialEq, Serialize)]
 pub struct Settings {
     pub sidebar: sidebar::SidebarLayout,
+    #[serde(serialize_with = "coordinates::serialize")]
+    pub coordinate_display: earthcraft_core::coordinates::CoordinateDisplay,
     pub screenshot_dir: String,
     pub kml_dir: String,
     pub ui_scale: f32,  // text size of buttons/panels
@@ -77,6 +80,7 @@ impl Default for Settings {
     fn default() -> Self {
         Settings {
             sidebar: sidebar::SidebarLayout::default(),
+            coordinate_display: earthcraft_core::coordinates::CoordinateDisplay::default(),
             screenshot_dir: default_out_dir("Pictures"),
             kml_dir: default_out_dir("Documents"),
             ui_scale: 1.0,
@@ -96,6 +100,7 @@ fn settings_file() -> PathBuf {
 #[derive(Default, Deserialize)]
 struct SettingsInput {
     sidebar: Option<serde_json::Value>,
+    coordinate_display: Option<serde_json::Value>,
     #[serde(default, deserialize_with = "crate::json_fields::string")]
     screenshot_dir: Option<String>,
     #[serde(default, deserialize_with = "crate::json_fields::string")]
@@ -120,6 +125,9 @@ struct SettingsInput {
 impl Settings {
     fn apply_json(&mut self, bytes: &[u8]) -> Result<(), crate::Error> {
         let input: SettingsInput = serde_json::from_slice(bytes)?;
+        if let Some(value) = input.coordinate_display {
+            coordinates::apply(&mut self.coordinate_display, &value);
+        }
         if let Some(sidebar) = input.sidebar {
             self.sidebar.apply_json(&sidebar);
         }
@@ -276,6 +284,7 @@ mod tests {
     fn partial_invalid_settings_preserve_valid_fields_and_clamping() {
         let mut settings = Settings {
             sidebar: sidebar::SidebarLayout::default(),
+            coordinate_display: earthcraft_core::coordinates::CoordinateDisplay::default(),
             screenshot_dir: "pictures".into(),
             kml_dir: "documents".into(),
             ui_scale: 1.0,

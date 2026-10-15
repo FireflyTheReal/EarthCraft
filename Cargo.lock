@@ -1193,6 +1193,7 @@ dependencies = [
  "fluent-syntax",
  "geographiclib-rs",
  "glam",
+ "mgrs-convert",
  "serde_json",
  "unic-langid",
  "unicode-normalization",
@@ -2736,6 +2737,12 @@ checksum = "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a"
 dependencies = [
  "autocfg",
 ]
+
+[[package]]
+name = "mgrs-convert"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa14ab46f760cd7672b903e33882e17e94af3d6987a8e5c483d089ff4d380f1c"
 
 [[package]]
 name = "miniz_oxide"

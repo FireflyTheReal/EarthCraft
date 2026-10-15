@@ -1,4 +1,8 @@
 //! Shared geographic coordinate parsing and validation for input and decoded data.
+mod display;
+mod input;
+pub use display::{CoordinateDisplay, CoordinateFormat};
+pub use input::{CoordinateInputError, parse_coordinate_query};
 #[derive(Debug, PartialEq, Eq)]
 pub enum CoordinateError {
     Latitude,
@@ -18,6 +22,9 @@ impl std::error::Error for CoordinateError {}
 /// Commas separate coordinates here; decimal commas are supported only by the
 /// separate-field parser below, where they are unambiguous.
 pub fn parse_latlon(query: &str) -> Option<(f64, f64)> {
+    parse_coordinate_query(query).ok().flatten()
+}
+fn parse_decimal_pair(query: &str) -> Option<(f64, f64)> {
     let cleaned = query.replace([',', ';'], " ");
     let mut parts = cleaned.split_whitespace();
     let latitude = parts.next()?;

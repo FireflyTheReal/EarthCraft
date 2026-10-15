@@ -11,6 +11,7 @@ workspace = true
 
 [dependencies]
 geographiclib-rs.workspace = true
+mgrs-convert.workspace = true
 emath.workspace = true
 glam.workspace = true
 fluent-bundle.workspace = true
