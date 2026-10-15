@@ -375,3 +375,11 @@ imagery budgets at cache construction. The app owns searchable category widgets,
 OS font discovery and a bounded font-loading worker. Installed UI/map faces have
 independent bundled fallbacks; font application invalidates cached overlay text.
 Camera math remains in core. See [settings](features/SETTINGS.md).
+
+## Controllers
+
+Core owns normalized Explore bindings, response/deadzone policy, button edges and
+camera steps. Data persists bounded per-model profiles. The app's gilrs adapter
+polls hotplug/input, arbitrates focus and dispatches tool actions through menus;
+its settings module owns remapping and the live monitor. See
+[controllers](features/CONTROLLERS.md) for device/platform limits.

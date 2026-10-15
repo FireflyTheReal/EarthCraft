@@ -194,3 +194,10 @@ aplica limites na construção do cache. O aplicativo trata categorias pesquisá
 fontes do sistema e seu carregamento limitado em segundo plano. Interface e mapa
 têm alternativas independentes; a troca invalida textos de sobreposição em cache.
 A matemática da câmera permanece em core. Veja [configurações](features/SETTINGS.pt-BR.md).
+
+## Controles
+
+Core trata vínculos normalizados, zona morta/curvas, bordas de botões e passos da
+câmera. Data persiste perfis por modelo. O adaptador gilrs do aplicativo consulta
+conexão/entradas, respeita foco e encaminha ferramentas pelo dispatcher dos menus.
+Veja [controles](features/CONTROLLERS.pt-BR.md) para limites de dispositivos/plataformas.
