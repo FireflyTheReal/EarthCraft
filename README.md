@@ -1,12 +1,15 @@
-[**English**](README.md) | [Português (Brasil)](README.pt-BR.md)
+[**English**](README.md) | [Brazilian Portuguese](README.pt-BR.md)
 
 # EarthCraft 🌍
 
 [![Listed on Remade](https://remade.wiki/badges/listed-on-remade.svg)](https://remade.wiki/projects/earthcraft/)
 
-A 3D globe in the style of Google Earth, written in pure Rust (egui + CPU ray-casting globe rendering, with optional, experimental GPU acceleration). Runs on Windows, macOS and Linux with no system dependencies beyond a graphics driver.
+A 3D globe explorer in the style of Google Earth, written in pure Rust (egui + CPU ray-casting globe rendering, with optional, experimental GPU acceleration). Runs on Windows, macOS and Linux.
+
+![EarthCraft showing the globe with satellite cloud imagery and navigation controls](assets/repository/earthcraft-app-en.png)
 
 ### Build and run
+
 Requires Rust 1.95+ (https://rustup.rs):
 
     cargo run --release
@@ -22,22 +25,32 @@ Anyway** for EarthCraft and confirm **Open**. See [Apple's instructions](https:/
 
 ### Features
 
-- 3D globe with orbit, zoom, view rotation, bottom-bar heading and a navigation compass; navigation controls can be hidden in Settings
-- Satellite imagery (Esri), streets (OSM) and topography (OpenTopoMap), with multi-level tile zoom and on-disk caching
-- Background satellite overview loading for the whole globe at the initial distance; detailed tiles load as you zoom in
-- Small bottom-bar update notice: click to download/install, then save and restart; macOS updates the complete app bundle (see [update details](docs/RELEASING.md#in-app-updates))
-- Clear downloaded map tiles from disk through Settings
-- Place and address search (Nominatim), plus direct "lat, lon" coordinate input
+- High-performance optimized 3D globe renderer
+- Navigation controls for orbit, zoom and view rotation, with a compass, rotation ring, movement pad and zoom slider; includes a north-up reset and can be hidden in Settings
+- Satellite imagery (credit: Esri), streets (credit: OSM) and topography (credit: OpenTopoMap), with multi-level tile zoom and configurable on-disk caching
+- Atmosphere, stars, real-time sunlight (day/night)
+- Bottom bar with cursor position, camera center position, editable camera altitude and bearing
+- AIS ship positions (credit: OpenSeaFeed), with partial worldwide coverage and a Finland-only Fintraffic fallback
+- Live traffic congestion (credit: TomTom; requires an API key)
+- Live precipitation radar (credit: RainViewer) and satellite cloud imagery (credit: Matt Eason)
+- Real aircraft positions (credit: OpenSky Network and ADSB.lol), with global and nearby tracking
+- Satellite positions predicted from CelesTrak orbital data using an approximate two-body model
+- Place and address search (credit: Nominatim), plus direct "lat, lon" coordinate input
 - Animated fly-to (double-click, search or list)
 - Placemarks in an editable KML folder tree, with visibility controls and drag-to-folder organization
-- Selectable Earth model: Realistic — WGS 84 (G2296) by default, with Perfect Sphere available as an alternative
+- Extensible Earth geodesy model selector: WGS 84 (G2296) by default, with Perfect Sphere available as an alternative
 - Geodesic distance ruler (great-circle or ellipsoidal), with exact decimal-degree point entry/editing, undo/redo, separate paths (Alt-click), selectable metric, imperial, nautical, angular and novelty units and initial bearing for the last segment
-- Lat/lon grid with optional coordinate labels, atmosphere, stars, real-time sunlight (day/night)
-- Scale bar, cursor coordinates, PNG screenshot, context menu
-- Background CPU rendering; experimental GPU globe renderer can be enabled via `EARTHCRAFT_RENDERER=auto` or `EARTHCRAFT_RENDERER=gpu` (with CPU fallback). See [experimental GPU rendering](docs/GPU_RENDERER.md).
+- Togglable Lat/lon grid with optional coordinate labels
+- Distance scale bar that adjusts as you zoom, showing the real-world distance represented on the map
+- Clean one-click PNG screenshot export of the globe without the app interface, saved to the folder selected in Settings
+- Right-click context menu: view or copy a location's coordinates, add a placemark, fly to that location or add a ruler point
+- Explorer add-on: place coordinates and OpenStreetMap details, Wikimedia Commons photo search, editable narrated tours using system text-to-speech, and controls for live weather, cloud and aircraft layers
+- Moon view and custom PNG/JPEG planet and sky previews, with portable `.earthplanet` files that embed their images
+- Optional self-updating as new GitHub Releases are pushed
 
 ### Controls
-Drag: rotate globe · Right-drag / Shift+drag: rotate view · Wheel / +/-: zoom · Double-click: fly to point · Arrow keys: move · N: north up
+
+Drag: rotate globe · Right-click: location context menu · Right-drag / Shift+drag: rotate view · Wheel / +/-: zoom · Double-click: fly to point · Arrow keys: move · N: north up
 
 Click **Camera altitude** in the bottom bar to enter an exact altitude.
 
@@ -45,36 +58,23 @@ Use **☰** in the toolbar to hide or reopen the sidebar and give the map more r
 
 On macOS, the native **File** menu opens/saves KML and saves PNG screenshots. Use Cmd+O to open, Cmd+S to save, Cmd+Shift+S for Save As, and Cmd+Shift+E for a screenshot. Screenshots use the folder selected in Settings. Quit is in the application menu. Windows and Linux use the sidebar's file controls and the same shortcuts with Ctrl instead of Cmd; Ctrl+Q quits.
 
-### Not implemented (would require proprietary data/infrastructure)
+Open **Explore +** in the top bar to access the Explorer add-on. Narration uses
+system text-to-speech; Linux requires `espeak`. The panel follows the language
+selector, and changing language preserves user-written narration.
 
-Real 3D terrain, 3D buildings, Street View, Google Earth Studio, geotagged photos, narrated tours, icons
-Tiles come from third-party services: please respect their terms of use (OSM limits heavy usage).
+### Limitations
+
+Detailed 3D terrain, 3D buildings, Street View, Google Earth Studio and geotagged
+photo layers are not implemented. Place details and Wikimedia Commons photo
+searches open in your browser; photos are not embedded in the application.
+
+Map tiles, aircraft, AIS ships, traffic and weather layers depend on third-party
+services and coverage. Please respect their terms of use (OSM limits heavy usage). Explorer's
+external websites require an internet connection. Moon and custom planet views
+use egui meshes; the experimental GPU globe renderer applies to Earth.
 
 ### Development
 
 The desktop app lives in `apps/earthcraft`, with reusable libraries in `crates/`.
-See the [architecture](docs/ARCHITECTURE.md), [contributing guide](docs/CONTRIBUTING.md),
+See the [architecture](docs/ARCHITECTURE.md), [contributing guide](CONTRIBUTING.md),
 and [agent rules](AGENTS.md) for module ownership, checks, and how to extend the project.
-
-
-### Explorer add-on (October 2026) / Módulo Explorar
-
-Open **Explorar +** in the top bar for: coordinates and external OSM details of
-search results; Wikimedia Commons photo search; editable narrated tours using
-the operating system TTS (Linux requires `espeak`); external real-world
-weather/cloud/ocean/aircraft/satellite data websites; links to NASA Moon and
-Mars resources; local PNG/JPEG planet image preview; save and reload custom
-`.earthplanet` manifests (keep the accompanying `*-texture.png/jpg` file in
-the same directory); and preview custom sky/galaxy images.
-
-**Limitations:** This project does not provide full Google Maps place cards,
-licensed photos embedded in the application, actual 3D buildings or detailed
-terrain. Live flight and weather layers depend on external providers. The
-Moon and custom planet use egui meshes rather than GPU compute rendering.
-The Earth globe also supports an experimental GPU overview renderer; Explorer planets are still drawn by egui. The explorer's
-websites require an internet connection. This code was not compiled or
-executed in the delivery environment (Rust toolchain unavailable).
-
-### Explorer language / Idioma do Explorar
-The Explorer panel and toolbar labels follow the existing top-right language selector (English / Português (Brasil)). User-authored narration is preserved when changing language.
-O painel Explorar e a barra superior acompanham o seletor de idioma no canto superior direito. Textos de narração editados pelo usuário não são traduzidos automaticamente.
