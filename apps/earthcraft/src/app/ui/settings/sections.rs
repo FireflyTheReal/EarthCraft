@@ -326,32 +326,35 @@ impl App {
             &mut self.settings.hide_navigation_controls,
             lg.text("settings-hide-navigation-controls-toggle"),
         );
-        for (label, value) in [
-            (
-                "settings-pan-sensitivity",
-                &mut self.settings.navigation.pan_sensitivity,
-            ),
-            (
-                "settings-rotation-sensitivity",
-                &mut self.settings.navigation.rotation_sensitivity,
-            ),
-            (
-                "settings-zoom-sensitivity",
-                &mut self.settings.navigation.zoom_sensitivity,
-            ),
-        ] {
-            ui.horizontal(|ui| {
-                ui.label(lg.text(label));
-                ui.add(
-                    egui::Slider::new(
-                        value,
-                        earthcraft_data::settings::navigation::MIN_SENSITIVITY
-                            ..=earthcraft_data::settings::navigation::MAX_SENSITIVITY,
-                    )
-                    .suffix("×"),
-                );
+        egui::Grid::new("navigation-sensitivity")
+            .num_columns(2)
+            .show(ui, |ui| {
+                for (label, value) in [
+                    (
+                        "settings-pan-sensitivity",
+                        &mut self.settings.navigation.pan_sensitivity,
+                    ),
+                    (
+                        "settings-rotation-sensitivity",
+                        &mut self.settings.navigation.rotation_sensitivity,
+                    ),
+                    (
+                        "settings-zoom-sensitivity",
+                        &mut self.settings.navigation.zoom_sensitivity,
+                    ),
+                ] {
+                    ui.label(lg.text(label));
+                    ui.add(
+                        egui::Slider::new(
+                            value,
+                            earthcraft_data::settings::navigation::MIN_SENSITIVITY
+                                ..=earthcraft_data::settings::navigation::MAX_SENSITIVITY,
+                        )
+                        .suffix("×"),
+                    );
+                    ui.end_row();
+                }
             });
-        }
         ui.checkbox(
             &mut self.settings.navigation.invert_scroll,
             lg.text("settings-invert-scroll"),
