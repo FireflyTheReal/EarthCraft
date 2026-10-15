@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=EarthCraft
+Comment=Explore the Earth in a 3D globe
+Comment[pt_BR]=Explore a Terra em um globo 3D
+Exec=earthcraft
+Icon=earthcraft
+Terminal=false
+Categories=Education;Science;Geography;

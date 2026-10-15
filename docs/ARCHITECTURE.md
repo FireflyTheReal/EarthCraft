@@ -133,7 +133,7 @@ the same history. Input and editing preserve the stored f64 values without displ
 rounding. Realistic — WGS 84 (G2296) is the default; the 6,371.0088 km sphere remains
 an optional model. The persisted selection routes camera, picking, rendering, geographic overlays and
 geodesics through core's Earth-model boundary; model changes invalidate compatible
-frame/overlay caches. See [Earth models](EARTH_MODELS.md) for supported calculations,
+frame/overlay caches. See [Earth models](features/EARTH_MODELS.md) for supported calculations,
 reference-frame limits and extension points. Precise entry alone does not establish
 survey-grade accuracy.
 
@@ -290,7 +290,7 @@ follow the selected language. See [localization](LOCALIZATION.md).
 Opt-in profiling records pipeline and queue timings through a bounded background
 recorder. Normal builds compile it out. Component results and native measurements
 are documented separately; neither raster timing nor app-side texture submission
-is an application FPS guarantee. See [contributing](CONTRIBUTING.md),
+is an application FPS guarantee. See [contributing](../CONTRIBUTING.md),
 [CPU baseline](PERFORMANCE_BASELINE.md).
 
 
@@ -302,7 +302,7 @@ egui view. All GPU globe rendering is experimental on every platform; the CPU
 path remains the default and fallback. Set
 `EARTHCRAFT_RENDERER=auto` or `EARTHCRAFT_RENDERER=gpu` to enable an experimental GPU attempt.
 The Explorer, live meteorological/aircraft layers, moon and custom planet
-remain integrated in `apps/earthcraft`. See [GPU_RENDERER.md](GPU_RENDERER.md)
+remain integrated in `apps/earthcraft`. See [GPU_RENDERER.md](features/GPU_RENDERER.md)
 for hardware limits, performance and CPU-only build instructions.
 
 ## Frontend boundaries for EarthCraft web

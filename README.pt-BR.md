@@ -2,12 +2,14 @@
 
 # EarthCraft 🌍
 
-[![Listed on Remade](https://remade.wiki/badges/listed-on-remade.svg)](https://remade.wiki/projects/earthcraft/)
+[![Listado no Remade](https://remade.wiki/badges/listed-on-remade.svg)](https://remade.wiki/projects/earthcraft/)
 
-Globo 3D estilo Google Earth em Rust (egui + renderização do globo por ray-casting na CPU, com aceleração experimental e opcional na GPU).
-Roda em Windows, macOS e Linux sem dependências de sistema além do driver gráfico.
+Um explorador de globo 3D no estilo do Google Earth, escrito em Rust puro (egui + renderização do globo por ray-casting na CPU, com aceleração experimental e opcional na GPU). Funciona no Windows, macOS e Linux.
+
+![EarthCraft exibindo o globo com imagens de nuvens por satélite e controles de navegação](assets/repository/earthcraft-app-pt-BR.png)
 
 ### Compilar e executar
+
 Requer Rust 1.95+ (https://rustup.rs):
 
     cargo run --release
@@ -24,23 +26,32 @@ Consulte as [instruções da Apple](https://support.apple.com/pt-br/102445).
 
 ### Funções
 
-- Globo 3D com órbita, zoom, rotação da vista, rumo na barra inferior e bússola nos controles; os controles de navegação podem ser ocultados nas Configurações
-- Imagens de satélite (Esri), ruas (OSM) e topografia (OpenTopoMap) com tiles em múltiplos níveis de zoom e cache em disco
-- Carregamento em segundo plano da visão de satélite de todo o globo na distância inicial; tiles detalhados carregam ao aproximar
-- Aviso discreto de atualização na barra inferior: clique para baixar/instalar e depois salvar e reiniciar; no macOS, o pacote completo do app é atualizado (veja [os detalhes](docs/RELEASING.md#in-app-updates))
-- Limpeza dos tiles baixados em disco pelas configurações
-- Busca de lugares/endereços (Nominatim) e entrada direta de coordenadas "lat, lon"
+- Renderizador de globo 3D otimizado para alto desempenho
+- Controles de navegação para órbita, zoom e rotação da vista, com bússola, anel de rotação, controle direcional e controle deslizante de zoom; incluem um botão para orientar o norte para cima e podem ser ocultados nas Configurações
+- Imagens de satélite (crédito: Esri), ruas (crédito: OSM) e topografia (crédito: OpenTopoMap), com tiles em múltiplos níveis de zoom e cache em disco configurável
+- Atmosfera, estrelas e luz solar em tempo real (dia/noite)
+- Barra inferior com posição do cursor, posição do centro da câmera, altitude da câmera editável e rumo
+- Posições de navios via AIS (crédito: OpenSeaFeed), com cobertura mundial parcial e fonte alternativa Fintraffic restrita à Finlândia
+- Congestionamento em tempo real (crédito: TomTom; requer uma chave de API)
+- Radar de precipitação em tempo real (crédito: RainViewer) e imagens de nuvens por satélite (crédito: Matt Eason)
+- Posições de aeronaves reais (crédito: OpenSky Network e ADSB.lol), com rastreamento global e nas proximidades
+- Posições de satélites previstas a partir de dados orbitais do CelesTrak usando um modelo aproximado de dois corpos
+- Busca de lugares e endereços (crédito: Nominatim), além de entrada direta de coordenadas "lat, lon"
 - Voo animado até o destino (duplo clique, busca ou lista)
-- Placemarks em uma árvore editável de pastas KML, com visibilidade e organização por arrastar para pastas
-- Modelo da Terra selecionável: Realista — WGS 84 (G2296) por padrão, com Esfera perfeita como alternativa
-- Régua de distância geodésica (grande círculo ou elipsoidal), com entrada/edição de pontos em graus decimais exatos, desfazer/refazer, trajetos separados (Alt+clique), unidades métricas, imperiais, náuticas, angulares e divertidas selecionáveis e rumo inicial do último segmento
-- Grade lat/lon com números opcionais, atmosfera, estrelas, luz solar em tempo real (dia/noite)
-- Barra de escala, coordenadas do cursor, captura de tela PNG, menu de contexto
-- Renderização do globo por ray-casting na CPU ou GPU (experimental e opcional) em segundo plano, mantendo retorno automático à CPU em casos não suportados
+- Marcadores de lugares em uma árvore editável de pastas KML, com controles de visibilidade e organização por arrastar para pastas
+- Seletor extensível de modelos geodésicos da Terra: WGS 84 (G2296) por padrão, com Esfera perfeita como alternativa
+- Régua de distância geodésica (grande círculo ou elipsoidal), com entrada e edição de pontos em graus decimais exatos, desfazer/refazer, trajetos separados (Alt+clique), unidades métricas, imperiais, náuticas, angulares e divertidas selecionáveis e rumo inicial do último segmento
+- Grade de latitude/longitude que pode ser ativada ou desativada, com rótulos de coordenadas opcionais
+- Barra de escala que se ajusta ao zoom e mostra a distância real representada no mapa
+- Exportação de captura PNG do globo com um clique, sem a interface do aplicativo, salva na pasta selecionada nas Configurações
+- Menu de contexto com o botão direito: veja ou copie as coordenadas de um local, adicione um marcador, voe até o local ou adicione um ponto à régua
+- Módulo Explorar: coordenadas de lugares e detalhes no OpenStreetMap, busca de fotos no Wikimedia Commons, passeios narrados editáveis com síntese de voz do sistema e controles para camadas de meteorologia, nuvens e aeronaves em tempo real
+- Visualização da Lua e prévias de imagens PNG/JPEG de planetas e céus personalizados, com arquivos portáteis `.earthplanet` que incorporam as imagens
+- Atualização automática opcional conforme novas versões são publicadas no GitHub Releases
 
 ### Controles
-Arrastar: girar · Botão direito/Shift+arrastar: girar vista · Roda/+/-: zoom ·
-Duplo clique: voar · Setas: mover · N: norte para cima
+
+Arrastar: girar o globo · Clique com o botão direito: menu de contexto do local · Arrastar com o botão direito / Shift+arrastar: girar a vista · Roda / +/-: zoom · Duplo clique: voar até o ponto · Setas: mover · N: norte para cima
 
 Clique em **Altitude da câmera** na barra inferior para informar uma altitude exata.
 
@@ -48,46 +59,26 @@ Use **☰** na barra de ferramentas para ocultar ou reabrir o painel lateral e d
 
 No macOS, o menu nativo **Arquivo** abre/salva KML e salva capturas PNG. Use Cmd+O para abrir, Cmd+S para salvar, Cmd+Shift+S para Salvar como e Cmd+Shift+E para uma captura. As capturas usam a pasta escolhida nas Configurações. Sair fica no menu do aplicativo. Windows e Linux usam os controles de arquivos do painel lateral e os mesmos atalhos com Ctrl em vez de Cmd; Ctrl+Q sai do aplicativo.
 
-### Não implementado (exigiria dados/infra proprietários)
-Terreno 3D com relevo real, prédios 3D, Street View, Google Earth Studio,
-fotos geolocalizadas incorporadas e integração completa em 3D de terreno ou nuvens volumétricas
-Os tiles são serviços de terceiros: respeite os termos de uso (OSM limita uso intenso).
+Abra **Explorar +** na barra superior para acessar o módulo Explorar. A narração
+usa a síntese de voz do sistema; no Linux, requer `espeak`. O painel acompanha o
+seletor de idioma, e a troca de idioma preserva a narração escrita pelo usuário.
+
+### Limitações
+
+Terreno 3D detalhado, prédios 3D, Street View, Google Earth Studio e camadas de
+fotos geolocalizadas não estão implementados. Os detalhes de lugares e as buscas
+de fotos no Wikimedia Commons abrem no navegador; as fotos não são incorporadas
+ao aplicativo.
+
+Os tiles do mapa e as camadas de aeronaves, navios AIS, trânsito e meteorologia
+dependem dos serviços e da cobertura de terceiros. Respeite os termos de uso
+(OSM limita o uso intenso). Os sites externos do módulo Explorar requerem conexão
+com a internet. As visualizações da Lua e dos planetas personalizados usam malhas
+do egui; o renderizador experimental do globo na GPU se aplica à Terra.
 
 ### Desenvolvimento
 
-O aplicativo fica em `apps/earthcraft`, com bibliotecas em `crates/`.
-Veja a [arquitetura](docs/ARCHITECTURE.pt-BR.md), o [guia de contribuição](docs/CONTRIBUTING.md)
-e as [regras para agentes](AGENTS.md) para entender os módulos e continuar o desenvolvimento.
-
-
-### Explorer add-on (October 2026) / Módulo Explorar
-
-Open **Explorar +** in the top bar for: coordinates and external OSM details of
-search results; Wikimedia Commons photo search; editable narrated tours using
-the operating system TTS (Linux requires `espeak`); external real-world
-weather/cloud/ocean/aircraft/satellite data websites; links to NASA Moon and
-Mars resources; local PNG/JPEG planet image preview; save and reload custom
-`.earthplanet` manifests (keep the accompanying `*-texture.png/jpg` file in
-the same directory); and preview custom sky/galaxy images.
-
-**Limitações:** O Explorador não implementa relevos tridimensionais reais,
-malhas de edifícios em 3D ou cartões completos de lugares do Google Maps.
-A Lua e o planeta personalizado usam malhas desenhadas pelo egui, sem
-aceleração direta pelo renderizador experimental de GPU. Camadas de aviões e de
-meteorologia dependem de serviços de terceiros e conexão com a internet.
-A compilação e execução nativa não puderam ser verificadas neste ambiente
-por ausência de toolchain Rust.
-
-### Explorer language / Idioma do Explorar
-The Explorer panel and toolbar labels follow the existing top-right language selector (English / Português (Brasil)). User-authored narration is preserved when changing language.
-O painel Explorar e a barra superior acompanham o seletor de idioma no canto superior direito. Textos de narração editados pelo usuário não são traduzidos automaticamente.
-
-
-### Aceleração por GPU (experimental e opcional)
-
-O EarthCraft possui um renderizador experimental e opcional via `wgpu`.
-A CPU continua sendo o padrão. Para experimentar GPU, use
-`EARTHCRAFT_RENDERER=auto` (quadros grandes) ou `EARTHCRAFT_RENDERER=gpu`
-(forçar tentativa). Falhas de inicialização ou indisponibilidade de GPU
-retornam à CPU. Visualizações muito próximas e a grade usam CPU.
-Consulte [docs/GPU_RENDERER.md](docs/GPU_RENDERER.md) para limitações e testes.
+O aplicativo fica em `apps/earthcraft`, com bibliotecas reutilizáveis em `crates/`.
+Veja a [arquitetura](docs/ARCHITECTURE.pt-BR.md), o [guia de contribuição](CONTRIBUTING.md)
+e as [regras para agentes](AGENTS.md) para entender as responsabilidades dos módulos,
+as verificações e como ampliar o projeto.

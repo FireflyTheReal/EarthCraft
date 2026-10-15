@@ -13,6 +13,11 @@ The free API, as of 2026, offers radar tiles (up to zoom 7) in color scheme 2, U
 
 API free use is limited to personal, educational, and small-community uses. For commercial distribution arrange licensing with the provider.
 
-**Flight markers:** simulated routes, not real live ADS-B.
+**Flight markers:** observed aircraft positions from OpenSky Network
+(https://opensky-network.org/) and ADSB.lol (https://www.adsb.lol/).
+OpenSky supplies global samples and ADSB.lol supplies nearby aircraft. Coverage
+and timestamps depend on the providers; these are not simulated routes or
+complete, instantaneous global tracking. Marker extrapolation is limited to
+25 seconds. The layer displays source status and attribution.
 
 Implementation notes: HTTP calls happen asynchronously; the world imagery remains rendered even if sources are offline; app displays status and image credits; clouds refresh every three hours and radar every ten minutes.

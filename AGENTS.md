@@ -1,6 +1,6 @@
 # EarthCraft contributor and agent rules
 
-Read `docs/ARCHITECTURE.md` and `docs/CONTRIBUTING.md` before structural changes.
+Read `docs/ARCHITECTURE.md` and `CONTRIBUTING.md` before structural changes.
 Portuguese architecture notes are in `docs/ARCHITECTURE.pt-BR.md`.
 User instructions and the requested scope take precedence over these defaults.
 
@@ -182,7 +182,7 @@ User instructions and the requested scope take precedence over these defaults.
   Retain a CPU fallback on initialization/readback/device errors. Close and exact-grid
   views use the double-precision CPU path; GPU sky/horizon/tile seams use precise
   CPU repair. Check GPU memory bounds, software adapters, device loss and render
-  parity before widening hardware support. See `docs/GPU_RENDERER.md`.
+  parity before widening hardware support. See `docs/features/GPU_RENDERER.md`.
   Changing egui's presentation backend alone does not accelerate rasterization.
 - Performance claims need workload-specific evidence. Opt-in profiling uses a
   bounded background recorder; never write timing logs on UI/pixel paths, mix
@@ -206,7 +206,7 @@ cargo build --workspace --locked
 - Preserve the original-renderer fixtures; do not regenerate expected output merely
   to make a failing regression test pass. See the fixture README for provenance.
 - For UI/input/render changes, also run the desktop smoke checklist in
-  `docs/CONTRIBUTING.md`. Compiler success does not verify interactive behavior.
+  `CONTRIBUTING.md`. Compiler success does not verify interactive behavior.
 - Keep changes reviewable and explain boundaries, behavior changes, tests, and
   limitations. Never claim a platform, live service, packaging step, or GUI check
   passed unless it actually ran.

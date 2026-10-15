@@ -9,7 +9,7 @@ const SHADOW_OFFSET_POINTS: Vec2 = Vec2::new(1.0, 1.0);
 // The plane geometry is taken from the bundled SVG, not the former yellow diamond.
 const AIRPLANE_SVG: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../assets/airplane.svg"
+    "/../../assets/representations/airplane.svg"
 ));
 const SVG_CENTER_POINTS: f32 = 12.0;
 const AIRPLANE_SCALE_POINTS: f32 = 0.78;
