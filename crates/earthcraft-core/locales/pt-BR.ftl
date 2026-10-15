@@ -471,7 +471,7 @@ update-retry-label = Tentar novamente
 update-releases-action = Abrir versões
 update-saving-label = Salvando antes de reiniciar
 
-sidebar-explore-title = Explorar
+sidebar-explore-title = Globo
 sidebar-places-title = Lugares
 sidebar-pin-places-action = Fixar
 sidebar-pin-places-tooltip = Manter Lugares visível ao alternar painéis
