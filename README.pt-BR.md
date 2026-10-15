@@ -41,6 +41,7 @@ Consulte as [instruções da Apple](https://support.apple.com/pt-br/102445).
 - Radar de precipitação em tempo real (crédito: RainViewer) e imagens de nuvens por satélite (crédito: Matt Eason)
 - Posições de aeronaves reais (crédito: OpenSky Network e ADSB.lol), com rastreamento global e nas proximidades
 - Posições de satélites previstas a partir de dados orbitais do CelesTrak usando um modelo aproximado de dois corpos
+- Exibição e busca de coordenadas DD/DMS/DDM/UTM/UPS/MGRS, com precisão ajustável e cópia ao clicar
 - Busca de lugares e endereços (crédito: Nominatim), além de entrada direta de coordenadas "lat, lon"
 - Voo animado até o destino (duplo clique, busca ou lista)
 - Painéis Explorar/Camadas/Lugares, com árvore redimensionável, Lugares fixado e disposição salva

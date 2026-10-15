@@ -41,6 +41,7 @@ Anyway** for EarthCraft and confirm **Open**. See [Apple's instructions](https:/
 - Real aircraft positions (credit: OpenSky Network and ADSB.lol), with global and nearby tracking
 - Satellite positions predicted from CelesTrak orbital data using an approximate two-body model
 - Place and address search (credit: Nominatim), plus direct "lat, lon" coordinate input
+- DD/DMS/DDM/UTM/UPS/MGRS coordinate display and search input, with adjustable precision and click-to-copy readouts
 - Animated fly-to (double-click, search or list)
 - Explore/Layers/Places sidebar panels, with a resizable outline, pinned Places and saved layout
 - Placemarks in an editable KML folder tree, with visibility controls and drag-to-folder organization

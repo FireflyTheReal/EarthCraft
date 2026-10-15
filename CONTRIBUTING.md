@@ -225,6 +225,13 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
   screenshot enablement before/after the first frame. On Windows/Linux, repeat
   through the EarthCraft menu and Ctrl shortcuts. Confirm the system Window/Help
   behavior on macOS and that closing About/Help does not close the main window.
+- In Settings, switch DD/DMS/DDM/UTM/UPS/MGRS and their precision. Cursor, center
+  and right-click readouts/copies must agree; restart must retain the selection.
+  Search the documented coordinate examples regardless of selected format; test
+  poles/dateline, DMS carry and malformed coordinates without a remote request.
+  Search King's Cross and a normal address to check name searches still work.
+  Resize the sidebar and verify both cursor coordinates fit at their selected
+  precision. Check both languages and click-to-copy without localized prefixes.
 - In Explorer, display large planet/sky images and load/save `.earthplanet` files;
   the UI should remain responsive while the file work runs. Check the busy
   indicator and disabled file controls, including after a failed operation.
