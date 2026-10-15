@@ -4,8 +4,34 @@ use eframe::egui::{self, Color32};
 
 impl App {
     pub(super) fn sidebar_layers(&mut self, ui: &mut egui::Ui) {
+        egui::CollapsingHeader::new(self.lang.text("sidebar-imagery-title"))
+            .id_salt("layers-imagery")
+            .default_open(true)
+            .show(ui, |ui| self.layer_imagery(ui));
+        egui::CollapsingHeader::new(self.lang.text("sidebar-geography-title"))
+            .id_salt("layers-geography")
+            .default_open(true)
+            .show(ui, |ui| self.layer_geography(ui));
+        egui::CollapsingHeader::new(self.lang.text("sidebar-transport-title"))
+            .id_salt("layers-transport")
+            .default_open(true)
+            .show(ui, |ui| self.layer_transport(ui));
+        egui::CollapsingHeader::new(self.lang.text("sidebar-weather-title"))
+            .id_salt("layers-weather")
+            .default_open(true)
+            .show(ui, |ui| self.layer_weather(ui));
+        egui::CollapsingHeader::new(self.lang.text("sidebar-live-objects-title"))
+            .id_salt("layers-objects")
+            .default_open(true)
+            .show(ui, |ui| self.layer_objects(ui));
+        egui::CollapsingHeader::new(self.lang.text("sidebar-sky-title"))
+            .id_salt("layers-sky")
+            .default_open(true)
+            .show(ui, |ui| self.layer_sky(ui));
+        ui.small(self.lang.text("layers-live-overlays-help"));
+    }
+    fn layer_imagery(&mut self, ui: &mut egui::Ui) {
         let lg = self.lang;
-        ui.strong(lg.text("sidebar-imagery-title"));
         for p in Provider::ALL {
             ui.radio_value(&mut self.provider, p, p.name(lg));
         }
@@ -62,17 +88,9 @@ impl App {
                 }
             });
         }
-        ui.separator();
-        ui.strong(lg.text("sidebar-overlays-title"));
-        ui.checkbox(&mut self.show_grid, lg.text("layers-grid-toggle"));
-        if self.show_grid {
-            ui.indent("grid_numbers", |ui| {
-                ui.checkbox(
-                    &mut self.settings.grid_numbers,
-                    lg.text("layers-grid-numbers-toggle"),
-                );
-            });
-        }
+    }
+    fn layer_geography(&mut self, ui: &mut egui::Ui) {
+        let lg = self.lang;
         ui.checkbox(
             &mut self.show_country_boundaries,
             lg.text("layers-country-borders-toggle"),
@@ -104,29 +122,18 @@ impl App {
                 ui.weak(egui::RichText::new(line).small());
             }
         }
-        ui.checkbox(&mut self.show_atmo, lg.text("layers-atmosphere-toggle"));
-        ui.checkbox(&mut self.show_sun, lg.text("layers-sunlight-toggle"));
-        ui.checkbox(
-            &mut self.auto_rotate,
-            lg.text("layers-auto-rotation-toggle"),
-        );
-        ui.checkbox(&mut self.show_vessels, lg.text("layers-vessels-toggle"));
-        if self.show_vessels {
-            ui.small(self.live_vessels.status(lg));
-            ui.hyperlink_to("OpenSeaFeed AIS", "https://openseafeed.com/");
-            ui.hyperlink_to(
-                lg.text("vessels-fallback-source"),
-                "https://www.digitraffic.fi/en/marine-traffic/",
-            );
+        ui.checkbox(&mut self.show_grid, lg.text("layers-grid-toggle"));
+        if self.show_grid {
+            ui.indent("grid_numbers", |ui| {
+                ui.checkbox(
+                    &mut self.settings.grid_numbers,
+                    lg.text("layers-grid-numbers-toggle"),
+                );
+            });
         }
-        ui.checkbox(
-            &mut self.show_satellites,
-            lg.text("layers-satellites-toggle"),
-        );
-        if self.show_satellites {
-            ui.small(self.live_satellites.status(lg));
-            ui.hyperlink_to("CelesTrak", "https://celestrak.org/");
-        }
+    }
+    fn layer_transport(&mut self, ui: &mut egui::Ui) {
+        let lg = self.lang;
         ui.checkbox(&mut self.show_roads, lg.text("layers-roads-toggle"));
         if self.show_roads {
             ui.small(
@@ -153,6 +160,9 @@ impl App {
             );
             ui.hyperlink_to("TomTom Traffic", "https://developer.tomtom.com/");
         }
+    }
+    fn layer_weather(&mut self, ui: &mut egui::Ui) {
+        let lg = self.lang;
         ui.checkbox(&mut self.show_weather, lg.text("layers-weather-toggle"));
         if self.show_weather {
             ui.hyperlink_to(
@@ -167,12 +177,36 @@ impl App {
                 "https://github.com/matteason/live-cloud-maps",
             );
         }
+    }
+    fn layer_objects(&mut self, ui: &mut egui::Ui) {
+        let lg = self.lang;
         ui.checkbox(&mut self.show_flights, lg.text("layers-flights-toggle"));
         if self.show_flights {
             super::super::aircraft::draw_status(ui, &self.live_aircraft.snapshot(), lg);
             ui.hyperlink_to("OpenSky Network", "https://opensky-network.org/");
             ui.hyperlink_to("ADSB.lol (ODbL)", "https://www.adsb.lol/");
         }
-        ui.small(lg.text("layers-live-overlays-help"));
+        ui.checkbox(&mut self.show_vessels, lg.text("layers-vessels-toggle"));
+        if self.show_vessels {
+            ui.small(self.live_vessels.status(lg));
+            ui.hyperlink_to("OpenSeaFeed AIS", "https://openseafeed.com/");
+            ui.hyperlink_to(
+                lg.text("vessels-fallback-source"),
+                "https://www.digitraffic.fi/en/marine-traffic/",
+            );
+        }
+        ui.checkbox(
+            &mut self.show_satellites,
+            lg.text("layers-satellites-toggle"),
+        );
+        if self.show_satellites {
+            ui.small(self.live_satellites.status(lg));
+            ui.hyperlink_to("CelesTrak", "https://celestrak.org/");
+        }
+    }
+    fn layer_sky(&mut self, ui: &mut egui::Ui) {
+        let lg = self.lang;
+        ui.checkbox(&mut self.show_atmo, lg.text("layers-atmosphere-toggle"));
+        ui.checkbox(&mut self.show_sun, lg.text("layers-sunlight-toggle"));
     }
 }

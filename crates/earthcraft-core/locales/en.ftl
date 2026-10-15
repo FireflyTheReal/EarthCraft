@@ -476,7 +476,11 @@ sidebar-places-title = Places
 sidebar-pin-places-action = Pin
 sidebar-pin-places-tooltip = Keep Places visible when switching panels
 sidebar-unpin-places-tooltip = Unpin Places
-sidebar-rail-toggle = Show navigation rail
 sidebar-places-files-title = KML / KMZ files
 sidebar-imagery-title = Base imagery
-sidebar-overlays-title = Overlays
+
+sidebar-geography-title = Borders, labels & grid
+sidebar-transport-title = Roads & traffic
+sidebar-weather-title = Weather
+sidebar-live-objects-title = Aircraft, ships & satellites
+sidebar-sky-title = Sky & lighting

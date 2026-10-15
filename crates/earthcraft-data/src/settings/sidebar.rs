@@ -1,7 +1,7 @@
 //! Stored desktop layout; invalid fields retain their last valid preference.
 use serde::Serialize;
 
-pub const DEFAULT_SIDEBAR_WIDTH_POINTS: f32 = 270.0;
+pub const DEFAULT_SIDEBAR_WIDTH_POINTS: f32 = 240.0;
 pub const MIN_SIDEBAR_WIDTH_POINTS: f32 = 210.0;
 pub const MAX_SIDEBAR_WIDTH_POINTS: f32 = 600.0;
 pub const DEFAULT_PINNED_PLACES_HEIGHT_POINTS: f32 = 300.0;
@@ -24,7 +24,6 @@ impl SidebarPanel {
 pub struct SidebarLayout {
     pub panel: SidebarPanel,
     pub open: bool,
-    pub rail_visible: bool,
     pub places_pinned: bool,
     pub width_points: f32,
     pub pinned_places_height_points: f32,
@@ -34,7 +33,6 @@ impl Default for SidebarLayout {
         Self {
             panel: SidebarPanel::Explore,
             open: true,
-            rail_visible: true,
             places_pinned: false,
             width_points: DEFAULT_SIDEBAR_WIDTH_POINTS,
             pinned_places_height_points: DEFAULT_PINNED_PLACES_HEIGHT_POINTS,
@@ -53,7 +51,6 @@ impl SidebarLayout {
         }
         for (name, target) in [
             ("open", &mut self.open),
-            ("rail_visible", &mut self.rail_visible),
             ("places_pinned", &mut self.places_pinned),
         ] {
             if let Some(value) = value.get(name).and_then(|v| v.as_bool()) {
@@ -96,7 +93,6 @@ mod tests {
             let layout = SidebarLayout {
                 panel,
                 open: false,
-                rail_visible: false,
                 places_pinned: true,
                 width_points: 345.0,
                 pinned_places_height_points: 420.0,
@@ -127,7 +123,12 @@ mod tests {
         restored.apply_json(br#"{"sidebar":{"panel":"layers","open":false,"rail_visible":"bad","places_pinned":true}}"#).unwrap();
         assert_eq!(restored.sidebar.panel, SidebarPanel::Layers);
         assert!(!restored.sidebar.open);
-        assert!(restored.sidebar.rail_visible);
+        assert!(
+            serde_json::to_value(&restored.sidebar)
+                .unwrap()
+                .get("rail_visible")
+                .is_none()
+        );
         assert!(restored.sidebar.places_pinned);
     }
 }

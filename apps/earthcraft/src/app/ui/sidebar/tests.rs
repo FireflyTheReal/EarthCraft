@@ -118,32 +118,27 @@ fn shell_keeps_pinned_places_visible_without_drawing_it_twice() {
 }
 
 #[test]
-fn rail_stays_visible_when_content_is_closed_and_can_be_hidden_separately() {
-    let ctx = egui::Context::default();
-    ctx.global_style_mut(|style| style.animation_time = 0.0);
-    let mut layout = SidebarLayout::default();
-    let mut open = false;
-    for rail_visible in [true, false, true] {
-        layout.rail_visible = rail_visible;
-        crate::app::test_ui::run(&ctx, egui::RawInput::default(), |ui| {
-            let initial_left = ui.available_rect_before_wrap().left();
-            show_shell(ui, &mut layout, &mut open, Lang::En, |_, _| {
-                panic!("closed panel must not draw")
-            });
-            assert!(outer_right(ui, &layout, open) >= layout.width_points);
-            let left = ui.available_rect_before_wrap().left();
-            assert!(
-                (left
-                    - if rail_visible {
-                        rail::RAIL_WIDTH_POINTS
+fn collapsing_sidebar_leaves_no_rail_or_panel_width() {
+    for lang in Lang::ALL {
+        let ctx = egui::Context::default();
+        ctx.global_style_mut(|style| style.animation_time = 0.0);
+        let mut layout = SidebarLayout::default();
+        for open in [true, false, true, false] {
+            let mut open = open;
+            for _ in 0..3 {
+                crate::app::test_ui::run(&ctx, egui::RawInput::default(), |ui| {
+                    let before = ui.available_rect_before_wrap().left();
+                    let mut drawn = false;
+                    show_shell(ui, &mut layout, &mut open, lang, |_, _| drawn = true);
+                    let width = ui.available_rect_before_wrap().left() - before;
+                    assert_eq!(drawn, open);
+                    if open {
+                        assert_eq!(width, DEFAULT_SIDEBAR_WIDTH_POINTS);
                     } else {
-                        0.0
-                    })
-                .abs()
-                    <= ui.spacing().item_spacing.x,
-                "left={left}, initial={initial_left}"
-            );
-        });
-        assert!(!open);
+                        assert_eq!(width, 0.0, "collapse must hide navigation too");
+                    }
+                });
+            }
+        }
     }
 }

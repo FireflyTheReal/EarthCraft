@@ -4,32 +4,16 @@ use earthcraft_core::language::Lang;
 use earthcraft_data::settings::sidebar::{SidebarLayout, SidebarPanel};
 use eframe::egui;
 
-pub(super) const RAIL_WIDTH_POINTS: f32 = 44.0;
-const BUTTON_SIZE_POINTS: f32 = 34.0;
-const ICON_SIZE_POINTS: f32 = 20.0;
+const BUTTON_SIZE_POINTS: f32 = 28.0;
+const ICON_SIZE_POINTS: f32 = 18.0;
 const ICON_STROKE_POINTS: f32 = 1.5;
 
-pub(super) fn show(ui: &mut egui::Ui, layout: &mut SidebarLayout, open: &mut bool, lang: Lang) {
-    if !layout.rail_visible {
-        return;
+pub(super) fn show(ui: &mut egui::Ui, layout: &mut SidebarLayout, lang: Lang) {
+    for panel in SidebarPanel::ALL {
+        if button(ui, panel, layout.panel == panel, lang).clicked() {
+            layout.panel = panel;
+        }
     }
-    egui::Panel::left("sidebar-rail")
-        .exact_size(RAIL_WIDTH_POINTS)
-        .resizable(false)
-        .show(ui, |ui| {
-            ui.vertical_centered(|ui| {
-                for panel in SidebarPanel::ALL {
-                    if button(ui, panel, *open && layout.panel == panel, lang).clicked() {
-                        activate_panel(layout, open, panel);
-                    }
-                }
-            });
-        });
-}
-
-fn activate_panel(layout: &mut SidebarLayout, open: &mut bool, panel: SidebarPanel) {
-    *open = !*open || layout.panel != panel;
-    layout.panel = panel;
 }
 
 fn button_id(panel: SidebarPanel) -> egui::Id {
@@ -105,28 +89,11 @@ fn button(ui: &mut egui::Ui, panel: SidebarPanel, selected: bool, lang: Lang) ->
 mod tests {
     use super::*;
     #[test]
-    fn selecting_a_panel_reopens_it_and_selected_panel_toggles_closed() {
-        let mut layout = SidebarLayout::default();
-        let mut open = true;
-        activate_panel(&mut layout, &mut open, SidebarPanel::Layers);
-        assert!(open);
-        assert_eq!(layout.panel, SidebarPanel::Layers);
-        activate_panel(&mut layout, &mut open, SidebarPanel::Layers);
-        assert!(!open);
-        activate_panel(&mut layout, &mut open, SidebarPanel::Places);
-        assert!(open);
-        assert_eq!(layout.panel, SidebarPanel::Places);
-        layout.places_pinned = true;
-        activate_panel(&mut layout, &mut open, SidebarPanel::Explore);
-        assert!(layout.places_pinned);
-    }
-    #[test]
     fn rail_buttons_accept_pointer_clicks_in_both_languages() {
         for lang in Lang::ALL {
             let ctx = egui::Context::default();
             let mut layout = SidebarLayout::default();
-            let mut open = false;
-            let frame = |layout: &mut SidebarLayout, open: &mut bool, events| {
+            let frame = |layout: &mut SidebarLayout, events| {
                 crate::app::test_ui::run(
                     &ctx,
                     egui::RawInput {
@@ -137,10 +104,21 @@ mod tests {
                         events,
                         ..Default::default()
                     },
-                    |ui| show(ui, layout, open, lang),
+                    |ui| {
+                        ui.horizontal(|ui| show(ui, layout, lang));
+                    },
                 );
             };
-            frame(&mut layout, &mut open, vec![]);
+            frame(&mut layout, vec![]);
+            let rects =
+                SidebarPanel::ALL.map(|panel| ctx.read_response(button_id(panel)).unwrap().rect);
+            assert!(
+                rects
+                    .windows(2)
+                    .all(|pair| pair[0].center().y == pair[1].center().y
+                        && pair[0].right() < pair[1].left()),
+                "selector must be horizontal"
+            );
             for panel in [
                 SidebarPanel::Layers,
                 SidebarPanel::Places,
@@ -152,11 +130,10 @@ mod tests {
                     .expect("rail button")
                     .rect;
                 let pos = rect.center();
-                frame(&mut layout, &mut open, vec![egui::Event::PointerMoved(pos)]);
+                frame(&mut layout, vec![egui::Event::PointerMoved(pos)]);
                 for pressed in [true, false] {
                     frame(
                         &mut layout,
-                        &mut open,
                         vec![egui::Event::PointerButton {
                             pos,
                             button: egui::PointerButton::Primary,
@@ -167,7 +144,6 @@ mod tests {
                 }
                 assert_eq!(layout.panel, panel);
             }
-            assert!(!open, "clicking the active panel closes it");
         }
     }
 }

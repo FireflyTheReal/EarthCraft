@@ -24,6 +24,10 @@ impl App {
                         self.fly_to(self.cam.lat, self.cam.lon, 14_000.0);
                     }
                 });
+                ui.checkbox(
+                    &mut self.auto_rotate,
+                    lg.text("layers-auto-rotation-toggle"),
+                );
                 if !self.results.is_empty() {
                     ui.separator();
                     ui.label(lg.text("search-results-label"));

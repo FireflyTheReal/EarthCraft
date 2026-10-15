@@ -476,7 +476,11 @@ sidebar-places-title = Lugares
 sidebar-pin-places-action = Fixar
 sidebar-pin-places-tooltip = Manter Lugares visível ao alternar painéis
 sidebar-unpin-places-tooltip = Desafixar Lugares
-sidebar-rail-toggle = Mostrar barra de navegação
 sidebar-places-files-title = Arquivos KML / KMZ
 sidebar-imagery-title = Imagem de base
-sidebar-overlays-title = Sobreposições
+
+sidebar-geography-title = Limites, rótulos e grade
+sidebar-transport-title = Vias e trânsito
+sidebar-weather-title = Meteorologia
+sidebar-live-objects-title = Aeronaves, navios e satélites
+sidebar-sky-title = Céu e iluminação
