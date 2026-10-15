@@ -29,6 +29,12 @@ search-input-placeholder = Buscar lugar, endereço ou “lat, lon”
 search-submit-action = 🔍 Buscar
 
 settings-open-tooltip = Configurações
+toolbar-ruler-tooltip = Medir distâncias
+toolbar-placemark-tooltip = Adicionar marcador
+toolbar-screenshot-tooltip = Salvar captura
+settings-language-label = Idioma
+settings-language-system = Idioma do sistema ({ $language })
+settings-language-system-fallback = Idioma do sistema ({ $language } — idioma alternativo)
 
 navigation-compass-tooltip = Clique para alinhar ao norte
 
@@ -313,7 +319,7 @@ sidebar-hide-tooltip = Ocultar painel lateral
 sidebar-show-tooltip = Mostrar painel lateral
 
 settings-distance-units-label = Unidades de distância
-settings-units-system = Localidade do sistema
+settings-units-system = Localidade do sistema ({ $unit })
 settings-units-metric = Quilômetros / metros
 settings-units-imperial = Milhas / pés
 

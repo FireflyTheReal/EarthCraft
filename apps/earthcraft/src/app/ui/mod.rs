@@ -9,10 +9,13 @@ mod navigation;
 mod paths;
 pub(in crate::app) mod ruler;
 mod scale_slider;
+mod search_bar;
 mod selection;
 mod settings;
 mod sidebar;
+mod status;
 mod suggestions;
+mod toolbar;
 mod updater;
 pub(in crate::app) fn apply_ui_scale(ctx: &egui::Context, scale: f32) {
     use egui::{

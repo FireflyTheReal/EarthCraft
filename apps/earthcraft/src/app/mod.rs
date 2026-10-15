@@ -1,11 +1,15 @@
 //! Desktop state and orchestration; widgets live in focused child modules.
 #[cfg(test)]
 mod test_ui;
-use earthcraft_core::{camera::Cam, language::Lang, placemark::Places};
+use earthcraft_core::{
+    camera::Cam,
+    language::{Lang, LanguagePreference},
+    placemark::Places,
+};
 use earthcraft_data::{
     boundaries::{BoundaryData, BoundaryUpdates, StatusLog, load_boundaries_async},
     search::{GeoResult, Suggestion},
-    settings::{Settings, load_lang},
+    settings::{Settings, load_language_preference},
     tiles::{Provider, TileCache, TileWarmup},
     wayback::WaybackRelease,
 };
@@ -56,6 +60,8 @@ pub(crate) struct App {
     flat_earth: flat_earth::FlatEarth,
     boundary_loader: earthcraft_data::boundaries::BoundaryLoader,
     lang: Lang,
+    language_preference: LanguagePreference,
+    system_locale: String,
     cam: Cam,
     fly: Option<earthcraft_core::flight::Flight>,
     cache: Arc<TileCache>,
@@ -116,12 +122,14 @@ pub(crate) struct App {
     file_results: mpsc::Receiver<earthcraft_data::files::FileCompletion>,
     placemarks: Places,
     place_selection: Option<u64>,
+    place_reveal_requested: bool,
     new_name: String,
     kml_path: String,
     kml_session: files::KmlSession,
     menu_pick: Option<(f64, f64)>,
 
     ruler: bool,
+    ruler_reveal_requested: bool,
     ruler_drag: Option<earthcraft_core::ruler::RulerPointId>,
     ruler_paths: earthcraft_core::ruler::Ruler,
     ruler_point_editor: Option<ui::ruler::PointEditor>,
@@ -172,8 +180,9 @@ impl App {
         cc.egui_ctx.set_visuals(vis);
         let runtime =
             earthcraft_data::runtime::ServiceRuntime::new().expect("start network runtime");
-        let lang = load_lang();
+        let language_preference = load_language_preference();
         let system_locale = sys_locale::get_locale().unwrap_or_default();
+        let lang = language_preference.resolve(&system_locale);
         let boundary_log: StatusLog = Arc::new(Mutex::new(Vec::new()));
         let (boundaries_rx, boundary_loader) =
             load_boundaries_async(boundary_log.clone(), runtime.handle(), {
@@ -207,6 +216,7 @@ impl App {
             explorer: explorer::Explorer::default(),
             flat_earth: flat_earth::FlatEarth::default(),
             lang,
+            language_preference,
             cam: INITIAL_CAMERA,
             fly: None,
             cache,
@@ -267,9 +277,11 @@ impl App {
             status_file: None,
             system_units: earthcraft_core::units::DistanceUnits::for_locale(&system_locale),
             us_locale: earthcraft_core::units::is_us_locale(&system_locale),
+            system_locale,
             altitude_editor: None,
             placemarks: Places::default(),
             place_selection: None,
+            place_reveal_requested: false,
             file_jobs,
             file_results,
             new_name: String::new(),
@@ -277,6 +289,7 @@ impl App {
             kml_session: files::KmlSession::default(),
             menu_pick: None,
             ruler: false,
+            ruler_reveal_requested: false,
             ruler_drag: None,
             ruler_paths: earthcraft_core::ruler::Ruler::default(),
             ruler_point_editor: None,

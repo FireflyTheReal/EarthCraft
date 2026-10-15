@@ -43,9 +43,12 @@ catch unintended dependency resolution changes. Intentional dependency updates
 should be reviewed separately, including compatibility with Rust 1.95.
 The `app-build-test` workflow runs on pushes and pull requests changing `apps/**`,
 `crates/**`, `assets/**`, the root manifest/lockfile or the workflow itself, and can
-also be run manually from Actions. It formats, lints, tests and builds default and
-profiling configurations on Ubuntu using stable Rust, checks the CPU-only desktop,
-and checks all targets/features with the Rust 1.95 minimum. Use the latest supported major version tags for GitHub
+also be run manually from Actions. One stable-Rust verification job formats,
+lints, tests and builds the default configuration on Ubuntu and checks the
+CPU-only desktop. It also lints the profiling configuration; profiling tests and
+builds remain available locally and do not run in CI.
+Rust 1.95 remains the declared minimum; CI does not run a separate minimum-version
+job. Use the latest supported major version tags for GitHub
 Actions, rather than commit hashes. For actions without version tags, follow the
 maintained upstream branch. Keep Rust toolchain versions explicit.
 
@@ -165,6 +168,21 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
   KMZ selects the first KML entry and uses the upstream reader directly; plain
   KML keeps its existing XML repair and folder-visibility handling.
 - Create placemarks; save/open/drop KML; export a screenshot and use the ruler.
+  Collapse the Ruler section, scroll away, then hide the sidebar. Click the
+  toolbar ruler: the sidebar must reopen, expand Ruler and scroll its controls
+  into view. Toggle the sidebar checkbox and check the toolbar's selected state.
+  Click the ruler again with measurements and undo/redo history: measuring must
+  switch off, unchecking Measure distances while retaining both. Click again to
+  re-enable it and reveal the controls with the same measurements and history.
+  Click the toolbar pin with the sidebar hidden and Placemarks collapsed: add
+  one marker at the camera center, reopen/expand the sidebar, scroll to its
+  selected name field and focus it for editing. Check generated names in both
+  languages, an entered name and insertion into a selected folder. Save/reopen
+  KML to verify the marker uses the existing file workflow.
+  Click the camera repeatedly: save clean PNGs to the configured folder without
+  dialogs or overwrites, preserving pixels/resolution/attribution. Before the
+  first frame, the camera must be disabled. Use an unwritable folder and check
+  the existing English error status. Check native menus and keyboard shortcuts.
   Open several KML files, restart and verify their saved contents reopen in order.
   Remove one source externally, restart and verify it is silently pruned from
   `open-kml.json`; malformed/unreadable sources should report errors and remain
@@ -199,6 +217,14 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
   a short option selected. The selected/hovered rectangle must fill every row,
   including empty space to the right, even on the first opening.
 - Switch English/Portuguese, change UI/map scales, then restart to verify persistence.
+  Use Settings → Language: new installs select System Locale; test Portuguese,
+  English and unsupported OS locales, explicit overrides and restart persistence.
+  Verify Distance units shows System locale (mi) or System locale (km) using
+  the OS region, including when metric/imperial is manually selected.
+  Verify the System option names its resolved language even with an override
+  selected; unsupported/unknown locales must show English with a fallback marker.
+  Existing `lang.txt` values `en`/`pt-BR` must remain explicit; selecting System
+  Locale stores `system` and follows a changed OS locale on the next launch.
   Ruler help uses Option-click on macOS and Alt-click elsewhere.
 
 Report which checks actually ran and which platforms/services remain unverified.
@@ -232,8 +258,10 @@ Restart to check that the ruler preference persists across locales. Restart and 
 change it. System locales use the regional defaults listed in ARCHITECTURE.md. Inspect folder labels and KML
 import/save/screenshot statuses: home paths use `~/…` on macOS/Linux and
 `%USERPROFILE%\…` on Windows, other long paths retain their tail with `.../`.
-Hover for full paths/messages. Resize the window and check toolbar spacing and
-that file status text does not push language/settings controls out of view.
+The toolbar status uses slightly smaller text. Hover shortened text/paths for
+the full message; a message that fits without abbreviation must have no tooltip.
+Resize the window and change UI scale: verify filename endings remain visible
+and status text does not push toolbar buttons out of view.
 
 ## Resource-constrained builds
 

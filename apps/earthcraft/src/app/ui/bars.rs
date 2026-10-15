@@ -1,6 +1,5 @@
 use super::super::App;
-use earthcraft_core::language::Lang;
-use eframe::egui::{self, Key, Rect};
+use eframe::egui::{self, Rect};
 use emath::GuiRounding;
 impl App {
     pub(in crate::app) fn top_bar(&mut self, ui: &mut egui::Ui) {
@@ -41,56 +40,7 @@ impl App {
                     }
                     ui.separator();
 
-                    // Keys for the suggestion list must be consumed before the TextEdit sees them.
-                    let popup = self.sugg_open && !self.suggestions.is_empty();
-                    let (mut down, mut up, mut esc) = (false, false, false);
-                    if popup {
-                        ui.input_mut(|i| {
-                            down = i.consume_key(egui::Modifiers::NONE, Key::ArrowDown);
-                            up = i.consume_key(egui::Modifiers::NONE, Key::ArrowUp);
-                            esc = i.consume_key(egui::Modifiers::NONE, Key::Escape);
-                        });
-                        let n = self.suggestions.len();
-                        if down {
-                            self.sugg_sel = Some(self.sugg_sel.map_or(0, |i| (i + 1) % n));
-                        }
-                        if up {
-                            self.sugg_sel = Some(self.sugg_sel.map_or(n - 1, |i| (i + n - 1) % n));
-                        }
-                        if esc {
-                            self.sugg_open = false;
-                        }
-                    }
-
-                    let r = ui.add(
-                        egui::TextEdit::singleline(&mut self.query)
-                            .hint_text(lg.text("search-input-placeholder"))
-                            .desired_width(340.0 * self.settings.ui_scale.max(1.0)),
-                    );
-                    field_rect = r.rect;
-                    if r.changed() {
-                        self.on_query_changed();
-                    }
-                    if r.gained_focus()
-                        && !self.query.trim().is_empty()
-                        && !self.suggestions.is_empty()
-                    {
-                        self.sugg_open = true;
-                    }
-                    let enter = r.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter));
-                    if enter {
-                        match (self.sugg_open, self.sugg_sel) {
-                            (true, Some(i)) => self.choose_suggestion(i),
-                            _ => {
-                                self.sugg_open = false;
-                                self.start_search(ui);
-                            }
-                        }
-                    }
-                    if ui.button(lg.text("search-submit-action")).clicked() {
-                        self.sugg_open = false;
-                        self.start_search(ui);
-                    }
+                    field_rect = self.search_bar(ui);
                     ui.separator();
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui
@@ -100,43 +50,24 @@ impl App {
                         {
                             self.show_settings = !self.show_settings;
                         }
-                        let mut chosen = self.lang;
-                        egui::ComboBox::from_id_salt("lang_select")
-                            .selected_text(format!("🌐 {}", chosen.label()))
-                            .show_ui(ui, |ui| {
-                                super::selection::size_menu(
-                                    ui,
-                                    Lang::ALL.into_iter().map(|lang| lang.label()),
-                                );
-                                for l in Lang::ALL {
-                                    super::selection::full_width_value(
-                                        ui,
-                                        &mut chosen,
-                                        l,
-                                        l.label(),
-                                    );
-                                }
-                            });
-                        if chosen != self.lang {
-                            self.set_lang(chosen);
+                        if super::toolbar::screenshot_button(ui, self.image.is_some(), lg).clicked()
+                        {
+                            self.save_screenshot();
                         }
-                        let compact = match &self.status_file {
-                            Some(file) if file.message == self.status => {
-                                let full_path = file.path.to_string_lossy();
-                                self.status.replace(
-                                    full_path.as_ref(),
-                                    &super::paths::short_folder(&full_path),
-                                )
+                        if super::toolbar::placemark_button(ui, lg).clicked() {
+                            self.add_center_placemark();
+                            self.sidebar_open = true;
+                            self.place_reveal_requested = true;
+                            self.ruler_reveal_requested = false;
+                        }
+                        if super::toolbar::ruler_button(ui, &mut self.ruler, lg).clicked() {
+                            self.ruler_reveal_requested = self.ruler;
+                            if self.ruler {
+                                self.sidebar_open = true;
+                                self.place_reveal_requested = false;
                             }
-                            _ => self.status.clone(),
-                        };
-                        let available = ui.available_width().max(0.0);
-                        let compact = super::paths::fit_tail(ui, &compact, available);
-                        ui.add_sized(
-                            [available, ui.spacing().interact_size.y],
-                            egui::Label::new(compact).truncate(),
-                        )
-                        .on_hover_text(&self.status);
+                        }
+                        super::status::show(ui, &self.status, self.status_file.as_ref());
                     });
                 });
             });
