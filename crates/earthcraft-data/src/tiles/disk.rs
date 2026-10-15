@@ -8,6 +8,7 @@ use std::{
 };
 
 mod mbtiles;
+pub(super) const DEFAULT_DISK_BUDGET_BYTES: u64 = 128 * 1024 * 1024;
 
 pub(super) struct DiskCache {
     tilesets: mbtiles::Mbtiles,
@@ -17,6 +18,7 @@ pub(super) struct DiskCache {
 }
 
 impl DiskCache {
+    #[cfg(test)]
     pub(super) fn new(root: PathBuf) -> Self {
         Self {
             tilesets: mbtiles::Mbtiles::new(root.clone()),
@@ -24,6 +26,17 @@ impl DiskCache {
             epoch: AtomicU64::new(0),
             gate: tokio::sync::RwLock::new(()),
         }
+    }
+    pub(super) fn with_budget(root: PathBuf, bytes: u64) -> Self {
+        Self {
+            tilesets: mbtiles::Mbtiles::with_limit(root.clone(), bytes),
+            root,
+            epoch: AtomicU64::new(0),
+            gate: tokio::sync::RwLock::new(()),
+        }
+    }
+    pub(super) fn budget_bytes(&self) -> u64 {
+        self.tilesets.limit()
     }
     pub(super) fn epoch(&self) -> u64 {
         self.epoch.load(Ordering::Relaxed)

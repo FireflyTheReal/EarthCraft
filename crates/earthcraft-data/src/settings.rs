@@ -1,4 +1,7 @@
+pub mod appearance;
+pub mod cache;
 mod coordinates;
+pub mod navigation;
 pub mod sidebar;
 mod writer;
 use crate::paths::{cache_dir, default_out_dir};
@@ -48,6 +51,9 @@ impl UnitPreference {
 }
 #[derive(Clone, PartialEq, Serialize)]
 pub struct Settings {
+    pub appearance: appearance::AppearancePreferences,
+    pub navigation: navigation::NavigationPreferences,
+    pub cache: cache::CachePreferences,
     pub sidebar: sidebar::SidebarLayout,
     #[serde(serialize_with = "coordinates::serialize")]
     pub coordinate_display: earthcraft_core::coordinates::CoordinateDisplay,
@@ -79,6 +85,9 @@ fn serialize_ruler_unit<S: serde::Serializer>(
 impl Default for Settings {
     fn default() -> Self {
         Settings {
+            appearance: appearance::AppearancePreferences::default(),
+            navigation: navigation::NavigationPreferences::default(),
+            cache: cache::CachePreferences::default(),
             sidebar: sidebar::SidebarLayout::default(),
             coordinate_display: earthcraft_core::coordinates::CoordinateDisplay::default(),
             screenshot_dir: default_out_dir("Pictures"),
@@ -99,6 +108,9 @@ fn settings_file() -> PathBuf {
 }
 #[derive(Default, Deserialize)]
 struct SettingsInput {
+    appearance: Option<serde_json::Value>,
+    navigation: Option<serde_json::Value>,
+    cache: Option<serde_json::Value>,
     sidebar: Option<serde_json::Value>,
     coordinate_display: Option<serde_json::Value>,
     #[serde(default, deserialize_with = "crate::json_fields::string")]
@@ -125,6 +137,15 @@ struct SettingsInput {
 impl Settings {
     fn apply_json(&mut self, bytes: &[u8]) -> Result<(), crate::Error> {
         let input: SettingsInput = serde_json::from_slice(bytes)?;
+        if let Some(value) = input.appearance {
+            self.appearance.apply(&value);
+        }
+        if let Some(value) = input.navigation {
+            self.navigation.apply(&value);
+        }
+        if let Some(value) = input.cache {
+            self.cache.apply(&value);
+        }
         if let Some(value) = input.coordinate_display {
             coordinates::apply(&mut self.coordinate_display, &value);
         }
@@ -179,6 +200,50 @@ impl Settings {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn categorized_preferences_roundtrip_and_validate_independent_fields() {
+        let mut settings = Settings::default();
+        settings.apply_json(br#"{
+          "appearance":{"theme":"light","ui_font":"Example UI","map_font":"Example Map"},
+          "navigation":{"pan_sensitivity":2,"zoom_sensitivity":0,"rotation_sensitivity":99,
+            "invert_scroll":true,"startup":{"latitude":90,"longitude":180,"altitude_km":-10,"heading_deg":370}},
+          "cache":{"decoded_mib":1,"disk_mib":999999}}
+        "#).unwrap();
+        assert_eq!(
+            settings.appearance.theme,
+            appearance::ThemePreference::Light
+        );
+        assert_eq!(settings.navigation.pan_sensitivity, 2.0);
+        assert_eq!(
+            settings.navigation.zoom_sensitivity,
+            navigation::MIN_SENSITIVITY
+        );
+        assert_eq!(
+            settings.navigation.rotation_sensitivity,
+            navigation::MAX_SENSITIVITY
+        );
+        assert_eq!(
+            settings.navigation.startup.camera().lat,
+            earthcraft_core::MAX_CAMERA_LATITUDE_DEG
+        );
+        assert_eq!(
+            settings.navigation.startup.camera().alt,
+            earthcraft_core::MIN_CAMERA_ALTITUDE_KM
+        );
+        assert_eq!(settings.navigation.startup.heading_deg, 10.0);
+        assert_eq!(settings.cache.decoded_mib, cache::MIN_CACHE_MIB);
+        assert_eq!(settings.cache.disk_mib, cache::MAX_DISK_CACHE_MIB);
+        let bytes = serde_json::to_vec(&settings).unwrap();
+        let mut restored = Settings::default();
+        restored.apply_json(&bytes).unwrap();
+        assert_eq!(restored.appearance, settings.appearance);
+        assert_eq!(restored.navigation, settings.navigation);
+        assert_eq!(restored.cache, settings.cache);
+        restored.apply_json(br#"{"appearance":{"theme":"invalid","map_font":4},"navigation":{"pan_sensitivity":"bad","startup":{"latitude":999,"longitude":0}},"cache":{"decoded_mib":"bad"}}"#).unwrap();
+        assert_eq!(restored.appearance, settings.appearance);
+        assert_eq!(restored.navigation, settings.navigation);
+        assert_eq!(restored.cache, settings.cache);
+    }
     #[test]
     fn earth_models_roundtrip_and_tolerate_unknown_preferences() {
         let mut settings = Settings::default();
@@ -283,6 +348,9 @@ mod tests {
     #[test]
     fn partial_invalid_settings_preserve_valid_fields_and_clamping() {
         let mut settings = Settings {
+            appearance: appearance::AppearancePreferences::default(),
+            navigation: navigation::NavigationPreferences::default(),
+            cache: cache::CachePreferences::default(),
             sidebar: sidebar::SidebarLayout::default(),
             coordinate_display: earthcraft_core::coordinates::CoordinateDisplay::default(),
             screenshot_dir: "pictures".into(),

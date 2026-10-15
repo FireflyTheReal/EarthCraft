@@ -321,3 +321,19 @@ fn failed_visible_tiles_keep_retry_deadlines_without_raster_invalidation() {
     assert_eq!(cache.retry_delay(&[1]), None);
     assert_eq!(cache.retry_delay(&[2]), Some(Duration::ZERO));
 }
+
+#[test]
+fn configured_budgets_reach_both_cache_implementations() {
+    let directory = std::env::temp_dir().join("earthcraft-budget-construction");
+    let (send, _receive) = tokio::sync::mpsc::channel(1);
+    let budgets = CacheBudgets {
+        decoded_bytes: 32 * 1024 * 1024,
+        disk_bytes: 64 * 1024 * 1024,
+    };
+    let cache = TileCache::with_budgets_at(send, budgets, directory);
+    assert_eq!(cache.budgets(), budgets);
+    assert_eq!(
+        cache.ready.policy().max_capacity(),
+        Some(budgets.decoded_bytes as u64)
+    );
+}
