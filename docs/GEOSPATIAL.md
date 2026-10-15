@@ -38,7 +38,8 @@ not application FPS, and should be repeated for an actual proposed adapter.
 ## KML
 
 Published `kml` 0.14.0 owns decoding and writing. Default features are disabled:
-EarthCraft does not need its geo-types conversions or ZIP/KMZ support. Its XML
+EarthCraft does not need its geo-types conversions or ZIP/KMZ support; KMZ
+archives are read with a bounded inflate and passed to the same text path. Its XML
 preparation pass uses quick-xml 0.42; kml 0.14 still depends on quick-xml 0.41.
 Byte-oriented writer boundaries keep their types separate. Kml 0.14 is edition
 2021 and does not publish a Rust minimum. The workspace declares Rust 1.95;
