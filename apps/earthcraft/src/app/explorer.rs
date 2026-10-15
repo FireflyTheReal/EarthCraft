@@ -43,6 +43,9 @@ impl Explorer {
             }
         }
     }
+    pub(super) fn has_custom_document(&self) -> bool {
+        self.viewer.is_some()
+    }
     pub fn active_texture(&self) -> Option<&TextureHandle> {
         match self.active {
             Body::Moon => self.moon.as_ref(),

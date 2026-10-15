@@ -48,6 +48,29 @@ class ReleasePackagingTests(unittest.TestCase):
                         f"{expected}  {archive.name}\n".encode("utf-8"),
                     )
 
+    def test_updater_zip_keeps_whole_bundle_bytes_and_executable_mode(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            app = root / "EarthCraft.app"
+            executable = app / "Contents" / "MacOS" / "earthcraft"
+            executable.parent.mkdir(parents=True)
+            executable.write_bytes(b"signed executable fixture")
+            executable.chmod(0o755)
+            signature = app / "Contents" / "_CodeSignature" / "CodeResources"
+            signature.parent.mkdir()
+            signature.write_bytes(b"bundle signature fixture")
+            archive = root / "earthcraft-0.1.0-macos-arm64-update.zip"
+            release.write_update_archive(app, archive)
+            with zipfile.ZipFile(archive) as contents:
+                for entry in (executable, signature):
+                    self.assertEqual(contents.read(entry.relative_to(root).as_posix()), entry.read_bytes())
+                if os.name != "nt":
+                    info = contents.getinfo("EarthCraft.app/Contents/MacOS/earthcraft")
+                    self.assertEqual((info.external_attr >> 16) & 0o777, 0o755)
+            digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+            self.assertEqual(archive.with_name(archive.name + ".sha256").read_bytes(),
+                             f"{digest}  {archive.name}\n".encode("utf-8"))
+
     def test_macos_rejects_invalid_architecture_headers(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

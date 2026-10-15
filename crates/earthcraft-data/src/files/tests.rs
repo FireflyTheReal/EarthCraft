@@ -7,10 +7,14 @@ static NEXT: AtomicU64 = AtomicU64::new(0);
 #[test]
 fn screenshot_submission_retains_pixels_without_copying() {
     let (sender, mut receiver) = tokio::sync::mpsc::channel(PENDING_FILE_JOBS);
-    let jobs = FileJobs { sender };
+    let jobs = FileJobs {
+        sender,
+        outstanding: Arc::new(AtomicUsize::new(0)),
+    };
     let pixels = Arc::new(vec![10, 20, 30, 255]);
     jobs.screenshot(PathBuf::from("shot.png"), 1, 1, &pixels)
         .unwrap();
+    assert!(jobs.is_busy());
     let Job::Screenshot(_, _, _, retained) = receiver.try_recv().unwrap() else {
         panic!("screenshot job");
     };
@@ -75,6 +79,7 @@ fn jobs_preserve_order_snapshot_inputs_and_wake_after_success_and_failure() {
     for _ in 0..3 {
         wakes.recv_timeout(Duration::from_secs(10)).unwrap();
     }
+    assert!(!jobs.is_busy());
     let pixels = Arc::new(vec![10, 20, 30, 255]);
     jobs.screenshot(fixture.0.join("shot.png"), 1, 1, &pixels)
         .unwrap();
@@ -87,6 +92,7 @@ fn jobs_preserve_order_snapshot_inputs_and_wake_after_success_and_failure() {
         Ok(FileOutcome::ScreenshotSaved { .. })
     ));
     wakes.recv_timeout(Duration::from_secs(10)).unwrap();
+    assert!(!jobs.is_busy());
     let image = image::open(fixture.0.join("shot.png")).unwrap().to_rgba8();
     assert_eq!(image.as_raw(), &[10, 20, 30, 255]);
 }

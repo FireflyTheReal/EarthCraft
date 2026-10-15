@@ -219,6 +219,23 @@ impl App {
                     } else {
                         ui.monospace("✔ tiles ok");
                     }
+                    let action = super::updater::indicator(
+                        ui,
+                        self.updater.state(),
+                        lg,
+                        self.update_restart.error.as_deref(),
+                        self.update_restart.is_saving(),
+                    );
+                    match action {
+                        super::updater::Action::InstallOrRetry => self.updater.activate(),
+                        super::updater::Action::Restart => self.request_update_restart(ui),
+                        super::updater::Action::OpenReleases => {
+                            ui.open_url(egui::OpenUrl::new_tab(
+                                earthcraft_data::updater::RELEASES_URL,
+                            ));
+                        }
+                        super::updater::Action::None => {}
+                    }
                 });
             });
             ui.scope_builder(egui::UiBuilder::new().max_rect(heading_rect), |ui| {

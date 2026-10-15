@@ -26,6 +26,7 @@ emath.workspace = true
 image.workspace = true
 rstar.workspace = true
 sys-locale.workspace = true
+self_update.workspace = true
 
 # Native file/folder dialogs. On Linux we use GTK3 (works without xdg-desktop-portal).
 [target.'cfg(target_os = "linux")'.dependencies]

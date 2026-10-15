@@ -25,6 +25,7 @@ Anyway** for EarthCraft and confirm **Open**. See [Apple's instructions](https:/
 - 3D globe with orbit, zoom, view rotation, bottom-bar heading and a navigation compass; navigation controls can be hidden in Settings
 - Satellite imagery (Esri), streets (OSM) and topography (OpenTopoMap), with multi-level tile zoom and on-disk caching
 - Background satellite overview loading for the whole globe at the initial distance; detailed tiles load as you zoom in
+- Small bottom-bar update notice: click to download/install, then save and restart; macOS updates the complete app bundle (see [update details](docs/RELEASING.md#in-app-updates))
 - Clear downloaded map tiles from disk through Settings
 - Place and address search (Nominatim), plus direct "lat, lon" coordinate input
 - Animated fly-to (double-click, search or list)

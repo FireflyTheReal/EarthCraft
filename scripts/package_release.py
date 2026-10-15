@@ -140,13 +140,30 @@ def package(version, target, binary, output):
         else:
             with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as stream:
                 stream.write(executable, executable.name)
+        if "apple" in target:
+            # Reuse the exact signed bundle from the DMG; updater ZIPs keep its
+            # full resource tree and executable permissions.
+            update_archive = output / f"{name}-update.zip"
+            write_update_archive(app, update_archive)
+    write_checksum(archive)
+    print(archive)
+
+
+def write_update_archive(app, archive):
+    with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as stream:
+        stream.write(app, app.name)
+        for entry in sorted(app.rglob("*")):
+            stream.write(entry, entry.relative_to(app.parent))
+    write_checksum(archive)
+
+
+def write_checksum(archive):
     with archive.open("rb") as stream:
         digest = hashlib.file_digest(stream, "sha256").hexdigest()
     # Checksum manifests are consumed on Linux; never translate LF to Windows CRLF.
     archive.with_name(archive.name + ".sha256").write_bytes(
         f"{digest}  {archive.name}\n".encode("utf-8")
     )
-    print(archive)
 
 
 def main():

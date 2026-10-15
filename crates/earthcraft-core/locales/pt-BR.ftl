@@ -452,3 +452,15 @@ vessels-hover-tooltip =
 satellites-hover-tooltip =
     { $name } (NORAD { $norad })
     Posição orbital estimada • CelesTrak
+
+update-available-label = Atualizar para v{ $version }
+update-available-tooltip = Atualização disponível: v{ $version } — clique para baixar e instalar
+update-downloading-label = Baixando atualização
+update-progress-tooltip = Baixando atualização: { $percent }%
+update-installing-label = Instalando atualização
+update-installing-tooltip = Verificando e instalando atualização
+update-restart-label = Reiniciar para atualizar
+update-restart-tooltip = Atualização instalada: v{ $version } — clique para salvar seu trabalho e reiniciar
+update-retry-label = Tentar novamente
+update-releases-action = Abrir versões
+update-saving-label = Salvando antes de reiniciar

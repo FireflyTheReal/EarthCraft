@@ -2,7 +2,8 @@
 
 The [release workflow](../.github/workflows/release.yml) builds locked release
 binaries with Rust 1.95. Downloads contain only the application: a bare executable
-on Linux/Windows or `EarthCraft.app` inside a macOS disk image.
+on Linux/Windows or `EarthCraft.app` inside a macOS disk image. macOS also publishes
+a ZIP of that same signed app bundle for in-app updates.
 These artifacts use `--no-default-features`: experimental GPU globe rendering is excluded
 from release downloads on every platform. CPU rendering remains the default.
 
@@ -18,9 +19,9 @@ application binaries: every release still builds and packages its tagged source.
 | Linux ARM64 | `earthcraft-0.1.0-linux-arm64.tar.gz` |
 | Windows x86-64 | `earthcraft-0.1.0-windows-x64-portable.zip` |
 | Windows ARM64 | `earthcraft-0.1.0-windows-arm64-portable.zip` |
-| macOS Apple Silicon (ARM64) | `earthcraft-0.1.0-macos-arm64.dmg` containing `EarthCraft.app` |
+| macOS Apple Silicon (ARM64) | `earthcraft-0.1.0-macos-arm64.dmg` containing `EarthCraft.app`; `earthcraft-0.1.0-macos-arm64-update.zip` for the updater |
 
-One `SHA256SUMS.txt` lists all five release archives. Preview artifacts retain
+One `SHA256SUMS.txt` lists all six release archives. Preview artifacts retain
 individual `.sha256` files; publication verifies and consolidates them.
 GitHub also provides its standard source-code archives. Linux builds run
 on Ubuntu 22.04; GTK 3 and a working graphics driver are runtime requirements.
@@ -37,6 +38,46 @@ hidden. There are no bundled
 READMEs, agent rules, contributor docs, changelogs or release text files. Build/package checks do not verify
 interactive runtime behavior: manually test downloads on the supported platforms
 before announcing them.
+
+## In-app updates
+
+After the window initializes, EarthCraft checks the public
+`therichronicles/EarthCraft` GitHub Releases repository once for a newer stable
+version with an exact asset for its platform. A small **Update to vX.Y.Z** button
+appears centered between tile status and the heading in the bottom bar. Nothing
+is downloaded until clicked. Clicking downloads, verifies GitHub's SHA-256 asset
+digest and installs that exact release; failures remain in the control's tooltip.
+Right-click a failed update to open the official release page.
+
+Windows/Linux portable builds replace the executable. macOS uses the updater ZIP
+and replaces the entire `EarthCraft.app` bundle; `codesign --verify --deep --strict`
+checks the extracted bundle before replacement. The existing DMG remains the
+first-install download. The ZIP contains the same ad-hoc signed bundle as the DMG;
+checksums and ad-hoc signing do not establish independent publisher authenticity.
+No trusted signing key or attestation verification is configured.
+
+After installation, **Restart to update** appears. Clicking it offers the existing
+save dialogs for a nonempty places tree and any loaded custom planet. Canceling
+leaves the old process running. Saves run on the existing file service while editing
+is temporarily disabled; a failed save prevents restart. Once file work finishes,
+the normal window closes, preferences flush and workers stop, then the replacement
+starts with the same arguments. A failed restart reopens the window with an English
+error and the saved documents. Ruler history follows normal quit behavior and is
+not persisted. An ordinary quit and relaunch also activates the installed update.
+
+Debug builds and executables running from Cargo's `target` directory never check
+for updates, regardless of their version. This includes `cargo run --release`.
+Release builds installed outside Cargo output are eligible for checking.
+Known package-manager/system locations and macOS apps on a mounted volume or
+under App Translocation use a release-page link instead of replacement. Move a macOS app into a writable application folder first. A
+protected install also falls back to the release page without elevation. Package
+maintainers should set `EARTHCRAFT_UPDATE_MODE=manual` for managed installations in
+other locations; `EARTHCRAFT_UPDATE_MODE=off` disables the startup check entirely.
+Missing target assets hide the control; no periodic polling or prerelease opt-in is
+added. Older macOS releases without the updater ZIP cannot be installed in-app.
+
+Portable replacement/restart still requires native Windows/Linux validation before
+announcing support; packaging/unit checks alone do not verify that lifecycle.
 
 ## First launch on macOS (Gatekeeper)
 
@@ -99,7 +140,7 @@ personal access token are needed.
 - Ensure hosted ARM64 runners (`ubuntu-22.04-arm`, `windows-11-arm`) and the
   macOS runners in the matrix are available to the repository. Jobs queued
   indefinitely require checking runner availability, billing and Actions policy.
-- Run the manual preview on the reviewed commit and verify all five archives,
+- Run the manual preview on the reviewed commit and verify all six archives,
   their checksums and actual application startup on each platform. A preview
   never publishes. No release tag is needed for it.
 - Review generated release notes before tagging. Use a new matching version/tag;
