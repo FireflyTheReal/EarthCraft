@@ -90,7 +90,7 @@ longitude primeiro; pares de domínio usam latitude primeiro. Fluent mantém
 catálogos en/pt-BR com chaves semânticas e argumentos nomeados. Erros e logs usam
 inglês; mensagens normais seguem o idioma escolhido.
 
-Veja [CONTRIBUTING.md](CONTRIBUTING.md), [LOCALIZATION.md](LOCALIZATION.md) e
+Veja [CONTRIBUTING.md](../CONTRIBUTING.md), [LOCALIZATION.md](LOCALIZATION.md) e
 [GEOSPATIAL.md](GEOSPATIAL.md) para práticas de manutenção e validação. Profiling é
 opcional e usa um gravador limitado em segundo plano; tempos de componentes não
 representam automaticamente FPS da aplicação.
@@ -108,7 +108,7 @@ egui view. All GPU globe rendering is experimental on every platform; the CPU
 path remains the default and fallback. Set
 `EARTHCRAFT_RENDERER=auto` or `EARTHCRAFT_RENDERER=gpu` to enable an experimental GPU attempt.
 The Explorer, live meteorological/aircraft layers, moon and custom planet
-remain integrated in `apps/earthcraft`. See [GPU_RENDERER.md](GPU_RENDERER.md)
+remain integrated in `apps/earthcraft`. See [GPU_RENDERER.md](features/GPU_RENDERER.md)
 for hardware limits, performance and CPU-only build instructions.
 
 ## Limites entre frontends para o EarthCraft web
@@ -132,7 +132,7 @@ ainda precisa de adaptadores de rede, armazenamento e execução do navegador.
 A projeção meteorológica e a construção das malhas mantêm seu agendamento atual;
 essa mudança não adiciona tarefas em segundo plano.
 
-O core oferece modelos da Terra separados da geometria: Realista — WGS 84 (G2296) por padrão e Esfera perfeita como alternativa. Câmera, seleção, rasterização, sobreposições e geodésicas usam o modelo selecionado. A troca invalida quadros/caches incompatíveis; o elipsoide usa CPU. Consulte [Earth models](EARTH_MODELS.md) para limites de referencial/época e extensão.
+O core oferece modelos da Terra separados da geometria: Realista — WGS 84 (G2296) por padrão e Esfera perfeita como alternativa. Câmera, seleção, rasterização, sobreposições e geodésicas usam o modelo selecionado. A troca invalida quadros/caches incompatíveis; o elipsoide usa CPU. Consulte [Earth models](features/EARTH_MODELS.md) para limites de referencial/época e extensão.
 
 A árvore de lugares pertence ao core e preserva Documentos/Pastas KML, ordem, nomes, descrições, pastas vazias e visibilidade herdada. A interface permite seleção, edição e movimentos sem ciclos; a leitura e gravação continuam no serviço de arquivos. Geometrias não suportadas mantêm a política de importar apenas a primeira coordenada.
 Os caminhos dos arquivos KML abertos ficam separados das preferências em `open-kml.json`, sem copiar o conteúdo. Na inicialização, o serviço de arquivos reabre as fontes em ordem e remove silenciosamente os caminhos ausentes; outros erros são exibidos e os caminhos ficam para a próxima tentativa. Salvar a árvore inteira substitui a lista pelo destino salvo para evitar importações duplicadas. Limpar tudo esvazia a árvore e a lista e descarta resultados KML pendentes, sem excluir os arquivos de origem. Alterações não salvas ainda exigem uma gravação explícita do KML.

@@ -75,7 +75,7 @@ coordinates and grid widths instead of repeating angle/trigonometric conversions
 All-sky ray batches retain atmosphere inputs while skipping unused surface positions
 and normals. Geographic calculations remain in f64, with no approximate
 trigonometry or reciprocal math. Isolated microbenchmarks and before/after capture
-checks are documented in [the performance baseline](PERFORMANCE_BASELINE.md).
+checks are documented in [the performance baseline](../PERFORMANCE_BASELINE.md).
 
 To add another spheroidal model/reference frame, register its stable identity in
 `EarthModel::ALL`, supply its labels/help, geometry and cached geodesic solver in
@@ -99,6 +99,6 @@ scale-bar endpoint distances, settings
 round trips, model-dependent frame keys and GPU capability rejection. Existing
 sphere raster/missing-tile fixtures are unchanged. Tests use local data.
 
-For isolated performance measurements, see [the baseline](PERFORMANCE_BASELINE.md).
+For isolated performance measurements, see [the baseline](../PERFORMANCE_BASELINE.md).
 Native interaction and public imagery/aircraft services remain separate manual
 checks; no GUI or surveying accuracy is established by compiler/test success.

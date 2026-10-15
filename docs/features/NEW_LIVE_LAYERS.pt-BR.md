@@ -10,10 +10,10 @@ para deslocar; rode o mouse para zoom; duplo clique para restaurar; Esc para sai
 
 ## Aviões
 
-`apps/earthcraft/assets/airplane.svg` é o novo desenho SVG da aeronave.
-O PNG derivado `airplane.png` é incorporado para rasterização eficiente no egui;
-os ícones são orientados de acordo com o rumo do ADS-B/OpenSky. Mantém os
-provedores e avisos anteriores.
+`assets/representations/airplane.svg` fornece os polígonos do símbolo da aeronave,
+incorporados como malhas vetoriais no egui. Os ícones são orientados de acordo
+com o rumo observado pelo OpenSky/ADSB.lol. Mantém os provedores e avisos
+anteriores.
 
 ## Fronteiras de cidades no mundo
 

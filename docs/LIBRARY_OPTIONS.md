@@ -35,7 +35,7 @@ lines. Decoded tiles have a best-effort weighted target with LRU eviction; expen
 municipal geometry is loaded on demand. Deterministic tests cover these resource policies.
 
 See [architecture](ARCHITECTURE.md), [localization](LOCALIZATION.md) and
-[contributing](CONTRIBUTING.md) for the ownership boundaries and verification rules.
+[contributing](../CONTRIBUTING.md) for the ownership boundaries and verification rules.
 
 Moka uses its `sync` feature because Rayon needs immediate cache reads. Review transitive MSRVs when updating the lockfile;
 EarthCraft does not expose a UUID API.
@@ -75,7 +75,7 @@ The dependency review verified these concrete uses:
   Unicode folding and ranked prefix indexes retain their existing roles.
 - geo-index/rstar: immutable geographic candidate indexes and ordered screen
   occupancy retain distinct responsibilities. Image owns decoding/encoding;
-  sys-locale and winresource remain platform adapters.
+  sys-locale detects the system locale.
 
 New APIs are adopted where they improve correctness or express the existing work.
 The desktop now uses eframe's default wgpu presentation with upstream backend

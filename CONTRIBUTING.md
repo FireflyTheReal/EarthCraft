@@ -1,7 +1,7 @@
 # Contributing
 
-Start with [the architecture](ARCHITECTURE.md) ([português](ARCHITECTURE.pt-BR.md))
-and [agent rules](../AGENTS.md). Keep feature work separate from mechanical moves
+Start with [the architecture](docs/ARCHITECTURE.md) ([português](docs/ARCHITECTURE.pt-BR.md))
+and [agent rules](AGENTS.md). Keep feature work separate from mechanical moves
 so reviewers can distinguish behavior changes from file organization.
 
 ## Development
@@ -42,9 +42,10 @@ Keep `Cargo.lock` in version control. Normal verification uses `--locked` to
 catch unintended dependency resolution changes. Intentional dependency updates
 should be reviewed separately, including compatibility with Rust 1.95.
 The `app-build-test` workflow runs on pushes and pull requests changing `apps/**`,
-`crates/**`, manifests/lockfiles or the workflow itself, and can also be run
-manually from Actions. It formats, lints,
-tests, and builds on Ubuntu using stable Rust. Use the latest supported major version tags for GitHub
+`crates/**`, `assets/**`, the root manifest/lockfile or the workflow itself, and can
+also be run manually from Actions. It formats, lints, tests and builds default and
+profiling configurations on Ubuntu using stable Rust, checks the CPU-only desktop,
+and checks all targets/features with the Rust 1.95 minimum. Use the latest supported major version tags for GitHub
 Actions, rather than commit hashes. For actions without version tags, follow the
 maintained upstream branch. Keep Rust toolchain versions explicit.
 
@@ -56,17 +57,17 @@ and from the app-check profile. The action also keys caches by compiler and Carg
 manifest/lockfile changes. Initial runs are cold; subsequent compatible runs can
 reuse their dependencies. Builds and tests still run on every workflow invocation.
 
-For preview artifacts, version tags and publication, see [releases](RELEASING.md).
+For preview artifacts, version tags and publication, see [releases](docs/RELEASING.md).
 
 ## Tests and behavior preservation
 
 Camera tests call the same methods as the app. Boundary and search tests use
 local JSON/strings. KML tests use isolated temporary files. Raster regression
-fixtures cover empty-cache and loaded-tile rendering; see [fixture provenance](../crates/earthcraft-render/tests/fixtures/README.md).
+fixtures cover empty-cache and loaded-tile rendering; see [fixture provenance](crates/earthcraft-render/tests/fixtures/README.md).
 Tests require no public map service or saved user configuration. HTTP fixtures
 bind an ephemeral loopback port; they exercise response limits, retries and disk
 cache behavior. Fluent tests verify catalog syntax, matching keys/variables and
-exact UI output. See [localization](LOCALIZATION.md) before editing text.
+exact UI output. See [localization](docs/LOCALIZATION.md) before editing text.
 
 Prefer tests of observable behavior and invariants. Avoid copies of production
 algorithms. For behavior-preserving changes, retain constants, coordinate
@@ -209,8 +210,8 @@ transparent Dock padding and standard and Retina sizes (16–1024 pixels).
 The macOS runtime icon is `assets/macos/icon.png`, with the same padding as the
 bundle icon: eframe applies it to the Dock at startup. Keep both assets aligned;
 Windows/Linux retain `assets/icon_256.png`.
-The `packaging/earthcraft.desktop` asset must still be supplied before validating
-deb output.
+The optional `cargo deb` metadata uses `packaging/earthcraft.desktop` for the
+Linux application entry. Debian packages are not produced by the release workflow.
 
 
 Distance and path smoke checks: select System, kilometers/meters and miles/feet
@@ -384,7 +385,7 @@ p95 and maxima. Open-ended phases are supported for inspecting a live recording.
 exclude eframe's subsequent tessellation/GPU work. `overlay.prepare` includes
 cached returns and index rebuilding when needed. Tile lock timing samples view
 admission, not every per-pixel cache miss. Avoid adding overlapping timing medians
-across threads. The [native baseline](PERFORMANCE_BASELINE.md) records limitations.
+across threads. The [native baseline](docs/PERFORMANCE_BASELINE.md) records limitations.
 
 Feature-enabled checks must accompany normal checks when changing instrumentation:
 
@@ -415,7 +416,7 @@ egui view. All GPU globe rendering is experimental on every platform; the CPU
 path remains the default and fallback. Set
 `EARTHCRAFT_RENDERER=auto` or `EARTHCRAFT_RENDERER=gpu` to enable an experimental GPU attempt.
 The Explorer, live meteorological/aircraft layers, moon and custom planet
-remain integrated in `apps/earthcraft`. See [GPU_RENDERER.md](GPU_RENDERER.md)
+remain integrated in `apps/earthcraft`. See [GPU_RENDERER.md](docs/features/GPU_RENDERER.md)
 for hardware limits, performance and CPU-only build instructions.
 
 ## Sidebar and native menus

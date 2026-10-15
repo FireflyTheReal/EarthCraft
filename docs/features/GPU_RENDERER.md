@@ -106,7 +106,7 @@ It excludes egui presentation, overlays and live services. Always report image
 error statistics together with timings; initialization and the first upload are
 excluded from warm medians. Release validation on Windows and Linux remains separate from local macOS checks. The benchmark also loads 597 decoded tiles and rotates across
 three hemispheric views to check that exceeding the atlas in the RAM cache does
-not unnecessarily disable GPU rendering. See the [native CPU baseline](PERFORMANCE_BASELINE.md).
+not unnecessarily disable GPU rendering. See the [native CPU baseline](../PERFORMANCE_BASELINE.md).
 
 ## Local measurement (2026-10-13)
 

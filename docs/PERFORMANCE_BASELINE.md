@@ -65,7 +65,7 @@ No profile events were dropped. Capture adds instrumentation overhead.
 
 Aggregate data and phase intervals are in
 [the JSON report](benchmarks/2026-10-13-native-profile.json). Reproduction instructions
-are in [contributing](CONTRIBUTING.md). Raw capture for this run was retained at
+are in [contributing](../CONTRIBUTING.md). Raw capture for this run was retained at
 `/tmp/earthcraft-native-profile.csv`, outside Git; temporary native cache files were
 removed after the owned app closed cleanly.
 
@@ -153,7 +153,7 @@ RAYON_NUM_THREADS=8 cargo test -p earthcraft-render warm_cpu_frame_time --locked
 RAYON_NUM_THREADS=8 cargo test -p earthcraft-render warm_ellipsoid_cpu_frame_time --locked -- --ignored --nocapture --test-threads=1
 ```
 
-See [Earth models](EARTH_MODELS.md) for numerical checks and extension boundaries.
+See [Earth models](features/EARTH_MODELS.md) for numerical checks and extension boundaries.
 
 ### Earth-model review rerun
 
