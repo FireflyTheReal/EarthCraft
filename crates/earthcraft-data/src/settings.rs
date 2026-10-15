@@ -1,5 +1,6 @@
 pub mod appearance;
 pub mod cache;
+pub mod controllers;
 mod coordinates;
 pub mod navigation;
 pub mod sidebar;
@@ -51,6 +52,7 @@ impl UnitPreference {
 }
 #[derive(Clone, PartialEq, Serialize)]
 pub struct Settings {
+    pub controllers: controllers::ControllerPreferences,
     pub appearance: appearance::AppearancePreferences,
     pub navigation: navigation::NavigationPreferences,
     pub cache: cache::CachePreferences,
@@ -85,6 +87,7 @@ fn serialize_ruler_unit<S: serde::Serializer>(
 impl Default for Settings {
     fn default() -> Self {
         Settings {
+            controllers: controllers::ControllerPreferences::default(),
             appearance: appearance::AppearancePreferences::default(),
             navigation: navigation::NavigationPreferences::default(),
             cache: cache::CachePreferences::default(),
@@ -108,6 +111,7 @@ fn settings_file() -> PathBuf {
 }
 #[derive(Default, Deserialize)]
 struct SettingsInput {
+    controllers: Option<serde_json::Value>,
     appearance: Option<serde_json::Value>,
     navigation: Option<serde_json::Value>,
     cache: Option<serde_json::Value>,
@@ -137,6 +141,9 @@ struct SettingsInput {
 impl Settings {
     fn apply_json(&mut self, bytes: &[u8]) -> Result<(), crate::Error> {
         let input: SettingsInput = serde_json::from_slice(bytes)?;
+        if let Some(value) = input.controllers {
+            self.controllers.apply(&value);
+        }
         if let Some(value) = input.appearance {
             self.appearance.apply(&value);
         }
@@ -348,6 +355,7 @@ mod tests {
     #[test]
     fn partial_invalid_settings_preserve_valid_fields_and_clamping() {
         let mut settings = Settings {
+            controllers: controllers::ControllerPreferences::default(),
             appearance: appearance::AppearancePreferences::default(),
             navigation: navigation::NavigationPreferences::default(),
             cache: cache::CachePreferences::default(),

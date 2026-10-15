@@ -10,6 +10,7 @@ publish = false
 workspace = true
 
 [dependencies]
+serde.workspace = true
 geographiclib-rs.workspace = true
 mgrs-convert.workspace = true
 emath.workspace = true
