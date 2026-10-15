@@ -2,7 +2,7 @@
 
 [English](COORDINATE_DISPLAY.md) | [Português (Brasil)](COORDINATE_DISPLAY.pt-BR.md)
 
-Settings → Coordinates selects **DD**, **DMS**, **DDM**, **UTM/UPS** or **MGRS**.
+Settings → Appearance → Coordinates selects **DD**, **DMS**, **DDM**, **UTM/UPS** or **MGRS**.
 The default is DMS with two decimal places in seconds. Precision applies to the
 selected format; changing formats selects its normal default precision. Decimal
 places affect display and copied text, never stored geographic values or KML.

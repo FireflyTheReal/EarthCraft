@@ -186,3 +186,11 @@ com `mgrs-convert` para UTM/UPS/MGRS. Data persiste formato e precisão com leit
 tolerante; o aplicativo desenha e copia os valores. A apresentação preserva as
 coordenadas originais. Entradas inválidas reconhecidas falham localmente em inglês;
 endereços mantêm a busca remota. Veja a [exibição de coordenadas](features/COORDINATE_DISPLAY.pt-BR.md).
+
+## Preferências e fontes
+
+Data persiste preferências de aparência/navegação/cache com leitura tolerante e
+aplica limites na construção do cache. O aplicativo trata categorias pesquisáveis,
+fontes do sistema e seu carregamento limitado em segundo plano. Interface e mapa
+têm alternativas independentes; a troca invalida textos de sobreposição em cache.
+A matemática da câmera permanece em core. Veja [configurações](features/SETTINGS.pt-BR.md).
