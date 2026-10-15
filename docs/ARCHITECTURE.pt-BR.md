@@ -62,6 +62,8 @@ Marcadores e régua permanecem interativos.
 
 Um `ServiceRuntime` Tokio fornece I/O assíncrono e clientes reqwest reutilizados.
 Workers limitados separam parsing de dados, decodificação de tiles e arquivos.
+Um panic em um desses jobs volta como erro do próprio job, sem encerrar o pool
+nem a aplicação.
 GeoJSON é processado por feature, com coordenadas compartilhadas e snapshots
 imutáveis. Geometria municipal carrega quando suas camadas são usadas. Busca
 local usa índices FST com normalização Unicode e fallback por varredura durante
