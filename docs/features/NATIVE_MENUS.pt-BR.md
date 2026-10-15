@@ -11,7 +11,7 @@ nativos continua exclusiva do macOS.
 | EarthCraft | Sobre, Configurações, Sair; macOS mantém Ocultar/Ocultar outros/Mostrar todos |
 | Arquivo | Abrir KML/KMZ, Salvar, Salvar como, Salvar captura |
 | Editar | Desfazer e Refazer, respeitando editores de texto com foco |
-| Visualizar | Painel lateral, barra de navegação, painéis Explorar/Camadas/Lugares, controles de navegação, grade, atmosfera, luz solar, norte para cima, vista global |
+| Visualizar | Painel lateral, painéis Explorar/Camadas/Lugares, controles de navegação, grade, atmosfera, luz solar, norte para cima, vista global |
 | Adicionar | Marcador no centro da câmera, pasta na pasta selecionada ou em Meus lugares |
 | Ferramentas | Medir distâncias, Explorar |
 | Janela | Tela cheia, Minimizar; macOS registra o menu Janela do sistema |

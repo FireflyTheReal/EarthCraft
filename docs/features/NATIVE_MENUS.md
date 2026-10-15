@@ -11,7 +11,7 @@ macOS-only.
 | EarthCraft | About, Settings, Quit; macOS also retains Hide/Hide Others/Show All |
 | File | Open KML/KMZ, Save, Save As, Save Screenshot |
 | Edit | Undo and Redo, respecting focused text editors |
-| View | Sidebar, navigation rail, Explore/Layers/Places panels, navigation controls, grid, atmosphere, sunlight, north-up, global view |
+| View | Sidebar, Explore/Layers/Places panels, navigation controls, grid, atmosphere, sunlight, north-up, global view |
 | Add | Placemark at camera center, Folder in the selected folder or My Places |
 | Tools | Measure distances, Explorer |
 | Window | Fullscreen, Minimize; macOS registers the system Window menu |

@@ -49,7 +49,6 @@ pub(in crate::app) enum Action {
     Undo,
     Redo,
     Sidebar,
-    NavigationRail,
     ShowExplore,
     ShowLayers,
     ShowPlaces,
@@ -70,7 +69,7 @@ pub(in crate::app) enum Action {
     ReportIssue,
 }
 impl Action {
-    pub(super) const ALL: [Self; 29] = [
+    pub(super) const ALL: [Self; 28] = [
         Self::About,
         Self::Settings,
         Self::Open,
@@ -81,7 +80,6 @@ impl Action {
         Self::Undo,
         Self::Redo,
         Self::Sidebar,
-        Self::NavigationRail,
         Self::ShowExplore,
         Self::ShowLayers,
         Self::ShowPlaces,
@@ -107,7 +105,6 @@ impl Action {
             Self::Open | Self::Save | Self::SaveAs | Self::Screenshot => Section::File,
             Self::Undo | Self::Redo => Section::Edit,
             Self::Sidebar
-            | Self::NavigationRail
             | Self::ShowExplore
             | Self::ShowLayers
             | Self::ShowPlaces
@@ -135,7 +132,6 @@ impl Action {
             Self::About => "menu-about-action",
             Self::Settings => "menu-settings-action",
             Self::Sidebar => "menu-sidebar-toggle",
-            Self::NavigationRail => "sidebar-rail-toggle",
             Self::ShowExplore => "sidebar-explore-title",
             Self::ShowLayers => "layers-section-title",
             Self::ShowPlaces => "sidebar-places-title",
@@ -189,7 +185,6 @@ pub(super) struct MenuState {
     pub undo: bool,
     pub redo: bool,
     pub sidebar: bool,
-    pub rail: bool,
     pub navigation: bool,
     pub grid: bool,
     pub atmosphere: bool,
@@ -210,7 +205,6 @@ impl MenuState {
     pub(super) fn checked(self, action: Action) -> Option<bool> {
         Some(match action {
             Action::Sidebar => self.sidebar,
-            Action::NavigationRail => self.rail,
             Action::NavigationControls => self.navigation,
             Action::Grid => self.grid,
             Action::Atmosphere => self.atmosphere,
