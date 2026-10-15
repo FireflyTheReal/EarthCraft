@@ -36,6 +36,7 @@ Consulte as [instruções da Apple](https://support.apple.com/pt-br/102445).
 - Imagens de satélite (crédito: Esri), ruas (crédito: OSM) e topografia (crédito: OpenTopoMap), com tiles em múltiplos níveis de zoom e cache em disco configurável
 - Atmosfera, estrelas e luz solar em tempo real (dia/noite)
 - Barra inferior com posição do cursor, posição do centro da câmera, altitude da câmera editável e rumo
+- Fundo celeste da Via Láctea com fonte NASA, redução de brilho diurno realista, opção cinematográfica explícita e créditos
 - Posições de navios via AIS (crédito: OpenSeaFeed), com cobertura mundial parcial e fonte alternativa Fintraffic restrita à Finlândia
 - Congestionamento em tempo real (crédito: TomTom; requer uma chave de API)
 - Radar de precipitação em tempo real (crédito: RainViewer) e imagens de nuvens por satélite (crédito: Matt Eason)
@@ -54,6 +55,8 @@ Consulte as [instruções da Apple](https://support.apple.com/pt-br/102445).
 - Menu de contexto com o botão direito: veja ou copie as coordenadas de um local, adicione um marcador, voe até o local ou adicione um ponto à régua
 - Módulo Explorar: coordenadas de lugares e detalhes no OpenStreetMap, busca de fotos no Wikimedia Commons, passeios narrados editáveis com síntese de voz do sistema e controles para camadas de meteorologia, nuvens e aeronaves em tempo real
 - Visualização da Lua e prévias de imagens PNG/JPEG de planetas e céus personalizados, com arquivos portáteis `.earthplanet` que incorporam as imagens
+- Configurações pesquisáveis e redimensionáveis, com temas, fontes instaladas independentes para interface/mapa, sensibilidade de navegação, vista inicial salva e limites do cache
+- Navegação por gamepad com perfis por dispositivo, remapeamento, zona morta, curvas de resposta, inversão e monitor de entradas
 - Atualização automática opcional conforme novas versões são publicadas no GitHub Releases
 
 ### Controles
@@ -70,8 +73,13 @@ O botão de régua ativa ou desativa a medição e exibe os controles ao ativá-
 salva um PNG na pasta de capturas das Configurações, sem abrir um diálogo.
 O botão de marcador adiciona um ponto no centro da câmera e exibe seu nome e
 detalhes no painel lateral. A ordem é Régua, Adicionar marcador, Captura, Configurações.
-Em **Configurações → Idioma**, siga o idioma do sistema (padrão) ou escolha
+Em **Configurações → Geral → Idioma**, siga o idioma do sistema (padrão) ou escolha
 English ou Português (Brasil). Idiomas do sistema sem tradução usam inglês.
+
+As categorias também cobrem aparência, navegação, globo, gráficos, controles,
+cache e pastas. Alterar os limites do cache exige reiniciar. Consulte as
+[configurações](docs/features/SETTINGS.pt-BR.md), [coordenadas](docs/features/COORDINATE_DISPLAY.pt-BR.md),
+[controles](docs/features/CONTROLLERS.pt-BR.md) e o [fundo celeste](docs/features/CELESTIAL_BACKGROUND.pt-BR.md).
 
 O macOS também oferece os menus **Visualizar**, **Adicionar**, **Ferramentas**,
 **Janela** e **Ajuda**, além de **Configurações** no menu EarthCraft. Windows/Linux

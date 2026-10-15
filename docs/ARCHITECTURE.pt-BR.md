@@ -2,7 +2,7 @@
 
 [English](ARCHITECTURE.md) | [Português (Brasil)](ARCHITECTURE.pt-BR.md)
 
-EarthCraft 0.1.0 usa um workspace Cargo com uma aplicação e três bibliotecas.
+EarthCraft 0.2.0 usa um workspace Cargo com uma aplicação e três bibliotecas.
 
 | Pacote | Responsabilidade |
 | --- | --- |

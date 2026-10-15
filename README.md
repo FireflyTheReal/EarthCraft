@@ -35,6 +35,7 @@ Anyway** for EarthCraft and confirm **Open**. See [Apple's instructions](https:/
 - Satellite imagery (credit: Esri), streets (credit: OSM) and topography (credit: OpenTopoMap), with multi-level tile zoom and configurable on-disk caching
 - Atmosphere, stars, real-time sunlight (day/night)
 - Bottom bar with cursor position, camera center position, editable camera altitude and bearing
+- NASA-source celestial Milky Way background, with realistic daylight fading, an explicit cinematic option and source credits
 - AIS ship positions (credit: OpenSeaFeed), with partial worldwide coverage and a Finland-only Fintraffic fallback
 - Live traffic congestion (credit: TomTom; requires an API key)
 - Live precipitation radar (credit: RainViewer) and satellite cloud imagery (credit: Matt Eason)
@@ -53,6 +54,8 @@ Anyway** for EarthCraft and confirm **Open**. See [Apple's instructions](https:/
 - Right-click context menu: view or copy a location's coordinates, add a placemark, fly to that location or add a ruler point
 - Explorer add-on: place coordinates and OpenStreetMap details, Wikimedia Commons photo search, editable narrated tours using system text-to-speech, and controls for live weather, cloud and aircraft layers
 - Moon view and custom PNG/JPEG planet and sky previews, with portable `.earthplanet` files that embed their images
+- Searchable, resizable Settings with theme choices, independent installed UI/map fonts, navigation sensitivity, a saved startup view and imagery cache budgets
+- Gamepad navigation with per-device profiles, remapping, deadzones, response curves, inversion and live input monitoring
 - Optional self-updating as new GitHub Releases are pushed
 
 ### Controls
@@ -69,8 +72,13 @@ The ruler button toggles measuring and reveals its controls when enabled. The
 camera button saves a PNG to the screenshot folder in Settings without a dialog.
 The pin button adds a placemark at the camera center and opens its name and
 details in the sidebar. Toolbar order: Ruler, Add placemark, Screenshot, Settings.
-Choose **Settings → Language** to follow the system locale (the default), use
+Choose **Settings → General → Language** to follow the system locale (the default), use
 English or use Português (Brasil). Unsupported system languages fall back to English.
+
+Settings categories also cover appearance, navigation, globe, graphics, controllers,
+cache and file locations. Cache budget changes require restarting the app. See
+[settings](docs/features/SETTINGS.md), [coordinate formats](docs/features/COORDINATE_DISPLAY.md),
+[controllers](docs/features/CONTROLLERS.md) and the [celestial background](docs/features/CELESTIAL_BACKGROUND.md).
 
 macOS also has **View**, **Add**, **Tools**, **Window** and **Help** menus, plus
 **Settings** in the EarthCraft menu. Windows/Linux expose the commands through
