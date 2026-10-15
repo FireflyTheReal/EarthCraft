@@ -142,7 +142,9 @@ survey-grade accuracy.
 The app owns one Tokio `ServiceRuntime` and injects handles/repaint callbacks.
 Pooled reqwest clients enforce response limits, timeouts and retry policies.
 Network I/O runs asynchronously; bounded feature, tile-decoding and file workers
-separate CPU-heavy parsing from interactive imagery. Six async tile workers use
+separate CPU-heavy parsing from interactive imagery. A panic in one of those
+jobs is returned as that job's error, so the pool and the application keep
+running. Six async tile workers use
 48-job admission, current-view priority and delayed retries; stale queued detail
 is retired while active work and coarse overview jobs remain.
 

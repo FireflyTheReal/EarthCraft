@@ -30,6 +30,20 @@ impl Service {
     }
 }
 
+// Rayon aborts the process when a spawned job panics. Decoders here handle
+// untrusted file and network input, so report a panic as that job's error and
+// keep the pool and application running.
+fn catch_panic<T>(work: impl FnOnce() -> Result<T, crate::Error>) -> Result<T, crate::Error> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(work)).unwrap_or_else(|payload| {
+        let message = payload
+            .downcast_ref::<String>()
+            .map(String::as_str)
+            .or_else(|| payload.downcast_ref::<&str>().copied())
+            .unwrap_or("non-string panic payload");
+        Err(format!("CPU service job panicked: {message}").into())
+    })
+}
+
 pub(crate) async fn run<T: Send + 'static>(
     service: Service,
     work: impl FnOnce() -> Result<T, crate::Error> + Send + 'static,
@@ -48,7 +62,7 @@ pub(crate) async fn run<T: Send + 'static>(
         crate::profiling::Span::elapsed(queue_name, queued, Default::default());
         #[cfg(feature = "profiling")]
         let _profile = crate::profiling::Span::new(work_name);
-        let _ = send.send(work());
+        let _ = send.send(catch_panic(work));
     });
     receive
         .await
@@ -91,5 +105,26 @@ mod tests {
         // Release workers even on assertion failure.
         barrier.wait();
         assert_eq!(result.unwrap().unwrap(), 42);
+    }
+
+    #[test]
+    fn panicking_jobs_report_errors_and_leave_their_pool_usable() {
+        let runtime = crate::runtime::ServiceRuntime::new().unwrap();
+        runtime.handle().block_on(async {
+            // The single-threaded file pool proves its only worker survived.
+            for service in [Service::Files, Service::Features] {
+                let error = run::<()>(service, || panic!("decoder bug"))
+                    .await
+                    .unwrap_err();
+                assert_eq!(error.to_string(), "CPU service job panicked: decoder bug");
+            }
+            let error = run::<()>(Service::Files, || {
+                std::panic::panic_any(7_u8);
+            })
+            .await
+            .unwrap_err();
+            assert!(error.to_string().contains("non-string panic payload"));
+            assert_eq!(run(Service::Files, || Ok(42)).await.unwrap(), 42);
+        });
     }
 }
