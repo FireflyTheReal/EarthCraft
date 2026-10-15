@@ -40,3 +40,8 @@ Configurações. Compilar no macOS não comprova pacotes ou funcionamento físic
 Studio/voo, HOTAS/HID bruto, SpaceMouse, vibração e importação/exportação de perfis
 ficam para trabalho posterior. Os testes exercitam zona morta, inversão/curvas,
 bordas/liberação de botões, conflitos, passos limitados e persistência por modelo.
+
+O lockfile mantém libc 0.2.189: o CI do FreeBSD encontrou uma referência de
+nix 0.31.3 a NOTE_PCTRLMASK, removida em libc 0.2.190. Reavaliar quando
+nix/gilrs oferecer uma atualização compatível. Não há alteração de código da
+dependência nem código unsafe no aplicativo.

@@ -53,3 +53,8 @@ SpaceMouse, rumble, per-workspace profiles or profile file import/export. Those
 need their own modes/adapters rather than inactive settings. Automated fixtures
 exercise deadzones, response/inversion, button edges/release, explicit conflict
 replacement, bounded camera steps and independent profile persistence.
+
+The lockfile retains libc 0.2.189: FreeBSD CI exposed nix 0.31.3 referring to
+NOTE_PCTRLMASK, removed by libc 0.2.190. This is a targeted compatibility pin in
+the application lockfile; reevaluate it when nix/gilrs publishes a compatible
+update. No dependency source patch or application unsafe code is required.
