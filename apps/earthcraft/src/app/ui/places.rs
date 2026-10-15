@@ -201,6 +201,25 @@ impl App {
         );
     }
 
+    pub(in crate::app) fn add_places_folder(&mut self) {
+        let lang = self.lang;
+        let parent = self.place_selection.filter(|id| {
+            self.placemarks
+                .find_mut(*id)
+                .is_some_and(|node| matches!(node.item, PlaceItem::Folder { .. }))
+        });
+        let name = if self.new_name.trim().is_empty() {
+            lang.text("places-folder-name").into()
+        } else {
+            self.new_name.trim().to_owned()
+        };
+        let node = PlaceNode::folder(name, String::new(), false, Vec::new());
+        self.place_selection = Some(node.id());
+        self.placemarks.insert(parent, node);
+        self.new_name.clear();
+        self.place_reveal_requested = true;
+    }
+
     pub(in crate::app) fn places_tree(
         &mut self,
         ui: &mut egui::Ui,
@@ -215,11 +234,6 @@ impl App {
                     .hint_text(lang.text("placemarks-name-placeholder"))
                     .desired_width(110.0),
             );
-            let parent = self.place_selection.filter(|id| {
-                self.placemarks
-                    .find_mut(*id)
-                    .is_some_and(|node| matches!(node.item, PlaceItem::Folder { .. }))
-            });
             if ui
                 .button(lang.text("placemarks-add-center-action"))
                 .clicked()
@@ -227,15 +241,7 @@ impl App {
                 self.add_center_placemark();
             }
             if ui.button(lang.text("places-add-folder-action")).clicked() {
-                let name = if self.new_name.trim().is_empty() {
-                    lang.text("places-folder-name").into()
-                } else {
-                    self.new_name.trim().to_owned()
-                };
-                let node = PlaceNode::folder(name, String::new(), false, Vec::new());
-                self.place_selection = Some(node.id());
-                self.placemarks.insert(parent, node);
-                self.new_name.clear();
+                self.add_places_folder();
             }
         });
         egui::Frame::group(ui.style()).show(ui, |ui| {

@@ -144,6 +144,8 @@ pub(crate) struct App {
     applied_ui_scale: f32,
     ui_scale_edit: f32, // slider value while dragging (committed on release)
     show_settings: bool,
+    show_about: bool,
+    show_shortcuts: bool,
 
     wayback_list: Vec<WaybackRelease>,
     wayback_idx: usize,
@@ -307,6 +309,8 @@ impl App {
             .expect("start settings writer"),
             applied_ui_scale: 0.0,
             show_settings: false,
+            show_about: false,
+            show_shortcuts: false,
             wayback_list: vec![],
             wayback_idx: 0,
             wayback_rx: None,
@@ -466,6 +470,7 @@ impl eframe::App for App {
         self.bottom_bar(ui);
         self.side_panel(ui);
         self.settings_window(ui);
+        self.menu_windows(ui);
         self.explorer_window(ui);
         self.altitude_window(ui);
         self.ruler_points_window(ui);
