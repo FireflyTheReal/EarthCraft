@@ -36,3 +36,7 @@ coalesced writer and geographic/document formats are preserved.
 This first v0.2.0 slice does not introduce future panels, a layer registry or a
 floating ruler. The exact-coordinate ruler editor remains available. Places
 search, tree virtualization and a separate object inspector are later work.
+
+On macOS and Linux, the editable KML/KMZ path abbreviates the home directory as
+`~` (for example, `~/Downloads/places.kmz`). Edits expand back to the full path
+for file operations; hovering shows the full path.

@@ -34,3 +34,7 @@ assíncrona e os formatos geográficos/documentais são preservados.
 Esta etapa não adiciona painéis futuros, registro de camadas ou régua flutuante.
 O editor de coordenadas exatas da régua permanece. Busca em Lugares,
 virtualização e inspetor separado ficam para depois.
+
+No macOS e Linux, o caminho editável KML/KMZ abrevia a pasta pessoal como `~`
+(por exemplo, `~/Downloads/lugares.kmz`). A edição é expandida para o caminho
+completo nas operações de arquivo; passe o cursor para ver o caminho completo.

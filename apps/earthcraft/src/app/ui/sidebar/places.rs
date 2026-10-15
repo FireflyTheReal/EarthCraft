@@ -126,11 +126,7 @@ fn files_footer(
                                     ui.vertical_centered(|ui| {
                                         ui.label(lg.text("kml-drop-zone-hint"));
                                     });
-                                    let r = ui.add(
-                                        egui::TextEdit::singleline(path)
-                                            .id(egui::Id::new("places-files-path"))
-                                            .desired_width(f32::INFINITY),
-                                    );
+                                    let r = super::super::paths::file_path_input(ui, path);
                                     if r.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter)) {
                                         controls.open_typed = true;
                                     }
