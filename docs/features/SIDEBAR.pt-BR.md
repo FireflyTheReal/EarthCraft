@@ -2,36 +2,35 @@
 
 [English](SIDEBAR.md) | [Português (Brasil)](SIDEBAR.pt-BR.md)
 
-A barra de navegação à esquerda alterna entre **Explorar**, **Camadas** e
-**Lugares**. Clicar no botão ativo recolhe o painel, mantendo a barra disponível.
-O botão **☰** da barra superior também fecha/reabre o painel. O **☰** no cabeçalho
-do painel oculta a barra de navegação de forma independente; abas de texto
-mantêm a alternância entre painéis disponível.
+Um seletor horizontal compacto dentro do painel alterna entre **Explorar**,
+**Camadas** e **Lugares**. Passe o cursor para ver os nomes. Selecionar o item ativo
+mantém o painel aberto. O botão **☰** superior recolhe/reabre todo o painel,
+incluindo o seletor. Não há opção separada para ocultar a navegação nem botão ×.
+A largura padrão é 240 pontos, em vez de 270 mais uma barra lateral de 44 pontos.
+O redimensionamento manual e as larguras salvas são preservados.
 
-- **Explorar** reúne navegação, resultados de busca, régua, exportação de capturas
-  e ajuda dos controles. O botão de régua da barra superior alterna a mesma
-  medição e exibe seus controles. Trocar de painel preserva medidas e desfazer/refazer.
-- **Camadas** reúne imagens de base/Wayback e as sobreposições geográficas e ao
-  vivo existentes, com estados, credenciais e atribuições.
-- **Lugares** contém a árvore editável de pastas e suas ações de arquivo. A árvore
-  cresce com o painel, substituindo a área fixa de 128 pontos. Abrir, Salvar e
-  Salvar como permanecem visíveis; opções de caminho e de soltar arquivos ficam
-  em Arquivos KML / KMZ. Duplo clique, menus de contexto, visibilidade e arrastar
-  para pastas mantêm seu funcionamento.
+- **Explorar** reúne navegação e rotação automática, busca, régua, capturas e ajuda.
+  A régua da barra superior usa o mesmo estado e revela seus controles. Trocar
+  de painel preserva medidas e histórico.
+- **Camadas** organiza imagens, limites/rótulos/grade, vias/trânsito, meteorologia,
+  aeronaves/navios/satélites e céu/iluminação. Os grupos são recolhíveis e mantêm
+  estados, credenciais e atribuições junto aos controles correspondentes.
+- **Lugares** contém a árvore editável e ações de arquivo. Abrir/Salvar/Salvar como
+  ficam visíveis. **Arquivos KML / KMZ começa aberto** em uma área inferior
+  reservada; a árvore um pouco menor tem rolagem independente e não oculta essa
+  seção. A área de arquivos também rola em painéis fixados pequenos. Edição,
+  duplo clique, menus de contexto, visibilidade e arrastar continuam disponíveis.
 
 Use **Fixar** em Lugares para manter sua árvore abaixo de Explorar ou Camadas.
-Arraste o divisor horizontal para redimensionar essa área. Selecionar Lugares
-usa o painel inteiro, sem duplicar a árvore. Desafixe pelo cabeçalho para liberar
-espaço. O atalho de marcador exibe seu editor de nome, inclusive quando fixado.
-As áreas de conteúdo e Lugares fixado têm rolagem independente.
+Arraste o divisor para redimensionar. Selecionar Lugares usa o painel completo,
+sem duplicar a árvore. O mesmo controle desafixa. O marcador da barra superior
+revela/foca o editor de nome, inclusive quando fixado.
 
-A seleção do painel, abertura, visibilidade da barra, fixação, largura e altura
-fixada são salvas em `sidebar` no `settings.json` existente. Arquivos antigos
-usam Explorar, painel aberto e barra visível; campos inválidos ou desconhecidos
-preservam valores válidos ou padrões. A gravação usa o serviço assíncrono existente.
+Seleção, abertura, fixação, largura e altura são salvas em sidebar no settings.json.
+Arquivos antigos usam Explorar aberto; campos inválidos preservam valores válidos
+ou padrões. O antigo rail_visible é ignorado e não é mais gravado. A persistência
+assíncrona e os formatos geográficos/documentais são preservados.
 
-Esta é a primeira etapa do painel lateral para a versão 0.2.0. Não acrescenta
-itens futuros à barra, modifica a fidelidade KML, cria um registro de camadas nem
-introduz uma régua flutuante. O editor existente de coordenadas exatas da régua
-continua acessível pelo painel. Busca em Lugares, virtualização da árvore e um
-inspetor de objetos separado ficam para etapas futuras.
+Esta etapa não adiciona painéis futuros, registro de camadas ou régua flutuante.
+O editor de coordenadas exatas da régua permanece. Busca em Lugares,
+virtualização e inspetor separado ficam para depois.

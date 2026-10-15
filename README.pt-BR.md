@@ -61,7 +61,7 @@ Arrastar: girar o globo · Clique com o botão direito: menu de contexto do loca
 
 Clique em **Altitude da câmera** na barra inferior para informar uma altitude exata.
 
-A barra à esquerda abre **Explorar**, **Camadas** ou **Lugares**. Use **Fixar** em
+O seletor horizontal no painel abre **Explorar**, **Camadas** ou **Lugares**. Use **Fixar** em
 Lugares para manter a árvore visível ao trocar de painel. Veja os [controles laterais](docs/features/SIDEBAR.pt-BR.md).
 
 Use **☰** na barra de ferramentas para ocultar ou reabrir o painel lateral e dar mais espaço ao mapa.

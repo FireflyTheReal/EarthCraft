@@ -203,15 +203,18 @@ file dialogs, or packaging. Run the following manual checks for affected areas:
   Select a place with a long HTML description: its text remains editable in a
   three-line scrolling viewport while the tree retains its taller area. Check
   radar/cloud attribution directly beneath its matching layer toggle.
-- Switch Explore/Layers/Places from the rail in both languages. Click the active
-  rail item to close its panel, then reopen it. Hide the rail from a panel header;
-  text tabs must still switch panels. Restore the rail and resize the sidebar.
+- Switch Explore/Layers/Places from the horizontal selector in both languages.
+  Clicking the active item keeps it open. Collapse/reopen from the toolbar: the
+  whole sidebar must disappear, with no remaining rail. Resize the compact panel.
   Pin Places, switch Explore/Layers and drag the horizontal splitter; the outline
   must stay usable and appear only once when Places is selected. Add a placemark
   from the toolbar with Places pinned/unpinned and verify name focus. Toggle the
   ruler and check Explore reveals the same controls without losing history.
-  Resize to a small window and restart: panel, rail, pin and splitter preferences
+  Resize to a small window and restart: panel, pin and splitter preferences
   must survive, while KML save/import and description editing remain usable.
+  Check KML/KMZ starts expanded and stays visible below the shorter Places tree;
+  in a short pinned panel, files and placemarks scroll independently. Check all
+  six layer groups and confirm auto-rotate appears under Explore navigation.
 - In Explorer, display large planet/sky images and load/save `.earthplanet` files;
   the UI should remain responsive while the file work runs. Check the busy
   indicator and disabled file controls, including after a failed operation.

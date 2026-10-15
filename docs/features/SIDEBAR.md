@@ -2,33 +2,37 @@
 
 [English](SIDEBAR.md) | [Português (Brasil)](SIDEBAR.pt-BR.md)
 
-The left navigation rail switches between **Explore**, **Layers** and **Places**.
-Clicking the active rail button collapses its panel; the rail stays available.
-The toolbar **☰** button also closes/reopens the panel. The panel-header **☰**
-button hides the rail independently; text tabs keep panel switching available.
+A compact horizontal icon selector inside the sidebar switches between **Explore**,
+**Layers** and **Places**. Hover for panel names. Selecting the active item keeps
+it open. The toolbar **☰** button collapses/reopens the entire sidebar, including
+its selector. There is no separate rail visibility setting or header close button.
+The default width is 240 points instead of a 270-point panel plus a 44-point rail;
+manual resizing remains available and saved widths are preserved.
 
-- **Explore** contains navigation, search results, ruler controls, screenshot
-  export and controls help. The toolbar ruler toggles the same measurement state
-  and reveals these controls. Measurements and undo/redo survive panel switches.
-- **Layers** contains base imagery/Wayback and the existing geographic/live
-  overlays, with their status, credentials and attribution.
-- **Places** contains the existing editable folder tree and its file actions.
-  The outline grows with the panel instead of retaining a 128-point viewport.
-  Open, Save and Save As stay visible; path/drop-zone options are under KML / KMZ
-  files. Double-click, context menus, visibility and drag-to-folder keep working.
+- **Explore** contains navigation and auto-rotate, search results, ruler controls,
+  screenshot export and controls help. The toolbar ruler toggles the same
+  measurement state and reveals these controls. Measurements/history survive
+  panel switches.
+- **Layers** groups controls into imagery, borders/labels/grid, roads/traffic,
+  weather, aircraft/ships/satellites and sky/lighting. Each group can collapse;
+  its existing status, credentials and attribution remain with its controls.
+- **Places** contains the editable folder tree and file actions. Open/Save/Save As
+  remain visible. **KML / KMZ files starts expanded** in a reserved bottom area;
+  a slightly shorter, independently scrolling placemark viewer cannot push it
+  off-screen. In short pinned panels the file area also scrolls. Double-click,
+  context menus, visibility, name/description editing and drag-to-folder remain.
 
 Use **Pin** in Places to retain its outline below Explore or Layers. Drag the
 horizontal divider to resize that area. Selecting Places gives it the full panel
-without duplicating the tree. Unpin from its header to reclaim the space.
-The toolbar placemark shortcut reveals the existing name editor in Places,
-including when pinned. Sidebar and pinned Places each scroll independently.
+without duplicating the tree. Use the same Pin control to unpin. The toolbar
+placemark shortcut reveals/focuses the existing name editor, including when pinned.
 
-Panel choice, open state, rail visibility, pin state, width and pinned height
-are stored as `sidebar` in the existing `settings.json`. Old files default to
-Explore with an open sidebar and visible rail; invalid/unknown layout fields keep
-valid defaults or current values. Writes use the existing coalesced worker.
+Panel choice, open state, pin state, width and pinned height are stored as
+`sidebar` in the existing settings.json. Old files default to an open Explore
+panel; invalid fields retain valid defaults/current values. The obsolete
+rail_visible field is ignored on read and no longer written. The existing
+coalesced writer and geographic/document formats are preserved.
 
-This is the first sidebar slice for v0.2.0. It does not add future rail entries,
-change KML fidelity, implement a new layer registry, or introduce a floating ruler.
-The existing exact-coordinate ruler editor remains available from the sidebar.
-Places search, tree virtualization and a separate object inspector are later work.
+This first v0.2.0 slice does not introduce future panels, a layer registry or a
+floating ruler. The exact-coordinate ruler editor remains available. Places
+search, tree virtualization and a separate object inspector are later work.

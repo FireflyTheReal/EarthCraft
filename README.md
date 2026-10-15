@@ -60,7 +60,7 @@ Drag: rotate globe · Right-click: location context menu · Right-drag / Shift+d
 
 Click **Camera altitude** in the bottom bar to enter an exact altitude.
 
-The left rail opens **Explore**, **Layers** or **Places**. Use **Pin** in Places
+The horizontal selector inside the sidebar opens **Explore**, **Layers** or **Places**. Use **Pin** in Places
 to keep its outline visible while changing panels. See [sidebar controls](docs/features/SIDEBAR.md).
 
 Use **☰** in the toolbar to hide or reopen the sidebar and give the map more room.

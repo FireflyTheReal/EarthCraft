@@ -346,7 +346,7 @@ construction retain their current frontend scheduling; this PR does not add jobs
 
 ## Sidebar panels
 
-The desktop shell in `app/ui/sidebar.rs` composes a vector navigation rail and
+The desktop shell in `app/ui/sidebar.rs` composes a compact horizontal vector selector and
 Explore/Layers/Places modules. Places can occupy the full panel or remain pinned
 below another panel. Its tree height follows the available area; name/description
 editing and core tree mutations remain in `app/ui/places.rs` and core respectively.

@@ -162,7 +162,7 @@ A propagação orbital aproximada pertence ao core, enquanto o data decodifica O
 
 ## Painéis laterais
 
-A estrutura em `app/ui/sidebar.rs` reúne a barra vetorial de navegação e os
+A estrutura em `app/ui/sidebar.rs` reúne o seletor vetorial horizontal e os
 módulos Explorar/Camadas/Lugares. Lugares pode ocupar todo o painel ou permanecer
 fixado abaixo de outro painel. A altura da árvore acompanha a área disponível;
 a edição de nomes/descrições e as alterações da árvore continuam na UI e no core.

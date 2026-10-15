@@ -7,7 +7,7 @@ background. This is a scoped delivery plan, not a claim that these features exis
 
 | Slice | Deliverable |
 | --- | --- |
-| Sidebar | Explore/Layers/Places rail, resizable panel, pinned/full-height Places, saved layout, shared ruler/placemark shortcuts |
+| Sidebar | Explore/Layers/Places horizontal selector, compact resizable panel, pinned/full-height Places, saved layout, shared ruler/placemark shortcuts |
 | Settings | Categorized, resizable preferences; existing settings preserved; additional appearance/navigation/cache/display options with real behavior |
 | Coordinates | DD, DMS, DDM, UTM/UPS and MGRS display/input, configurable precision and copy behavior; geographic values preserved |
 | Native menus | macOS View/Add/Tools/Window/Help and expanded existing menus using shared app actions; equivalent discoverable controls elsewhere |
