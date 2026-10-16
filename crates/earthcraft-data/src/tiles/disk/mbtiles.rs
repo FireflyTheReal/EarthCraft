@@ -14,7 +14,8 @@ const FORMATS: [(&str, &str); 3] = [
 ];
 const DATABASE_BUSY_TIMEOUT_MS: u64 = 1000;
 const SQLITE_PAGE_CACHE_KIB: i32 = 256;
-pub(super) const DEFAULT_DISK_BUDGET_BYTES: u64 = 128 * 1024 * 1024;
+#[cfg(test)]
+use super::DEFAULT_DISK_BUDGET_BYTES;
 
 #[derive(Clone)]
 struct Address {
@@ -81,16 +82,20 @@ pub(super) struct Mbtiles {
     limit: u64,
 }
 impl Mbtiles {
+    #[cfg(test)]
     pub(super) fn new(root: PathBuf) -> Self {
         Self::with_limit(root, DEFAULT_DISK_BUDGET_BYTES)
     }
-    fn with_limit(root: PathBuf, limit: u64) -> Self {
+    pub(super) fn with_limit(root: PathBuf, limit: u64) -> Self {
         Self {
             root,
             connection: tokio::sync::OnceCell::new(),
             budget: Arc::new(Mutex::new(None)),
             limit,
         }
+    }
+    pub(super) fn limit(&self) -> u64 {
+        self.limit
     }
     async fn call<T: Send + 'static>(
         &self,

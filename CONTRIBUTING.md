@@ -552,3 +552,15 @@ For restart, cancel each save dialog and simulate a save failure: the process mu
 stay open. Save places/custom planet, restart and reopen their contents; settings
 and language must survive. Close normally during a check/download. Do not report
 real replacement/restart as verified unless run against disposable native builds.
+
+## Categorized preferences smoke checks
+
+Open Settings with the toolbar and Ctrl/Cmd+,. Resize the window, visit each
+category, search for localized labels/help in English and Portuguese, and confirm
+that Clear/Reset can be cancelled. Switch themes and installed UI/map fonts;
+verify map text changes independently, clipping/fallback glyphs, missing-font
+recovery, and unchanged coordinate precision. Check drag/rotation/wheel gains,
+inverted scroll, save-current startup view and restart persistence. Change both
+cache budgets, restart, and verify active limits. Existing file dialogs and
+language/system-unit fallback must remain available. Headless tests do not prove
+installed-font appearance or OS dialog behavior.

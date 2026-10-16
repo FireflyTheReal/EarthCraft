@@ -22,6 +22,7 @@ mod cache;
 mod explorer;
 mod files;
 mod flat_earth;
+mod fonts;
 mod frame_timing;
 mod globe;
 mod live_geometry;
@@ -39,12 +40,7 @@ mod ui;
 mod update_restart;
 mod wayback;
 pub(crate) use update_restart::RestartRequest;
-const INITIAL_CAMERA: Cam = Cam {
-    lat: -15.0,
-    lon: -50.0,
-    heading: 0.0,
-    alt: 14_000.0,
-};
+const OVERVIEW_WARMUP_ALTITUDE_KM: f64 = 14_000.0;
 const PAN_SPEED_POINTS_PER_SECOND: f64 = 350.0;
 const BOUNDARY_POLL_INTERVAL: Duration = Duration::from_millis(300);
 
@@ -60,6 +56,8 @@ pub(crate) struct App {
     flat_earth: flat_earth::FlatEarth,
     boundary_loader: earthcraft_data::boundaries::BoundaryLoader,
     lang: Lang,
+    fonts: fonts::FontService,
+    settings_ui: ui::settings::SettingsUi,
     language_preference: LanguagePreference,
     system_locale: String,
     cam: Cam,
@@ -176,10 +174,10 @@ impl App {
         restart: Arc<RestartRequest>,
     ) -> Self {
         let settings = restart.settings.lock().unwrap().take().unwrap_or(settings);
-        let mut vis = egui::Visuals::dark();
-        vis.handle_shape = egui::style::HandleShape::Circle;
-        vis.window_corner_radius = 6.0.into();
-        cc.egui_ctx.set_visuals(vis);
+        cc.egui_ctx.all_styles_mut(|style| {
+            style.visuals.handle_shape = egui::style::HandleShape::Circle;
+            style.visuals.window_corner_radius = 6.0.into();
+        });
         let runtime =
             earthcraft_data::runtime::ServiceRuntime::new().expect("start network runtime");
         let language_preference = load_language_preference();
@@ -191,12 +189,16 @@ impl App {
                 let ctx = cc.egui_ctx.clone();
                 move || ctx.request_repaint()
             });
-        let cache = TileCache::new(
+        let cache = TileCache::with_budgets(
             {
                 let ctx = cc.egui_ctx.clone();
                 move || ctx.request_repaint()
             },
             runtime.handle(),
+            earthcraft_data::tiles::CacheBudgets {
+                decoded_bytes: settings.cache.decoded_bytes(),
+                disk_bytes: settings.cache.disk_bytes(),
+            },
         );
         let renderer = rendering::Renderer::new(cache.clone(), cc.egui_ctx.clone());
         let (file_jobs, file_results) = earthcraft_data::files::FileJobs::new(runtime.handle(), {
@@ -218,8 +220,10 @@ impl App {
             explorer: explorer::Explorer::default(),
             flat_earth: flat_earth::FlatEarth::default(),
             lang,
+            fonts: fonts::FontService::new(cc.egui_ctx.clone()),
+            settings_ui: ui::settings::SettingsUi::default(),
             language_preference,
-            cam: INITIAL_CAMERA,
+            cam: settings.navigation.startup.camera(),
             fly: None,
             cache,
             renderer,
@@ -364,6 +368,13 @@ impl eframe::App for App {
         earthcraft_data::profiling::flush();
     }
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        if self.fonts.poll(
+            ctx,
+            &self.settings.appearance.ui_font,
+            &self.settings.appearance.map_font,
+        ) {
+            self.invalidate_font_layout();
+        }
         self.updater.start_once();
         self.updater.poll();
         let aircraft_enabled = self.show_flights
@@ -438,6 +449,17 @@ impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         #[cfg(feature = "profiling")]
         let mut profile = earthcraft_data::profiling::Span::new("ui.update");
+        ui.set_theme(match self.settings.appearance.theme {
+            earthcraft_data::settings::appearance::ThemePreference::System => {
+                egui::ThemePreference::System
+            }
+            earthcraft_data::settings::appearance::ThemePreference::Dark => {
+                egui::ThemePreference::Dark
+            }
+            earthcraft_data::settings::appearance::ThemePreference::Light => {
+                egui::ThemePreference::Light
+            }
+        });
         let dt = frame_timing::animation_delta_secs(ui);
         if (self.settings.ui_scale - self.applied_ui_scale).abs() > 1e-4 {
             ui::apply_ui_scale(ui, self.settings.ui_scale);

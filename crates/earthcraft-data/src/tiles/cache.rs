@@ -35,6 +35,20 @@ pub enum Lookup {
     Absent,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CacheBudgets {
+    pub decoded_bytes: usize,
+    pub disk_bytes: u64,
+}
+impl Default for CacheBudgets {
+    fn default() -> Self {
+        Self {
+            decoded_bytes: DEFAULT_TILE_CACHE_BUDGET_BYTES,
+            disk_bytes: super::disk::DEFAULT_DISK_BUDGET_BYTES,
+        }
+    }
+}
+
 pub struct TileCache {
     ready: Cache<TileKey, Arc<Tile>, KeyBuild>,
     // Synchronizes request admission only; decoded-cache hits bypass this lock.
@@ -53,11 +67,27 @@ impl TileCache {
     fn with_budget(tx: tokio::sync::mpsc::Sender<TileKey>, budget: usize) -> Self {
         Self::with_budget_at(tx, budget, cache_dir())
     }
+    #[cfg(test)]
     fn with_budget_at(
         tx: tokio::sync::mpsc::Sender<TileKey>,
         budget: usize,
         directory: PathBuf,
     ) -> Self {
+        Self::with_budgets_at(
+            tx,
+            CacheBudgets {
+                decoded_bytes: budget,
+                ..CacheBudgets::default()
+            },
+            directory,
+        )
+    }
+    fn with_budgets_at(
+        tx: tokio::sync::mpsc::Sender<TileKey>,
+        budgets: CacheBudgets,
+        directory: PathBuf,
+    ) -> Self {
+        let budget = budgets.decoded_bytes;
         Self {
             ready: Cache::builder()
                 .name("earthcraft-decoded-tiles")
@@ -71,7 +101,7 @@ impl TileCache {
             requests: Mutex::new(HashMap::default()),
             queue: Mutex::new(VecDeque::new()),
             budget,
-            disk: DiskCache::new(directory),
+            disk: DiskCache::with_budget(directory, budgets.disk_bytes),
             tx,
             generation: AtomicU64::new(0),
             inflight: AtomicUsize::new(0),
@@ -90,14 +120,25 @@ impl TileCache {
         runtime: &tokio::runtime::Handle,
         directory: PathBuf,
     ) -> Arc<Self> {
+        Self::with_budgets_in(repaint, runtime, directory, CacheBudgets::default())
+    }
+    pub fn with_budgets(
+        repaint: impl Fn() + Send + Sync + 'static,
+        runtime: &tokio::runtime::Handle,
+        budgets: CacheBudgets,
+    ) -> Arc<Self> {
+        Self::with_budgets_in(repaint, runtime, cache_dir(), budgets)
+    }
+    fn with_budgets_in(
+        repaint: impl Fn() + Send + Sync + 'static,
+        runtime: &tokio::runtime::Handle,
+        directory: PathBuf,
+        budgets: CacheBudgets,
+    ) -> Arc<Self> {
         let repaint: Arc<dyn Fn() + Send + Sync> = Arc::new(repaint);
         let (tx, rx) = tokio::sync::mpsc::channel(MAX_INFLIGHT);
         let rx = Arc::new(tokio::sync::Mutex::new(rx));
-        let cache = Arc::new(Self::with_budget_at(
-            tx,
-            DEFAULT_TILE_CACHE_BUDGET_BYTES,
-            directory,
-        ));
+        let cache = Arc::new(Self::with_budgets_at(tx, budgets, directory));
         for _ in 0..TILE_WORKER_COUNT {
             let (c, r, x) = (cache.clone(), rx.clone(), repaint.clone());
             runtime.spawn(worker(Arc::downgrade(&c), r, x));
@@ -105,6 +146,12 @@ impl TileCache {
         cache
     }
 
+    pub fn budgets(&self) -> CacheBudgets {
+        CacheBudgets {
+            decoded_bytes: self.budget,
+            disk_bytes: self.disk.budget_bytes(),
+        }
+    }
     /// Short-lived decoded handles for a renderer upload. Never retain this as a second RAM cache.
     pub fn ready_tiles(
         &self,

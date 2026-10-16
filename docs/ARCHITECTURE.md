@@ -370,3 +370,11 @@ never rewrite geographic values. Data persists tolerant format/precision fields
 and the desktop owns labels/copy controls. Recognized invalid input fails locally
 in English; ordinary addresses retain remote search. See
 [coordinate display](features/COORDINATE_DISPLAY.md).
+
+## Preferences and fonts
+
+Data owns tolerant appearance/navigation/cache preferences and applies configured
+imagery budgets at cache construction. The app owns searchable category widgets,
+OS font discovery and a bounded font-loading worker. Installed UI/map faces have
+independent bundled fallbacks; font application invalidates cached overlay text.
+Camera math remains in core. See [settings](features/SETTINGS.md).

@@ -93,7 +93,7 @@ fn build_parts<'a>(
                 LabelKind::City => (Color32::from_rgb(255, 245, 210), 9.0),
                 LabelKind::Metro => (Color32::from_rgb(255, 170, 230), 10.0),
             };
-            let font = FontId::proportional(size * ms);
+            let font = crate::app::fonts::map_font(painter.ctx(), size * ms);
             let text = label.text(style.lang);
             let galley = painter.layout_no_wrap(text.to_string(), font.clone(), color);
             let area = Rect::from_center_size(pos, galley.size()).expand(LABEL_PADDING_POINTS);

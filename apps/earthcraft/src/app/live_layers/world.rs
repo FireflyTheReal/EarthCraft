@@ -1,6 +1,6 @@
 //! Cache styled AIS/orbital meshes without changing polygon/label ordering.
 use earthcraft_render::live_layers::{LiveGeometry, ProjectedSatellite, ProjectedVessel};
-use eframe::egui::{self, Align2, Color32, FontId, Pos2, Shape, Stroke, Vec2};
+use eframe::egui::{self, Align2, Color32, Pos2, Shape, Stroke, Vec2};
 use std::sync::Arc;
 
 const VESSEL_LABEL_ALTITUDE_KM: f64 = 75.0;
@@ -52,7 +52,7 @@ impl WorldShapes {
 fn label(painter: &egui::Painter, at: Pos2, text: &str, scale: f32, color: Color32) -> Shape {
     let galley = painter.layout_no_wrap(
         text.to_owned(),
-        FontId::proportional(LABEL_FONT_POINTS * scale),
+        crate::app::fonts::map_font(painter.ctx(), LABEL_FONT_POINTS * scale),
         color,
     );
     let position = Align2::LEFT_CENTER

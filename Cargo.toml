@@ -28,6 +28,8 @@ sys-locale = "0.3.2"
 self_update = { version = "1.3.0", default-features = false, features = ["github", "reqwest", "rustls", "async", "checksums", "archive-zip", "compression-zip-deflate", "archive-tar", "compression-tar-gz"] }
 semver = "1.0"
 mgrs-convert = "0.1.0"
+ab_glyph = "0.2.32"
+fontdb = { version = "0.24.0", default-features = false, features = ["std", "fs", "fontconfig"] }
 geographiclib-rs = { version = "0.2.7", default-features = false }
 glam = { version = "0.34.1", default-features = false, features = ["std", "f64"] }
 bytemuck = { version = "1.25.2", features = ["derive"] }

@@ -2,7 +2,7 @@
 
 [English](COORDINATE_DISPLAY.md) | [Português (Brasil)](COORDINATE_DISPLAY.pt-BR.md)
 
-Configurações → Coordenadas oferece **DD**, **DMS**, **DDM**, **UTM/UPS** e **MGRS**.
+Configurações → Aparência → Coordenadas oferece **DD**, **DMS**, **DDM**, **UTM/UPS** e **MGRS**.
 O padrão é DMS com duas casas decimais nos segundos. A precisão vale para o formato
 selecionado; trocar de formato escolhe sua precisão padrão. Casas decimais afetam
 apenas a exibição e o texto copiado, preservando valores geográficos e KML.
