@@ -3,7 +3,7 @@
 [English](CELESTIAL_BACKGROUND.md) | [Português (Brasil)](CELESTIAL_BACKGROUND.pt-BR.md)
 
 Camadas → Fundo celeste e Configurações → Globo ativam a Via Láctea atrás da Terra.
-O padrão é ativado; durante carregamento/falha, as estrelas procedurais existentes
+O padrão é desativado; ative explicitamente para usar o fundo. Durante carregamento/falha, as estrelas procedurais existentes
 continuam disponíveis. Configurações mostra diagnóstico em inglês e nova tentativa.
 Desativar restaura o caminho original e seus fixtures. Imagens, iluminação,
 oclusão da Terra e solicitações de tiles permanecem iguais.

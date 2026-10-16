@@ -217,9 +217,11 @@ mod tests {
     #[test]
     fn celestial_preferences_roundtrip_and_ignore_bad_fields() {
         let mut settings = Settings::default();
-        assert!(settings.sky.enabled);
+        assert!(!settings.sky.enabled);
+        settings.apply_json(br#"{}"#).unwrap();
+        assert!(!settings.sky.enabled);
         settings
-            .apply_json(br#"{"sky":{"enabled":false,"cinematic":true}}"#)
+            .apply_json(br#"{"sky":{"enabled":true,"cinematic":true}}"#)
             .unwrap();
         let mut restored = Settings::default();
         restored

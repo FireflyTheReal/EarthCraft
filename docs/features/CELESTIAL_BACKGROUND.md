@@ -3,7 +3,7 @@
 [English](CELESTIAL_BACKGROUND.md) | [Português (Brasil)](CELESTIAL_BACKGROUND.pt-BR.md)
 
 Layers → Celestial background and Settings → Globe toggle a NASA-source Milky Way
-backdrop behind Earth. It is enabled by default; loading or decoding failure
+backdrop behind Earth. It is disabled by default; enable it explicitly to use the backdrop. Loading or decoding failure
 retains the previous procedural starfield with an English diagnostic/retry in
 Settings. Turning it off restores the original rendering path and fixtures.
 Earth imagery, shading, occlusion and tile requests stay unchanged.

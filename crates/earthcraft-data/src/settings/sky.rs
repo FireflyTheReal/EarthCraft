@@ -1,16 +1,8 @@
 use serde::Serialize;
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct SkyPreferences {
     pub enabled: bool,
     pub cinematic: bool,
-}
-impl Default for SkyPreferences {
-    fn default() -> Self {
-        Self {
-            enabled: true,
-            cinematic: false,
-        }
-    }
 }
 impl SkyPreferences {
     pub(super) fn apply(&mut self, value: &serde_json::Value) {
