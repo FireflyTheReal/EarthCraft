@@ -180,3 +180,11 @@ EarthCraft interno de Windows/Linux. As ações são enfileiradas pelos callback
 aplicadas na atualização; os menus permanecem na thread da janela. Marcações,
 ativação e traduções acompanham o estado atual. Sobre e Ajuda usam janelas egui
 do aplicativo. Consulte os [menus do desktop](features/NATIVE_MENUS.pt-BR.md).
+
+## Apresentação de coordenadas
+
+Core trata `CoordinateDisplay`, `CoordinateFormat` e consultas de coordenadas,
+com `mgrs-convert` para UTM/UPS/MGRS. Data persiste formato e precisão com leitura
+tolerante; o aplicativo desenha e copia os valores. A apresentação preserva as
+coordenadas originais. Entradas inválidas reconhecidas falham localmente em inglês;
+endereços mantêm a busca remota. Veja a [exibição de coordenadas](features/COORDINATE_DISPLAY.pt-BR.md).

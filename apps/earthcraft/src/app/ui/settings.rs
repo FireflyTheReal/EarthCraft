@@ -82,6 +82,7 @@ impl App {
                             }
                         });
                 });
+                super::coordinate_display::controls(ui, &mut self.settings.coordinate_display, lg);
                 ui.horizontal(|ui| {
                     ui.label(lg.text("settings-earth-model-label"));
                     let models = earthcraft_core::earth_model::EarthModel::ALL;

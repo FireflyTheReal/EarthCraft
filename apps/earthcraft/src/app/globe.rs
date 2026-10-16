@@ -407,7 +407,14 @@ impl App {
         let mut act: Option<u8> = None;
         resp.context_menu(|ui| match pick {
             Some((la, lo)) => {
-                ui.label(format!("{la:.5}, {lo:.5}"));
+                match self.settings.coordinate_display.format(la, lo) {
+                    Ok(text) => {
+                        ui.label(text);
+                    }
+                    Err(error) => {
+                        ui.label(error.to_string());
+                    }
+                }
                 ui.separator();
                 if ui.button(lg.text("globe-placemark-action")).clicked() {
                     act = Some(0);
@@ -453,7 +460,10 @@ impl App {
                     self.ruler = true;
                     self.ruler_paths.add_point((la, lo), false);
                 }
-                _ => ui.copy_text(format!("{la:.6}, {lo:.6}")),
+                _ => match self.settings.coordinate_display.format(la, lo) {
+                    Ok(text) => ui.copy_text(text),
+                    Err(error) => self.status = error.to_string(),
+                },
             }
         }
 

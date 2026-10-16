@@ -361,3 +361,12 @@ Data owns tolerant `SidebarLayout` persistence in the existing settings file;
 the desktop owns drawing, splitter interaction and shortcut routing. No geometry,
 KML fidelity or live-service behavior changes. See [sidebar](features/SIDEBAR.md)
 and the [v0.2.0 plan](ROADMAP.md).
+
+## Coordinate presentation
+
+Core owns `CoordinateDisplay`, `CoordinateFormat` and recognized coordinate
+queries. The `mgrs-convert` adapter handles UTM/UPS/MGRS; presentation changes
+never rewrite geographic values. Data persists tolerant format/precision fields
+and the desktop owns labels/copy controls. Recognized invalid input fails locally
+in English; ordinary addresses retain remote search. See
+[coordinate display](features/COORDINATE_DISPLAY.md).
