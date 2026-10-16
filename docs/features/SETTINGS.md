@@ -3,13 +3,13 @@
 [English](SETTINGS.md) | [Português (Brasil)](SETTINGS.pt-BR.md)
 
 Open Settings from the toolbar or the application menu (Ctrl/Cmd+,). The resizable
-window groups working controls into General, Appearance, Navigation, Globe,
+window groups working controls into General, Appearance, Navigation,
 Graphics, Data & Cache and Files. Search matches localized category names,
 labels and help text; matching categories remain editable. Reset and cache
 clearing ask for confirmation inside the window.
 
 Appearance includes System/Dark/Light themes, independent installed UI/map font
-families, distance units, coordinate display/precision and text scales. The
+families, distance units, Earth model, coordinate display/precision and text scales. The
 existing dark theme remains the default. A bounded frontend worker discovers
 font metadata and reads selected faces; bundled fonts remain fallback glyphs.
 Missing fonts report an English diagnostic and fall back without changing the

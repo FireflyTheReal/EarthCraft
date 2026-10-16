@@ -16,17 +16,15 @@ enum Category {
     General,
     Appearance,
     Navigation,
-    Globe,
     Graphics,
     Cache,
     Files,
 }
 impl Category {
-    const ALL: [Self; 7] = [
+    const ALL: [Self; 6] = [
         Self::General,
         Self::Appearance,
         Self::Navigation,
-        Self::Globe,
         Self::Graphics,
         Self::Cache,
         Self::Files,
@@ -36,7 +34,6 @@ impl Category {
             Self::General => "settings-category-general",
             Self::Appearance => "settings-category-appearance",
             Self::Navigation => "settings-category-navigation",
-            Self::Globe => "settings-category-globe",
             Self::Graphics => "settings-category-graphics",
             Self::Cache => "settings-category-cache",
             Self::Files => "settings-category-files",
@@ -50,6 +47,9 @@ impl Category {
                 "settings-ui-font-label",
                 "settings-map-font-label",
                 "settings-distance-units-label",
+                "settings-earth-model-label",
+                "earth-model-wgs84",
+                "earth-model-sphere",
                 "settings-ui-scale-label",
                 "settings-map-scale-label",
                 "coordinates-format-label",
@@ -68,11 +68,6 @@ impl Category {
                 "settings-invert-scroll",
                 "settings-startup-view-label",
                 "settings-startup-help",
-            ],
-            Self::Globe => &[
-                "settings-earth-model-label",
-                "earth-model-wgs84",
-                "earth-model-sphere",
             ],
             Self::Graphics => &["settings-uncap-fps-toggle", "settings-frame-sync-help"],
             Self::Cache => &[
@@ -170,7 +165,6 @@ impl App {
                                     }
                                     Category::Appearance => self.settings_appearance(ui),
                                     Category::Navigation => self.settings_navigation(ui),
-                                    Category::Globe => self.settings_globe(ui),
                                     Category::Graphics => self.settings_graphics(ui),
                                     Category::Cache => {
                                         self.settings_cache(ui, &mut state.confirm_cache)
@@ -229,6 +223,8 @@ mod tests {
     #[test]
     fn search_matches_localized_labels_and_help() {
         assert!(Category::Appearance.matches(&fold_name("MGRS"), Lang::En));
+        assert!(Category::Appearance.matches(&fold_name("Earth model"), Lang::En));
+        assert!(Category::Appearance.matches(&fold_name("Modelo da Terra"), Lang::PtBr));
         assert!(Category::Appearance.matches(&fold_name("distância"), Lang::PtBr));
         assert!(Category::Navigation.matches(&fold_name("sensibilidade"), Lang::PtBr));
         assert!(!Category::Files.matches("mgrs", Lang::En));

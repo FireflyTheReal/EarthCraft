@@ -144,6 +144,7 @@ impl App {
                     }
                 });
         });
+        self.settings_earth_model(ui);
         super::super::coordinate_display::controls(ui, &mut self.settings.coordinate_display, lg);
         ui.strong(lg.text("settings-text-section-title"));
         egui::Grid::new("settings_text")
@@ -174,7 +175,7 @@ impl App {
                 ui.end_row();
             });
     }
-    pub(super) fn settings_globe(&mut self, ui: &mut egui::Ui) {
+    fn settings_earth_model(&mut self, ui: &mut egui::Ui) {
         let lg = self.lang;
         ui.horizontal(|ui| {
             ui.label(lg.text("settings-earth-model-label"));

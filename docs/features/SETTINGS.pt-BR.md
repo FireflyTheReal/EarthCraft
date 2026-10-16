@@ -4,12 +4,12 @@
 
 Abra Configurações pela barra de ferramentas ou pelo menu do aplicativo
 (Ctrl/Cmd+,). A janela redimensionável organiza os controles em Geral, Aparência,
-Navegação, Globo, Gráficos, Dados e cache e Arquivos. A busca encontra nomes,
+Navegação, Gráficos, Dados e cache e Arquivos. A busca encontra nomes,
 rótulos e textos de ajuda traduzidos. As categorias encontradas continuam
 editáveis. Restaurar padrões e limpar o cache exigem confirmação na própria janela.
 
 A aparência oferece temas Sistema/Escuro/Claro, fontes instaladas independentes
-para interface e mapa, unidades, formato/precisão de coordenadas e escalas de
+para interface e mapa, unidades, modelo da Terra, formato/precisão de coordenadas e escalas de
 texto. O tema escuro continua como padrão. Um trabalhador limitado descobre as
 fontes e carrega as selecionadas; as fontes incluídas continuam como alternativa
 para caracteres ausentes. Fontes indisponíveis geram diagnóstico em inglês sem
