@@ -315,13 +315,12 @@ Before consolidating checksum sidecars, validate a complete downloaded artifact 
 python3 scripts/package_release.py verify --version 0.2.0 --output /tmp/earthcraft-release
 ```
 
-## v0.2.0 review gate
+## v0.2.0 scope
 
-The desktop controls release is prepared as dependent draft PRs. Review sidebar,
-menus, coordinates, settings, controllers and the first celestial background
-before merging its final version-bump PR. This preparation does not create a tag
-or publish a GitHub Release. See [v0.2.0 notes](releases/v0.2.0.md) for behavior,
-resource/source limits and outstanding physical-device/desktop checks.
+The desktop controls release includes sidebar, menus, coordinates, settings,
+controllers and the first optional celestial background. The background is off
+by default. See [v0.2.0 notes](releases/v0.2.0.md) for behavior, resource/source
+limits and outstanding physical-device/desktop checks.
 
 The source embeds the NASA sky derivative, provenance credits and SOFA notices;
 these are part of the executable even in single-file portable archives. Keep the
