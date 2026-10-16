@@ -8,7 +8,7 @@ const ACTIVE_RENDER_SCALE: f32 = 0.4;
 const MIN_RENDER_WIDTH_PX: usize = 64;
 const MAX_RENDER_WIDTH_PX: usize = 2000;
 const MIN_RENDER_HEIGHT_PX: usize = 32;
-const SUN_UPDATE_INTERVAL_SECS: f64 = 60.0;
+pub const SCENE_TIME_UPDATE_INTERVAL_SECS: f64 = 60.0;
 pub fn raster_size(size_points: Vec2, pixels_per_point: f32, idle: bool) -> (usize, usize) {
     let scale = if idle {
         IDLE_RENDER_SCALE
@@ -32,6 +32,8 @@ pub struct RasterView {
     pub grid: bool,
     pub atmosphere: bool,
     pub sunlight: bool,
+    pub sky: bool,
+    pub cinematic_sky: bool,
 }
 pub struct ViewKeys {
     pub state: u64,
@@ -39,8 +41,8 @@ pub struct ViewKeys {
 }
 impl RasterView {
     pub fn keys(&self, unix_secs: f64) -> ViewKeys {
-        let sun_key = if self.sunlight {
-            (unix_secs / SUN_UPDATE_INTERVAL_SECS) as u64
+        let sun_key = if self.sunlight || self.sky {
+            (unix_secs / SCENE_TIME_UPDATE_INTERVAL_SECS) as u64
         } else {
             0
         };
@@ -56,7 +58,13 @@ impl RasterView {
                 self.provider.id(),
                 self.grid,
             ),
-            (self.atmosphere, sun_key, self.release_index),
+            (
+                self.atmosphere,
+                sun_key,
+                self.release_index,
+                self.sky,
+                self.cinematic_sky,
+            ),
             (self.aspect.to_bits(), self.model.code()),
         )
             .hash(&mut state);
@@ -70,7 +78,7 @@ impl RasterView {
             self.grid,
             self.atmosphere,
             sun_key,
-            self.model.code(),
+            (self.model.code(), self.sky, self.cinematic_sky),
         )
             .hash(&mut presentation);
         ViewKeys {
@@ -83,6 +91,36 @@ impl RasterView {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn sky_changes_invalidate_presentation_even_without_sunlight() {
+        let mut view = RasterView {
+            camera: Cam {
+                lat: 0.0,
+                lon: 0.0,
+                alt: 14000.0,
+                heading: 0.0,
+            },
+            model: earthcraft_core::earth_model::EarthModel::Wgs84,
+            width: 64,
+            height: 48,
+            aspect: 4.0 / 3.0,
+            provider: Provider::Satellite,
+            release_index: 0,
+            grid: false,
+            atmosphere: false,
+            sunlight: false,
+            sky: false,
+            cinematic_sky: false,
+        };
+        let off = view.keys(120.0);
+        assert_eq!(off.presentation, view.keys(180.0).presentation);
+        view.sky = true;
+        assert_ne!(off.presentation, view.keys(120.0).presentation);
+        assert_ne!(view.keys(120.0).presentation, view.keys(180.0).presentation);
+        let realistic = view.keys(120.0);
+        view.cinematic_sky = true;
+        assert_ne!(realistic.presentation, view.keys(120.0).presentation);
+    }
     #[test]
     fn motion_changes_state_but_preserves_presentation_compatibility() {
         let mut view = RasterView {
@@ -101,6 +139,8 @@ mod tests {
             grid: false,
             atmosphere: true,
             sunlight: true,
+            sky: false,
+            cinematic_sky: false,
         };
         let original = view.keys(120.0);
         view.model = earthcraft_core::earth_model::EarthModel::Wgs84;

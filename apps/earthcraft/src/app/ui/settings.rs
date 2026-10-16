@@ -5,6 +5,7 @@ use earthcraft_data::settings::Settings;
 use eframe::egui;
 mod controllers;
 mod sections;
+mod sky;
 pub(super) const MAX_UI_SLIDER_SCALE: f32 = 2.0;
 const WINDOW_SIZE_POINTS: egui::Vec2 = egui::vec2(680.0, 560.0);
 const WINDOW_MIN_SIZE_POINTS: egui::Vec2 = egui::vec2(520.0, 360.0);
@@ -17,16 +18,18 @@ enum Category {
     General,
     Appearance,
     Navigation,
+    Globe,
     Graphics,
     Controllers,
     Cache,
     Files,
 }
 impl Category {
-    const ALL: [Self; 7] = [
+    const ALL: [Self; 8] = [
         Self::General,
         Self::Appearance,
         Self::Navigation,
+        Self::Globe,
         Self::Graphics,
         Self::Controllers,
         Self::Cache,
@@ -37,6 +40,7 @@ impl Category {
             Self::General => "settings-category-general",
             Self::Appearance => "settings-category-appearance",
             Self::Navigation => "settings-category-navigation",
+            Self::Globe => "settings-category-globe",
             Self::Controllers => "settings-category-controllers",
             Self::Graphics => "settings-category-graphics",
             Self::Cache => "settings-category-cache",
@@ -73,6 +77,7 @@ impl Category {
                 "settings-startup-view-label",
                 "settings-startup-help",
             ],
+            Self::Globe => &["sky-enabled", "sky-help", "sky-cinematic"],
             Self::Controllers => &[
                 "controllers-enabled",
                 "controllers-help",
@@ -175,6 +180,7 @@ impl App {
                                     }
                                     Category::Appearance => self.settings_appearance(ui),
                                     Category::Navigation => self.settings_navigation(ui),
+                                    Category::Globe => self.settings_sky(ui),
                                     Category::Controllers => self.settings_controllers(ui),
                                     Category::Graphics => self.settings_graphics(ui),
                                     Category::Cache => {

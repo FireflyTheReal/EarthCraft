@@ -6,6 +6,12 @@ use earthcraft_data::tiles::{Lookup, Provider, make_key};
 #[ignore = "requires a native GPU; run explicitly with --ignored --nocapture"]
 fn gpu_overview_matches_cpu() {
     let mut gpu = GpuRenderer::new().expect("native GPU adapter and validated shader");
+    let sky_image = Arc::new(
+        earthcraft_data::sky::SkyImage::decode(include_bytes!(
+            "../../../../assets/sky/milkyway-2020-4k-sdr.jpg"
+        ))
+        .unwrap(),
+    );
     let image = image::RgbaImage::from_fn(256, 256, |x, y| {
         image::Rgba([x as u8, y as u8, (x ^ y) as u8, 255])
     });
@@ -35,6 +41,16 @@ fn gpu_overview_matches_cpu() {
                     cam,
                     basis: cam.basis(w as f64 / h as f64),
                     cfg: crate::RenderCfg {
+                        sky: enabled.then(|| {
+                            crate::celestial::SkyBackdrop::new(
+                                sky_image.clone(),
+                                1_760_000_000.0,
+                                cam,
+                                ll_to_v3(20.0, 45.0),
+                                false,
+                            )
+                            .unwrap()
+                        }),
                         provider,
                         rel: 7,
                         grid: false,
@@ -143,6 +159,7 @@ fn unsupported_views_choose_precision_instead_of_truncating_gpu_work() {
         cam,
         basis: cam.basis(2000.0 / 1488.0),
         cfg: crate::RenderCfg {
+            sky: None,
             provider: Provider::Satellite,
             rel: 0,
             grid: false,

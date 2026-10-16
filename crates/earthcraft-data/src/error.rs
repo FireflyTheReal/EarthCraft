@@ -10,6 +10,8 @@ pub enum Error {
     #[error(transparent)]
     Http(#[from] reqwest::Error),
     #[error(transparent)]
+    Png(#[from] png::EncodingError),
+    #[error(transparent)]
     Xml(#[from] quick_xml::Error),
     #[error(transparent)]
     Coordinates(#[from] earthcraft_core::coordinates::CoordinateError),

@@ -386,3 +386,12 @@ camera steps. Data persists bounded per-model profiles. The app's gilrs adapter
 polls hotplug/input, arbitrates focus and dispatches tool actions through menus;
 its settings module owns remapping and the live monitor. See
 [controllers](features/CONTROLLERS.md) for device/platform limits.
+
+## Celestial background
+
+Core's celestial frame adapter uses sofars to transform Earth-fixed rays into
+ICRF/J2000 directions. Data owns the pinned bundled image and bounded asynchronous
+decode. Render owns equatorial bilinear sampling, daylight visibility and shared
+CPU/GPU sky repair. App owns toggles, diagnostic/credit widgets and frame-matched
+screenshot attribution. See [celestial background](features/CELESTIAL_BACKGROUND.md)
+and the independent dataset manifest in assets/sky.

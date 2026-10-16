@@ -575,3 +575,17 @@ replacement. Edit text/open dialogs/lose focus with sticks held: the camera must
 wait for neutral on return. Reconnect/restart and check the saved profile. Verify
 mouse/keyboard and menu actions still work. Repeat on each packaged platform;
 a headless engine test is not a physical-adapter or confinement test.
+
+## Celestial background smoke checks
+
+Use a wide-angle North America view with the same camera before/after toggling
+Layers → Celestial background. Confirm the Milky Way changes only space and Earth
+occludes it. Compare opposite longitudes/headings, seams and poles; compare clock
+buckets with NASA's equatorial markers. Near the daytime surface, compare
+Realistic/Cinematic and the existing atmosphere. Toggle while frames are pending
+and resize/move the sidebar; stale sky styles must not publish. Save a clean PNG
+and inspect Source metadata from its displayed frame, including during pending
+toggle changes. Check offline startup, retry/fallback and EN/PT credits/settings.
+Run the existing explicit gpu_overview_matches_cpu test on a native GPU; it now
+includes the real map in sky-enabled cases. Review source/derivative hashes with
+`python3 -m unittest discover -s scripts -p 'test_prepare_sky.py'` (no downloads).

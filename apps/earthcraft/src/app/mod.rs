@@ -23,6 +23,7 @@ mod controllers;
 mod explorer;
 mod files;
 mod flat_earth;
+const SKY_CLOCK_REPAINT_INTERVAL: Duration = Duration::from_secs(30);
 mod fonts;
 mod frame_timing;
 mod globe;
@@ -59,6 +60,7 @@ pub(crate) struct App {
     lang: Lang,
     fonts: fonts::FontService,
     controllers: controllers::Controllers,
+    sky: earthcraft_data::sky::SkyService,
     settings_ui: ui::settings::SettingsUi,
     language_preference: LanguagePreference,
     system_locale: String,
@@ -224,6 +226,7 @@ impl App {
             lang,
             fonts: fonts::FontService::new(cc.egui_ctx.clone()),
             controllers: controllers::Controllers::new(),
+            sky: earthcraft_data::sky::SkyService::default(),
             settings_ui: ui::settings::SettingsUi::default(),
             language_preference,
             cam: settings.navigation.startup.camera(),
@@ -377,6 +380,15 @@ impl eframe::App for App {
             &self.settings.appearance.map_font,
         ) {
             self.invalidate_font_layout();
+        }
+        let sky_wake = ctx.clone();
+        self.sky.update(
+            self.runtime.handle(),
+            self.settings.sky.enabled,
+            move || sky_wake.request_repaint(),
+        );
+        if self.settings.sky.enabled && self.sky.image.is_some() {
+            ctx.request_repaint_after(SKY_CLOCK_REPAINT_INTERVAL);
         }
         self.updater.start_once();
         self.updater.poll();

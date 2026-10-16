@@ -155,14 +155,14 @@ pub(super) fn surface<const ELLIPSOID: bool>(
 pub(super) fn sky(ray: &rays::RaySample, cc: f64, cfg: &RenderCfg) -> Vec4 {
     let d = ray.direction;
     let bb = ray.camera_dot;
-    let mut col = SPACE_COLOR;
+    let mut col = cfg.sky.as_ref().map_or(SPACE_COLOR, |sky| sky.sample(d));
     let cell = (
         (d.x * STAR_GRID_RESOLUTION).floor() as i64,
         (d.y * STAR_GRID_RESOLUTION).floor() as i64,
         (d.z * STAR_GRID_RESOLUTION).floor() as i64,
     );
     let hs = hash3(cell.0, cell.1, cell.2);
-    if hs.is_multiple_of(STAR_OCCURRENCE_MODULUS) {
+    if cfg.sky.is_none() && hs.is_multiple_of(STAR_OCCURRENCE_MODULUS) {
         let br = STAR_MIN_BRIGHTNESS
             + ((hs >> STAR_BRIGHTNESS_SHIFT) & STAR_BRIGHTNESS_MASK) as f32
                 / STAR_BRIGHTNESS_DIVISOR;
@@ -187,6 +187,7 @@ mod tests {
     fn ellipsoid_texture_coordinates_match_geodetic_mercator_reference() {
         let model = EarthModel::Wgs84;
         let cfg = RenderCfg {
+            sky: None,
             provider: Provider::Satellite,
             rel: 0,
             grid: false,
@@ -236,6 +237,7 @@ mod tests {
         let threshold_m =
             altitude_km * METERS_PER_KM * 2.0 * VERTICAL_FOV_HALF_TAN * GRID_LINE_WIDTH_PX;
         let cfg = RenderCfg {
+            sky: None,
             provider: Provider::Satellite,
             rel: 0,
             grid: true,

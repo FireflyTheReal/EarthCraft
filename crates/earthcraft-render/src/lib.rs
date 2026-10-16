@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 use glam::{DVec3, Vec2, Vec4};
 pub mod backend;
+pub mod celestial;
 #[cfg(feature = "gpu")]
 mod gpu;
 pub mod overlays;
@@ -49,6 +50,7 @@ pub fn grid_step(altitude_km: f64, width: usize, height: usize) -> f64 {
 // ───────────────────────────── Rendering ─────────────────────────────
 
 pub struct RenderCfg {
+    pub sky: Option<celestial::SkyBackdrop>,
     pub provider: Provider,
     pub rel: u16,
     pub grid: bool,

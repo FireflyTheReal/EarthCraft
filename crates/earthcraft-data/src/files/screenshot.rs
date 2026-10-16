@@ -11,6 +11,7 @@ pub(super) fn save(
     width: u32,
     height: u32,
     pixels: &[u8],
+    credits: Option<&str>,
 ) -> Result<FileOutcome, crate::Error> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
@@ -41,14 +42,24 @@ pub(super) fn save(
         }
     };
     let mut writer = BufWriter::new(file);
-    image::write_buffer_with_format(
-        &mut writer,
-        pixels,
-        width,
-        height,
-        image::ColorType::Rgba8,
-        image::ImageFormat::Png,
-    )?;
+    if let Some(credits) = credits {
+        let mut encoder = png::Encoder::new(&mut writer, width, height);
+        encoder.set_color(png::ColorType::Rgba);
+        encoder.set_depth(png::BitDepth::Eight);
+        encoder.add_itxt_chunk("Source".into(), credits.into())?;
+        let mut png = encoder.write_header()?;
+        png.write_image_data(pixels)?;
+        png.finish()?;
+    } else {
+        image::write_buffer_with_format(
+            &mut writer,
+            pixels,
+            width,
+            height,
+            image::ColorType::Rgba8,
+            image::ImageFormat::Png,
+        )?;
+    }
     writer.flush()?;
     Ok(FileOutcome::ScreenshotSaved { path: candidate })
 }

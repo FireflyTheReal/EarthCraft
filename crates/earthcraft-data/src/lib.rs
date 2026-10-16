@@ -28,3 +28,5 @@ pub mod satellites;
 pub mod traffic;
 pub mod updater;
 pub mod vessels;
+
+pub mod sky;
