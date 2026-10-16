@@ -14,7 +14,7 @@ separate from development checks. An initial run still compiles dependencies;
 compatible later runs can reuse them. Caching does not reuse previously published
 application binaries: every release still builds and packages its tagged source.
 
-| Platform | Release files (prefix `earthcraft-0.1.0-`) |
+| Platform | Release files (prefix `earthcraft-0.2.0-`) |
 | --- | --- |
 | Linux x86-64 | `linux-x64.tar.gz`, `linux-x64.deb`, `linux-x64.rpm`, `linux-x64.AppImage`, `linux-x64.AppImage.zsync`, `linux-x64.flatpak`, `linux-x64.snap` |
 | Linux ARM64 | `linux-arm64.tar.gz`, `linux-arm64.deb`, `linux-arm64.rpm`, `linux-arm64.AppImage`, `linux-arm64.AppImage.zsync`, `linux-arm64.flatpak`, `linux-arm64.snap` |
@@ -29,9 +29,9 @@ or unexpected build file prevents publication. Preview artifacts retain
 individual `.sha256` files; publication verifies and consolidates them.
 GitHub also provides its standard source-code archives. Linux builds run
 on Ubuntu 22.04, targeting glibc 2.35 or newer. Portable Linux archives require
-GTK 3 and a working graphics driver. AppImage bundles include GTK libraries and
+GTK 3, libudev and a working graphics driver. AppImage bundles include GTK libraries and
 resources through linuxdeploy's GTK plugin. FreeBSD builds run in a FreeBSD 14.5
-VM and require GTK 3, libxkbcommon and a working graphics driver at runtime.
+VM and require GTK 3, libxkbcommon, libudev-devd, libinotify and a working graphics driver at runtime.
 macOS bundles target macOS 11 or newer and are ad-hoc signed, without a
 Developer ID certificate or notarization. The ARM64 build packages `EarthCraft.app`
 directly into a DMG. Packaging verifies its ARM64 Mach-O header, embeds the padded
@@ -69,13 +69,14 @@ system-package paths use the updater's existing managed-install detection.
 
 Install a Flatpak bundle with `flatpak install --user ./earthcraft-<version>-linux-<arch>.flatpak`
 and launch it with `flatpak run com.theri.earthcraft`. The bundle points to Flathub
-for its GNOME runtime. It permits network access, graphics and native file dialogs
+for its GNOME runtime. It permits network access, graphics, input devices and native file dialogs
 with host file access. Flatpak manages its application data separately; the bundle
 does not include the optional `espeak` narration executable.
 
 Snap bundles use strict confinement with the GNOME extension, network, home,
-removable-media and audio interfaces. Install with
+removable-media, audio and joystick interfaces. Install with
 `sudo snap install --dangerous ./earthcraft-<version>-linux-<arch>.snap`.
+Controller access may require `sudo snap connect earthcraft:joystick`.
 Access to removable media may require `sudo snap connect earthcraft:removable-media`.
 These files are sideloadable releases, not publication to Flathub or the Snap Store.
 
@@ -154,7 +155,7 @@ After merge, the Actions page also offers a manual **Release** run with the same
 preview-only behavior. Inspect and test these artifacts before creating a version tag.
 Actions artifact names also include the workspace version, so their downloadable
 wrapper ZIPs are versioned (for example,
-`earthcraft-0.1.0-x86_64-pc-windows-msvc.zip`). The release package inside retains
+`earthcraft-0.2.0-x86_64-pc-windows-msvc.zip`). The release package inside retains
 its friendly platform name from the table above.
 
 ## Publish a version
@@ -162,7 +163,7 @@ its friendly platform name from the table above.
 1. Set `workspace.package.version` in `Cargo.toml`, regenerate `Cargo.lock`,
    run the contributor checks, and merge those changes.
 2. From the reviewed commit, create and push the matching tag, for example
-   `git tag v0.1.0` followed by `git push upstream v0.1.0`.
+   `git tag v0.2.0` followed by `git push upstream v0.2.0`.
 3. The workflow requires the tag to equal `v` plus the workspace version.
    All six native builds, all package formats and asset checksums must
    succeed before publication.
@@ -226,12 +227,12 @@ The GitHub release page uses GitHub's native generated notes rather than the
 commit-grouped Actions changelog. This produces **What's Changed** entries with
 PR titles, authors and PR links, a **New Contributors** section when applicable,
 and a full comparison link when a previous comparison tag exists. The release title is
-`EarthCraft v0.1.0`. Existing draft notes are preserved on a retry.
+`EarthCraft v0.2.0`. Existing draft notes are preserved on a retry.
 
 Maintainers can preview the GitHub notes without creating a release:
 
 ```sh
-gh api --method POST repos/therichronicles/EarthCraft/releases/generate-notes -f tag_name=v0.1.0 -f target_commitish=main --jq .body
+gh api --method POST repos/therichronicles/EarthCraft/releases/generate-notes -f tag_name=v0.2.0 -f target_commitish=main --jq .body
 ```
 
 To preview locally, install git-cliff 2.14.2 and run:
@@ -246,9 +247,9 @@ python3 -m unittest discover -s scripts -p 'test_package_*.py'
 Python 3.12+ is required for the packaging helper. For a native Linux x86-64 build:
 
 ```sh
-python3 scripts/package_release.py validate --tag v0.1.0
+python3 scripts/package_release.py validate --tag v0.2.0
 cargo build -p earthcraft --release --no-default-features --locked
-python3 scripts/package_release.py package --version 0.1.0 --target x86_64-unknown-linux-gnu --binary target/release/earthcraft --output /tmp/earthcraft-release
+python3 scripts/package_release.py package --version 0.2.0 --target x86_64-unknown-linux-gnu --binary target/release/earthcraft --output /tmp/earthcraft-release
 ```
 
 Use the target and executable name for your native platform. For explicit-target
@@ -272,7 +273,7 @@ python3 -m venv /tmp/earthcraft-packaging
 /tmp/earthcraft-packaging/bin/python -m pip install dmgbuild==1.6.7
 rustup target add aarch64-apple-darwin
 MACOSX_DEPLOYMENT_TARGET=11.0 cargo build -p earthcraft --release --no-default-features --locked --target aarch64-apple-darwin
-/tmp/earthcraft-packaging/bin/python scripts/package_release.py package --version 0.1.0 --target aarch64-apple-darwin --binary target/aarch64-apple-darwin/release/earthcraft --output /tmp/earthcraft-release
+/tmp/earthcraft-packaging/bin/python scripts/package_release.py package --version 0.2.0 --target aarch64-apple-darwin --binary target/aarch64-apple-darwin/release/earthcraft --output /tmp/earthcraft-release
 ```
 
 ### Additional native formats
@@ -283,7 +284,7 @@ formats, install the pinned packaging tools, then run:
 ```sh
 cargo install cargo-packager --version 0.11.8 --locked
 cargo install cargo-generate-rpm --version 0.21.0 --locked
-python3 scripts/package_linux.py --version 0.1.0 --target x86_64-unknown-linux-gnu --binary target/release/earthcraft --output /tmp/earthcraft-release --formats deb rpm appimage
+python3 scripts/package_linux.py --version 0.2.0 --target x86_64-unknown-linux-gnu --binary target/release/earthcraft --output /tmp/earthcraft-release --formats deb rpm appimage
 ```
 
 Flatpak and Snap use the same helper with `--formats flatpak` or `--formats snap`,
@@ -311,5 +312,19 @@ are unchanged by the packaging tools.
 Before consolidating checksum sidecars, validate a complete downloaded artifact set:
 
 ```sh
-python3 scripts/package_release.py verify --version 0.1.0 --output /tmp/earthcraft-release
+python3 scripts/package_release.py verify --version 0.2.0 --output /tmp/earthcraft-release
 ```
+
+## v0.2.0 review gate
+
+The desktop controls release is prepared as dependent draft PRs. Review sidebar,
+menus, coordinates, settings, controllers and the first celestial background
+before merging its final version-bump PR. This preparation does not create a tag
+or publish a GitHub Release. See [v0.2.0 notes](releases/v0.2.0.md) for behavior,
+resource/source limits and outstanding physical-device/desktop checks.
+
+The source embeds the NASA sky derivative, provenance credits and SOFA notices;
+these are part of the executable even in single-file portable archives. Keep the
+dataset manifest in the source distribution. Sky screenshots embed their displayed
+frame's provider credit in PNG Source metadata. The 4K SDR image adds about 2.5 MB
+to the binary and retains 24 MiB RGB plus decoder/encoded overhead when loaded.

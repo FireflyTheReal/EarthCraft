@@ -2,7 +2,7 @@
 
 [English](ARCHITECTURE.md) | [Português (Brasil)](ARCHITECTURE.pt-BR.md)
 
-EarthCraft 0.1.0 is a Cargo workspace with one desktop application and three libraries.
+EarthCraft 0.2.0 is a Cargo workspace with one desktop application and three libraries.
 
 ```mermaid
 flowchart TD

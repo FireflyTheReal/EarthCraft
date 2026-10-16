@@ -1148,7 +1148,7 @@ checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 
 [[package]]
 name = "earthcraft"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "ab_glyph",
  "earthcraft-core",
@@ -1170,7 +1170,7 @@ dependencies = [
 
 [[package]]
 name = "earthcraft-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "emath",
  "fluent-bundle",
@@ -1187,7 +1187,7 @@ dependencies = [
 
 [[package]]
 name = "earthcraft-data"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bytemuck",
  "earthcraft-core",
@@ -1213,7 +1213,7 @@ dependencies = [
 
 [[package]]
 name = "earthcraft-render"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bytemuck",
  "earthcraft-core",
