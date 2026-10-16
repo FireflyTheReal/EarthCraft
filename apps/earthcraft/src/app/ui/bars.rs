@@ -17,7 +17,10 @@ impl App {
                     };
                     ui.toggle_value(&mut self.sidebar_open, "☰")
                         .on_hover_text(sidebar_hint);
+                    #[cfg(target_os = "macos")]
                     ui.strong("🌍 EarthCraft");
+                    #[cfg(not(target_os = "macos"))]
+                    ui.menu_button("🌍 EarthCraft", |ui| self.in_window_menu(ui));
                     if ui.button(lg.text("top-explore-action")).clicked() {
                         self.explorer.open = true;
                     }
@@ -55,17 +58,10 @@ impl App {
                             self.save_screenshot();
                         }
                         if super::toolbar::placemark_button(ui, lg).clicked() {
-                            self.add_center_placemark();
-                            self.sidebar_open = true;
-                            self.place_reveal_requested = true;
-                            self.ruler_reveal_requested = false;
+                            self.run_menu_action(crate::app::menu::Action::Placemark, ui);
                         }
                         if super::toolbar::ruler_button(ui, &mut self.ruler, lg).clicked() {
-                            self.ruler_reveal_requested = self.ruler;
-                            if self.ruler {
-                                self.sidebar_open = true;
-                                self.place_reveal_requested = false;
-                            }
+                            self.reveal_ruler();
                         }
                         super::status::show(ui, &self.status, self.status_file.as_ref());
                     });

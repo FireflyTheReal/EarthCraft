@@ -12,7 +12,7 @@ User instructions and the requested scope take precedence over these defaults.
   dialogs only from the app update. Keep menu objects on the window thread,
   localize captions in both catalogs, and reuse the existing file services.
   Workspace code forbids unsafe Rust. Native menus are macOS-only; Windows and
-  Linux use the app's sidebar controls.
+  Linux use the app's in-window menus and sidebar controls.
 - `crates/earthcraft-core` owns geometry, camera operations, language selection,
   embedded localization, and placemark values. It may use `emath` for screen geometry; keep network,
   filesystem, egui widgets, and windowing out of it.

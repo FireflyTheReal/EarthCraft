@@ -71,6 +71,10 @@ details in the sidebar. Toolbar order: Ruler, Add placemark, Screenshot, Setting
 Choose **Settings → Language** to follow the system locale (the default), use
 English or use Português (Brasil). Unsupported system languages fall back to English.
 
+macOS also has **View**, **Add**, **Tools**, **Window** and **Help** menus, plus
+**Settings** in the EarthCraft menu. Windows/Linux expose the commands through
+the **EarthCraft** button. See [desktop menus](docs/features/NATIVE_MENUS.md).
+
 On macOS, the native **File** menu opens/saves KML and saves PNG screenshots. Use Cmd+O to open, Cmd+S to save, Cmd+Shift+S for Save As, and Cmd+Shift+E for a screenshot. Screenshots use the folder selected in Settings. Quit is in the application menu. Windows and Linux use the sidebar's file controls and the same shortcuts with Ctrl instead of Cmd; Ctrl+Q quits.
 
 Open **Explore +** in the top bar to access the Explorer add-on. Narration uses
