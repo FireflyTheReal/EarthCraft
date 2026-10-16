@@ -74,10 +74,10 @@ fn revealing_selected_name_focuses_and_scrolls_the_existing_editor_into_view() {
 }
 
 #[test]
-fn tree_reserves_its_height_even_near_the_bottom_of_the_sidebar() {
+fn tree_reserves_the_requested_height_even_near_the_bottom_of_the_sidebar() {
     let ctx = egui::Context::default();
     for rows in [1, 100] {
-        for _ in 0..3 {
+        for height_points in [128.0, 320.0, 500.0] {
             crate::app::test_ui::run(
                 &ctx,
                 egui::RawInput {
@@ -90,12 +90,12 @@ fn tree_reserves_its_height_even_near_the_bottom_of_the_sidebar() {
                 |ui| {
                     egui::ScrollArea::vertical().show(ui, |ui| {
                         ui.add_space(400.0);
-                        let area = tree_scroll_area().show(ui, |ui| {
+                        let area = tree_scroll_area(height_points).show(ui, |ui| {
                             for row in 0..rows {
                                 ui.label(format!("Place {row}"));
                             }
                         });
-                        assert!((area.inner_rect.height() - TREE_HEIGHT_POINTS).abs() < 1.0);
+                        assert!((area.inner_rect.height() - height_points).abs() < 1.0);
                         if rows == 100 {
                             assert!(area.content_size.y > area.inner_rect.height());
                         }

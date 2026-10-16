@@ -42,6 +42,7 @@ Anyway** for EarthCraft and confirm **Open**. See [Apple's instructions](https:/
 - Satellite positions predicted from CelesTrak orbital data using an approximate two-body model
 - Place and address search (credit: Nominatim), plus direct "lat, lon" coordinate input
 - Animated fly-to (double-click, search or list)
+- Explore/Layers/Places sidebar panels, with a resizable outline, pinned Places and saved layout
 - Placemarks in an editable KML folder tree, with visibility controls and drag-to-folder organization
 - Extensible Earth geodesy model selector: WGS 84 (G2296) by default, with Perfect Sphere available as an alternative
 - Geodesic distance ruler (great-circle or ellipsoidal), with exact decimal-degree point entry/editing, undo/redo, separate paths (Alt-click), selectable metric, imperial, nautical, angular and novelty units and initial bearing for the last segment
@@ -58,6 +59,9 @@ Anyway** for EarthCraft and confirm **Open**. See [Apple's instructions](https:/
 Drag: rotate globe · Right-click: location context menu · Right-drag / Shift+drag: rotate view · Wheel / +/-: zoom · Double-click: fly to point · Arrow keys: move · N: north up
 
 Click **Camera altitude** in the bottom bar to enter an exact altitude.
+
+The horizontal selector inside the sidebar opens **Explore**, **Layers** or **Places**. Use **Pin** in Places
+to keep its outline visible while changing panels. See [sidebar controls](docs/features/SIDEBAR.md).
 
 Use **☰** in the toolbar to hide or reopen the sidebar and give the map more room.
 The ruler button toggles measuring and reveals its controls when enabled. The

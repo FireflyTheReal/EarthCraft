@@ -294,7 +294,7 @@ impl App {
             ruler_paths: earthcraft_core::ruler::Ruler::default(),
             ruler_point_editor: None,
             cursor: None,
-            sidebar_open: true,
+            sidebar_open: settings.sidebar.open,
             sidebar_animating: false,
             show_help: false,
             ui_scale_edit: settings.ui_scale,

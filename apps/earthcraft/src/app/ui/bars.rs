@@ -100,12 +100,7 @@ impl App {
                 ui.horizontal(|ui| {
                     ui.set_clip_rect(ui.max_rect().intersect(ui.clip_rect()));
                     let sidebar_right =
-                        egui::containers::panel::PanelState::load(ui, egui::Id::new("side"))
-                            .map_or(
-                                ui.content_rect().left()
-                                    + super::sidebar::DEFAULT_SIDEBAR_WIDTH_POINTS,
-                                |state| state.outer_rect.right(),
-                            );
+                        super::sidebar::outer_right(ui, &self.settings.sidebar, self.sidebar_open);
                     // Keep the cursor divider on the inner edge of the sidebar separator.
                     const SIDEBAR_SEPARATOR_INSET_POINTS: f32 = 1.0;
                     let sidebar_border_x = (sidebar_right - SIDEBAR_SEPARATOR_INSET_POINTS)

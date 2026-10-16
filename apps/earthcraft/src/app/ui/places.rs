@@ -6,17 +6,16 @@ use earthcraft_core::{
 };
 use eframe::egui::{self, collapsing_header::CollapsingState};
 
-const TREE_HEIGHT_POINTS: f32 = 128.0;
 const DESCRIPTION_ROWS: usize = 3;
 const TREE_INDENT_POINTS: f32 = 8.0;
 const TREE_ICON_SIZE_POINTS: f32 = 12.0;
 const TREE_ITEM_GAP_POINTS: f32 = 2.0;
 
-fn tree_scroll_area() -> egui::ScrollArea {
+fn tree_scroll_area(height_points: f32) -> egui::ScrollArea {
     egui::ScrollArea::vertical()
         .id_salt("places-tree")
-        .max_height(TREE_HEIGHT_POINTS)
-        .min_scrolled_height(TREE_HEIGHT_POINTS)
+        .max_height(height_points)
+        .min_scrolled_height(height_points)
         .auto_shrink([false, false])
 }
 
@@ -202,7 +201,11 @@ impl App {
         );
     }
 
-    pub(in crate::app) fn places_tree(&mut self, ui: &mut egui::Ui) -> Option<(f64, f64, f64)> {
+    pub(in crate::app) fn places_tree(
+        &mut self,
+        ui: &mut egui::Ui,
+        tree_height_points: f32,
+    ) -> Option<(f64, f64, f64)> {
         let lang = self.lang;
         let mut goto = None;
         let mut action = None;
@@ -252,7 +255,7 @@ impl App {
             if let Some(source) = root.dnd_release_payload::<u64>() {
                 action = Some(Action::Move(*source, None));
             }
-            tree_scroll_area().show(ui, |ui| {
+            tree_scroll_area(tree_height_points).show(ui, |ui| {
                 nodes(
                     ui,
                     &mut self.placemarks.roots,
