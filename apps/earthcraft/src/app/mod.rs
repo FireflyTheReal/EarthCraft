@@ -19,6 +19,7 @@ use std::{
     time::{Duration, Instant},
 };
 mod cache;
+mod controllers;
 mod explorer;
 mod files;
 mod flat_earth;
@@ -57,6 +58,7 @@ pub(crate) struct App {
     boundary_loader: earthcraft_data::boundaries::BoundaryLoader,
     lang: Lang,
     fonts: fonts::FontService,
+    controllers: controllers::Controllers,
     settings_ui: ui::settings::SettingsUi,
     language_preference: LanguagePreference,
     system_locale: String,
@@ -221,6 +223,7 @@ impl App {
             flat_earth: flat_earth::FlatEarth::default(),
             lang,
             fonts: fonts::FontService::new(cc.egui_ctx.clone()),
+            controllers: controllers::Controllers::new(),
             settings_ui: ui::settings::SettingsUi::default(),
             language_preference,
             cam: settings.navigation.startup.camera(),

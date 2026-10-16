@@ -25,6 +25,7 @@ wgpu.workspace = true
 emath.workspace = true
 image.workspace = true
 fontdb.workspace = true
+gilrs.workspace = true
 ab_glyph.workspace = true
 rstar.workspace = true
 sys-locale.workspace = true
@@ -52,6 +53,7 @@ assets = [
 glibc = ">= 2.35"
 libgcc = "*"
 gtk3 = "*"
+"libudev.so.1()(64bit)" = "*"
 libX11 = "*"
 libxkbcommon = "*"
 wayland-libs = "*"

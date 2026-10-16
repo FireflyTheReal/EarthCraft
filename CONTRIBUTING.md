@@ -564,3 +564,14 @@ inverted scroll, save-current startup view and restart persistence. Change both
 cache budgets, restart, and verify active limits. Existing file dialogs and
 language/system-unit fallback must remain available. Headless tests do not prove
 installed-font appearance or OS dialog behavior.
+
+## Controller smoke checks
+
+With a supported physical gamepad, test startup connected, hotplug, two device
+profiles, trigger release and unplug during motion. Verify frame-rate-independent
+pan/heading/zoom, deadzone noise, per-axis inversion/curve and camera bounds.
+Rebind axes/buttons; cancel/timeout capture and reject/accept an occupied-button
+replacement. Edit text/open dialogs/lose focus with sticks held: the camera must
+wait for neutral on return. Reconnect/restart and check the saved profile. Verify
+mouse/keyboard and menu actions still work. Repeat on each packaged platform;
+a headless engine test is not a physical-adapter or confinement test.

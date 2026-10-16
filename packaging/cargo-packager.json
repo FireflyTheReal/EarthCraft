@@ -9,7 +9,7 @@
   "deb": {
     "section": "science",
     "priority": "optional",
-    "depends": ["libc6 (>= 2.35)", "libgcc-s1", "libgtk-3-0", "libx11-6", "libxkbcommon0", "libwayland-client0", "xdg-utils"]
+    "depends": ["libc6 (>= 2.35)", "libgcc-s1", "libudev1", "libgtk-3-0", "libx11-6", "libxkbcommon0", "libwayland-client0", "xdg-utils"]
   },
   "appimage": {
     "linuxdeployPlugins": {

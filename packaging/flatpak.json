@@ -6,7 +6,7 @@
   "sdk": "org.gnome.Sdk",
   "sdk-extensions": ["org.freedesktop.Sdk.Extension.rust-stable"],
   "command": "earthcraft",
-  "finish-args": ["--share=network", "--share=ipc", "--socket=wayland", "--socket=fallback-x11", "--device=dri", "--filesystem=host", "--env=EARTHCRAFT_UPDATE_MODE=manual"],
+  "finish-args": ["--share=network", "--share=ipc", "--socket=wayland", "--socket=fallback-x11", "--device=dri", "--device=input", "--filesystem=host", "--env=EARTHCRAFT_UPDATE_MODE=manual"],
   "build-options": {
     "append-path": "/usr/lib/sdk/rust-stable/bin",
     "env": {"CARGO_HOME": "/run/build/earthcraft/cargo"}
