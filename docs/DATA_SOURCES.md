@@ -1,13 +1,9 @@
 # EarthCraft data sources
-
 Candidate map and data layers for EarthCraft, researched 2026-10-18.
 Suggested location in the repo: `docs/DATA_SOURCES.md`.
-
 Every row was confirmed by web search that date unless marked **†** (from memory, unverified).
 Check each licence before shipping. Terms change.
-
 ## Legend
-
 **Effort** is measured against EarthCraft today (Rust, egui, CPU ray-casting, HTTP tile fetch with on-disk cache, no system dependencies).
 
 | Mark | Meaning |
@@ -17,28 +13,23 @@ Check each licence before shipping. Terms change.
 | 🔴 | Large raster or columnar archive. Needs offline preprocessing (GDAL, PMTiles) or a heavy decoder. |
 
 **Auth:** `None` = no key. `Key` = free key or token. `Acct` = free account.
-
 **Implementation in EarthCraft** (second column added 2026-10-18 second pass) states how the row plugs into the app's on-the-fly HTTP fetch model:
 - **Tile path** — reuse the existing XYZ/WMTS fetcher + on-disk cache (the imagery/terrain code path).
 - **Geo fetch** — one-shot or periodic HTTP JSON/CSV/GeoJSON pulled straight into the overlay/vectored-boundary pipeline (how the app already loads boundaries and Overpass results). Works on the fly when the file is small.
 - **Key client** — same as Geo fetch but needs a key from env/user config (never shipped).
 - **Pre-bake** — needs an offline step (GDAL/netCDF/GRIB → bundled PNG/PMTiles/COG). Not a runtime source; the app only reads preprocessed output.
 - **Bundle quilt** — vendored static asset baked into the release (safe for anything old and small, and applies to any source whose licence permits redistribution).
-
 **Longevity & openness** grades who actually guarantees the row stays open long term:
 - **🟣 institutional** — government/agency duty (NASA, NOAA, USGS, EU programmes, national mapping agencies): effectively permanent.
 - **🔵 org-backed** — well-funded project or foundation (ESA, JRC, Protomaps, Overture, World Bank).
 - **🟠 community/goodwill** — depends on one org's ongoing goodwill (EOX, OpenSky, Mapterhorn mirror): no guaranteed right; have a fallback or vendor a snapshot.
 - **🔴 fragile** — single maintainer, no SLA, or a licence that permits revocation (RainViewer, FreeLightning, Esri free tiers): opt-in only, always with fallback.
-
 ---
-
 ## 1. Terrain and bathymetry
-
 README gap: *"Real 3D terrain"*. Items 1.1 and 1.2 close it.
 
 | # | Source | Access | Coverage / resolution | Auth | Licence / limits | Effort | Implementation in EarthCraft | Longevity & openness |
-|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|---|---|---|
 | 1.1 | **AWS Terrain Tiles** (Terrarium) | XYZ PNG: `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png`. Also `s3://elevation-tiles-prod` | Global, z0–16, 256 px. Land blended with ocean bathymetry | None | Attribution to Joerd/Tilezen. Decode: `elev_m = (R*256 + G + B/256) - 32768` | 🟢 | Tile path; terrarium PNG decode (`(R*256+G+B/256)-32768`, formula in row) | 🟣 AWS Registry of Open Data, hosted since 2016 — snapshot fallback would also be licence-clean |
 | 1.2 | **Mapterhorn** | PMTiles (WebP) at `download.mapterhorn.com` (`planet.pmtiles`). Pipeline: `github.com/mapterhorn/mapterhorn` | Global 30 m (Copernicus GLO-30) with national LiDAR down to 0.4 m over many European regions. **Confirmed 2026-10-18** via `attribution.json` (151 sources): the Netherlands (AHN5), Spain (MDT02/MDT50, CC BY 4.0 SCNE), Switzerland (swissALTI3D), Japan (GSI DEM), all 16 German states' 1 m grids, Italy (regional DTMs: Trentino, Lombardia, Piemonte, Sardegna, Sicilia, Alto Adige CC0, plus TINITALY 10 m), Luxembourg (LiDAR 2019 MNT CC0), Portugal mainland + Madeira, Romania (LAKI II 0.5 m), Slovakia, Slovenia, Latvia, Estonia (1 m), Iceland (ÍslandsDEM), Faroes, Svalbard, Greenland, Taiwan (20 m), Israel (10 m), UK 1 m LiDAR (England / Scotland / Wales, OGL), US 3DEP 1 m and 1/3 arc-sec (PD), NZ (1 m), Australia (5 m + Tasmania 2 m), Canada, French overseas territories, Rwanda (10 m) | None | Attribution required (`mapterhorn.com/attribution`, machine-readable `download.mapterhorn.com/attribution.json`). Per-source licences are mixed (CC BY 4.0, DL-DE/Zero, CC0, OGL, PD, Licence Ouverte) — the aggregated planet file is usable with the combined attribution list. Aerial imagery in development | 🟡 | Tile path (PMTiles over HTTP range-requests) or pre-extract a region with `pmtiles extract` and ship it | 🟠 NLnet-backed mirror today, but every underlying source is 🟣 national OGD — a dead mirror is replaceable |
 | 1.3 | **EMODnet Bathymetry** | WMTS `https://tiles.emodnet-bathymetry.eu/` | European seas | None | Open data. Confirm current terms | 🟢 | Tile path (sea-only overlay) | 🟣 EU / GMESA programme funding |
@@ -48,7 +39,7 @@ README gap: *"Real 3D terrain"*. Items 1.1 and 1.2 close it.
 ## 2. Imagery and live weather
 
 | # | Source | Access | Coverage / resolution | Auth | Licence / limits | Effort | Implementation in EarthCraft | Longevity & openness |
-|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|---|---|---|
 | 2.1 | **NASA GIBS** | WMTS `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/`. Read `GetCapabilities` for layers. Omit the time dimension for today | Global, dozens of daily layers (clouds, aerosols, sea ice, SST, fires) | None | NASA open data | 🟢 | Tile path; the only change is a time-dimension parameter in the URL template | 🟣 NASA EOSDIS — institutionally guaranteed |
 | 2.2 | **EOX Sentinel-2 cloudless** | WMTS (`cloudless.eox.at`) | Global 10 m, yearly mosaics 2016–2025 | None | Attribution required. **Sources disagree on licence** (CC BY vs BY-SA). Verify before shipping | 🟢 | Tile path now; licence must be resolved before it can ship in a default layer | 🟠 company goodwill (free for over a decade, no guaranteed right) — keep GIBS as fallback |
 | 2.3 | **OpenWeatherMap Maps 1.0** | XYZ PNG: `https://tile.openweathermap.org/map/{layer}/{z}/{x}/{y}.png?appid={key}` | Global clouds, precipitation, pressure, temperature, wind | Key | Maps 1.0 included in free plan. Attribution | 🟢 | Key client (appid from env) | 🔴 company free tier; ToS-dependent — optional plugin, never a default |
@@ -62,7 +53,7 @@ README gap: *"Real 3D terrain"*. Items 1.1 and 1.2 close it.
 ## 3. Wind resource
 
 | # | Source | Access | Coverage / resolution | Auth | Licence / limits | Effort | Implementation in EarthCraft | Longevity & openness |
-|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|---|---|---|
 | 3.1 | **Global Wind Atlas 3** | GIS downloads for a point, area or country (`globalwindatlas.info`) | Global, 250 m, 10 / 50 / 100 / 150 / 200 m heights: wind speed, power density, capacity factor | None | Free. No tile endpoint found, so pre-bake to tiles | 🔴 | Pre-bake per country of interest; no tile endpoint exists | 🟣/🔵 World Bank ESMAP + DTU — attribution keeps bundling fine |
 | 3.2 | **Wind Toolkit** (NLR, ex-NREL) | Download API (`developer.nlr.gov/docs/wind/wind-toolkit/wtk-download/` — **the nrel.gov domains were rebranded to NLR and `developer.nrel.gov` no longer resolves**, verified 2026-10-18) | US, 2.4M+ sites, 2007–2014 | Key | CC BY. Dataset is dated | 🟡 | Key client; the dataset is frozen (2007–2014), so one runtime import or a bundled copy | 🟣 US DOE (CC BY class on data) |
 | 3.3 | **ERA5 (Copernicus CDS)** | Python API / CLI (`cds.climate.copernicus.eu`) | Global reanalysis since 1940, GRIB / netCDF | Acct | Free, Copernicus licence | 🔴 | Pre-bake only; CDS queue/credentials make runtime fetch pointless | 🟣 Copernicus |
@@ -70,7 +61,7 @@ README gap: *"Real 3D terrain"*. Items 1.1 and 1.2 close it.
 ## 4. Solar resource
 
 | # | Source | Access | Coverage / resolution | Auth | Licence / limits | Effort | Implementation in EarthCraft | Longevity & openness |
-|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|---|---|---|
 | 4.1 | **Global Solar Atlas** | GeoTIFF (`globalsolaratlas.info/download`) | Global. GHI / DNI / DIF / GTI 250 m, PVOUT and TEMP 1 km | None | CC BY 4.0 (World Bank). World PVOUT file is 3.6 GB. Pre-bake | 🔴 | Pre-bake the 3.6 GB world raster into tiles outside the app | 🔵 World Bank ESMAP (CC BY 4.0) — redistribution permitted with attribution |
 | 4.2 | **PVGIS 5.3** (EU JRC) | GET: `https://re.jrc.ec.europa.eu/api/v5_3/PVcalc?lat=45&lon=8&peakpower=1&loss=14` | Global except poles. Hourly series, TMY, PV yield | None | Free. 30 calls/s per IP. Not callable from browser AJAX (not an issue natively) | 🟡 | Geo fetch GET client (30 calls/s is plenty) | 🟣 EU JRC — free, best-effort, no SLA |
 | 4.3 | **NASA POWER** | REST API (`power.larc.nasa.gov`) | Global, daily 1981–now: irradiance, wind, humidity, rain | None | Free. Throttles rapid repeat queries | 🟡 | Geo fetch client with backoff for throttling | 🟣 NASA |
@@ -79,7 +70,7 @@ README gap: *"Real 3D terrain"*. Items 1.1 and 1.2 close it.
 ## 5. Power infrastructure and base maps
 
 | # | Source | Access | Coverage / resolution | Auth | Licence / limits | Effort | Implementation in EarthCraft | Longevity & openness |
-|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|---|---|---|
 | 5.1 | **Open Infrastructure Map** | Vector tiles via TileJSON (best-effort). Overpass for small GeoJSON extracts | Power lines, substations, wind turbines, solar generators, pipelines, telecom | None | OSM licence. Tile server may be restricted in future | 🟡 | Vector-tile decode or reuse the Overpass pattern; safest is a bundled PMTiles copy | 🟠 community project over OSM data — ODbL applies to derived distributions |
 | 5.2 | **WRI Global Power Plant Database** | CSV (`github.com/wri/global-power-plant-database`) | About 35,000 plants, 167 countries: capacity, fuel, owner | None | Open. **Unmaintained** since v1.3.0 (June 2021) | 🟡 | Vendored CSV import | 🟠 WRI dataset frozen since 2021 — stable as a frozen snapshot |
 | 5.3 | **Protomaps OSM basemap** | Daily PMTiles builds (`docs.protomaps.com/basemaps/downloads`) | Planet about 120 GB, z0–15. `pmtiles extract` for regions | None | ODbL, OSM attribution | 🟡 | PMTiles path; or pre-extract a country and bundle | 🔵 Protomaps Foundation; ODbL data is perpetual |
@@ -89,7 +80,7 @@ README gap: *"Real 3D terrain"*. Items 1.1 and 1.2 close it.
 ## 6. Farmland, soil and land cover
 
 | # | Source | Access | Coverage / resolution | Auth | Licence / limits | Effort | Implementation in EarthCraft | Longevity & openness |
-|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|---|---|---|
 | 6.1 | **ESA WorldCover 2021 v200** | COGs: `s3://esa-worldcover/v200/2021/map` (about 120 GB) | Global 10 m, 11 classes (cropland is one) | None | CC BY 4.0, attribution required | 🔴 | Pre-bake COG subsets per region (`async-tiff`) | 🟣 ESA (CC BY 4.0) |
 | 6.2 | **ESA WorldCereal** | GeoParquet farm points (`source.coop/streambatch/worldcereal`). Rasters via Digital Earth Africa | 10 m maize, winter and spring cereal masks, irrigation | None | Open. Cite the WorldCereal paper | 🟡 | Geo fetch GeoParquet (source.coop range reads) | 🔵 ESA-funded WorldCereal programme |
 | 6.3 | **USDA Cropland Data Layer** | GeoTIFF (`croplandcros.scinet.usda.gov`) | US, 30 m, crop-specific, annual | None | Public domain | 🔴 | Pre-bake US mosaic | 🟣 USDA public domain |
@@ -103,7 +94,7 @@ README gap: *"Real 3D terrain"*. Items 1.1 and 1.2 close it.
 ## 7. Buildings and population
 
 | # | Source | Access | Coverage / resolution | Auth | Licence / limits | Effort | Implementation in EarthCraft | Longevity & openness |
-|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|---|---|---|
 | 7.1 | **VIDA Google + Microsoft footprints** | PMTiles / GeoParquet / FlatGeobuf (`source.coop/vida/google-microsoft-open-buildings`) | Global, about 2.58 billion footprints | None | Source licences apply (Google, Microsoft) | 🟡 | PMTiles over HTTP range-requests, or pre-extract a metro area for interactive use | 🟠 source.coop mirror of Google/Microsoft releases; per-source licences vary — verify the release you bundle |
 | 7.2 | **Overture Maps buildings** | GeoParquet on S3 / Azure (use the latest release under `s3://overturemaps-us-west-2/release/`) | Global. Merges OSM, Esri, Google, Microsoft | None | Per-source licences | 🔴 | Pre-extract at build time (5.6 GB GeoParquet is not a runtime source) | 🔵 Overture Foundation (ODbL) — industry-backed and stable |
 | 7.3 | **GHSL population** (EU JRC) | GeoTIFF (`human-settlement.emergency.copernicus.eu`) | Global grids 1975–2100, 5-year steps. World Mollweide, so reproject | None | Open (JRC) | 🔴 | Pre-bake per region | 🟣 EU JRC |
@@ -112,7 +103,7 @@ README gap: *"Real 3D terrain"*. Items 1.1 and 1.2 close it.
 ## 8. Live tracking and hazards
 
 | # | Source | Access | Coverage / resolution | Auth | Licence / limits | Effort | Implementation in EarthCraft | Longevity & openness |
-|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|---|---|---|
 | 8.1 | **OpenSky Network** | `https://opensky-network.org/api/states/all?lamin=..&lomin=..&lamax=..&lomax=..` | Live aircraft, bbox queries | Optional | Anonymous access is rate-limited, credits apply | 🟡 | Geo fetch with credit budget; degrade gracefully to adsb.lol (already wired in the binary) | 🟠 non-profit; the anonymous tier has been shrinking — non-default layer |
 | 8.2 | **AISstream.io** | WebSocket `wss://stream.aisstream.io/v0/stream`. Send subscription (key + bbox) within 3 s | Live global vessel positions | Key | Free, fair use, **beta / unstable**. Key must not ship in client builds | 🟡 | WS client + key env; keep the HTTP fallback (OpenSeaFeed / digitraffic are already in the binary) | 🟠 beta service — treat the fallbacks as the primary plan |
 | 8.3 | **CelesTrak GP** | `https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=json` | About 16,000 active satellites. Needs SGP4 propagation | None | Free. Cache, refresh every few hours | 🟡 | Geo fetch of GP daily + an SGP4 crate | 🟠 run by T.S. Kelso since the 1980s; dependable but community-run |
@@ -127,7 +118,7 @@ README gap: *"Real 3D terrain"*. Items 1.1 and 1.2 close it.
 ## 9. Other worlds
 
 | # | Source | Access | Coverage / resolution | Auth | Licence / limits | Effort | Implementation in EarthCraft | Longevity & openness |
-|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|---|---|---|
 | 9.1 | **NASA Moon Trek** | RESTful WMTS. Product list: `trek.nasa.gov/tiles/apidoc/trekAPI.html?body=moon` | Moon mosaics, DEMs, equirectangular + polar | None | NASA open. Read each product's capabilities for matrix set and extension | 🟡 | Tile path + non-WGS84 projection handling per body | 🟣 NASA |
 | 9.2 | **NASA Mars Trek** | RESTful WMTS (`api.nasa.gov/mars-wmts/catalog`) | Mars: MOLA hillshade, Viking, THEMIS, 21 products | None | NASA open. Missing tile means no coverage | 🟡 | Same as 9.1 | 🟣 NASA |
 | 9.3 | **NASA Vesta Trek** | RESTful WMTS | Vesta, 6 Dawn products | None | NASA open | 🟡 | Same as 9.1 | 🟣 NASA |
@@ -135,7 +126,7 @@ README gap: *"Real 3D terrain"*. Items 1.1 and 1.2 close it.
 ## 10. Catalogs (find more data)
 
 | # | Source | Access | Coverage / resolution | Auth | Licence / limits | Effort | Implementation in EarthCraft | Longevity & openness |
-|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|---|---|---|
 | 10.1 | **Earth Search** (Element84) | STAC `https://earth-search.aws.element84.com/v1` | Sentinel-2 COGs (11M+ scenes), Landsat, NAIP | None | Free, scene licences apply | 🔴 | Discovery portal (STAC) for scene pulls; items are pre-bake input, not runtime layers | 🟣-🟠 AWS Open Data Registry + Element 84 mirror |
 | 10.2 | **Microsoft Planetary Computer** | STAC `https://planetarycomputer.microsoft.com/api/stac/v1` | 20+ PB, anonymous access to most datasets | None | Per-dataset | 🔴 | Discovery + per-dataset access | 🔵 Microsoft Planetary Computer programme |
 | 10.3 | **Esri Open Data Hub** | Web portal | 250,000+ datasets from 5,000+ organisations | Varies | Per-dataset | n/a | Discovery portal only | mixed — evaluate per dataset |
@@ -171,11 +162,10 @@ README gap: *"Real 3D terrain"*. Items 1.1 and 1.2 close it.
 | 12.12 | Protomaps blog, *Mapterhorn – Terrain for Web Mapping* (2025); Wipfli, *Mapterhorn Terrain and Imagery*, State of the Map 2026 | 1.2 |
 
 ## 13. Live tracking and ambient extras (leads from the first pass, verified 2026-10-18)
-
 Two leads came back negative (Dynamic World direct access, ADS-B Exchange free tier); the rest are usable. Key contact-free wins: GFW tiles (13.5), NOAA CO-OPS (13.6), the NCEI volcano endpoint (13.7).
 
 | # | Source | Access | Coverage / resolution | Auth | Licence / limits | Effort | Implementation in EarthCraft | Longevity & openness |
-|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|---|---|---|
 | 13.1 | **Global Fishing Watch (4WINGS)** | REST v3 at `gateway.api.globalfishingwatch.org/v3`: gridded apparent fishing effort as PNG/MVT tiles + CSV/JSON/TIFF reports. Datasets: `public-global-fishing-effort:latest`, `-sar-presence`, `-presence` | Global ocean 0.01° grid, daily, 2012–present | Key (free token; registration asks for an organisation-period email — "sustainability-oriented org") | **CC BY-NC 4.0 — non-commercial only**, "Powered by Global Fishing Watch" attribution mandatory; 50,000 req/day, 1.5M/mo | 🟡 | Key client; PNG/MVT effort + CC BY-NC means non-commercial builds only | 🔵 well-funded non-profit, but the -NC licence is a hard constraint on shipping |
 | 13.2 | **OpenAQ v3 air quality** | REST `api.openaq.org/v3` (`/locations`, `/sensors/{id}/measurements`); bulk copy on AWS S3 without a key | ~170 countries: PM2.5/PM10/O3/NO2/SO2/CO/BC from reference + low-cost monitors | Key (free, `X-API-Key`, register at explore.openaq.org) | Open with per-provider terms — OpenAQ demands attribution and disclaims aggregate licensing. 60 req/min, 2,000/hour; don't rehost as a competing service | 🟡 | Key client (`X-API-Key`); bulk bundle from the AWS S3 copy needs no key | 🟠 NGO; per-provider licences vary — fetch `/v3/licenses` and honour flags at runtime |
 | 13.3 | **Dynamic World 10 m land cover** | Verified: CC BY 4.0 and available in Earth Engine (`GOOGLE/DYNAMICWORLD/V1`, 9 classes, Sentinel-2 refresh every 2–5 days). **Direct access refuted:** the long-cited GCS bucket `dynamic-world.earthengine` does not exist; non-GEE path = Earth Engine Python API with a GCP project (free only for research/education/nonprofit) | Global 10 m, 2015-06–now | Acct (GEE) for any practical path | CC BY 4.0 + Copernicus Sentinel notice. **Not usable for EarthCraft as-is** — only worth revisiting if Google opens the raster export | 🔴 (blocked) | No usable runtime path — revisit only if Google opens raster export | — blocked |
@@ -186,19 +176,14 @@ Two leads came back negative (Dynamic World direct access, ADS-B Exchange free t
 | 13.8 | **ADS-B Exchange** (live aircraft) | **Paid now:** Community API via RapidAPI $10/mo per 10k req (non-commercial), Enterprise tiers for real use; volume keys never ship in a client | Global, ~500+ community-fed receivers, 500 ms updates | Paid | Monthly sub, commercial licence only. **Free paths:** self-hosted receiver (RTL-SDR + dump1090/readsb), or community aggregators **adsb.lol** (free, ODbL API) and **airplanes.live** (free; access granted by email with a project description) | 🟡 self via adsb.lol / 🔴 paid | adsb.lol HTTP path (already in the binary); ODbL attribution | 🟠 community network — ODbL guarantees the data stays open even if the host dies |
 
 Not usable / dropped: Dynamic World (13.3) for direct access; ADS-B Exchange free tier no longer exists (13.8).
-
 ## 14. National and regional sources (found via non-English search)
-
 All 20 planned languages are covered. **Arabic: no open national source found** — Arabic-language searches only point back to global sources (NASA Earthdata, USGS, OpenTopography, Sentinel).
-
 **Mapterhorn (1.2) confirmed via `attribution.json` for: Austria (1 m), Denmark, Flanders (1 m), Wallonia (0.5 m), Finland (2 m), Estonia (1 m), Czechia (5 m), France (Licence Ouverte 2.0), all 16 German states, Cyprus (1 m), Canada, Australia (5 m), plus the previously open questions — Netherlands (AHN5), Spain (MDT02/50), Switzerland (swissALTI3D), Japan (GSI DEM)** — and bonus: Italy, Luxembourg (CC0), Portugal, Romania, Slovakia, Slovenia, Latvia, Iceland, Faroes, Svalbard, Greenland, Taiwan, Israel, UK, NZ, Tasmania, Rwanda, French overseas territories. Terrain for a country is usually 1.2; the rows below add imagery and base maps. Details:
-
  Austria (1 m), Denmark (CC BY 4.0), Flanders (1 m), Wallonia (0.5 m), Finland (2 m), Estonia (1 m), Czech Republic (5 m), France (Licence Ouverte 2.0: RGE ALTI 1 m metropolitan + overseas, LiDAR HD), all 16 German states (1 m; licences DL-DE/BY-2.0, DL-DE/Zero or CC BY 4.0 depending on the state), Cyprus (1 m), Canada, Australia (5 m) — **and the countries that were open questions: Netherlands (AHN5 5 m, CC BY 4.0), Spain (MDT02/MDT50, CC BY 4.0 SCNE), Switzerland (swissALTI3D, Open Government Data), Japan (GSI 基盤地図情報 DEM, GSI terms with survey-law approval)**. Bonus coverage the per-country rows below don't duplicate: Italy (regional DTMs CC BY 4.0 / CC0, TINITALY 10 m INGV), Luxembourg (LiDAR MNT CC0), Portugal mainland + Madeira, Romania (LAKI II 0.5 m, OGL-ROU-1.0), Slovakia, Slovenia, Latvia, Iceland (ÍslandsDEM 1 m CC BY 4.0), Faroes, Svalbard, Greenland, Taiwan (20 m, OGD licence 1.0), Israel (10 m ASTER-derived PD), UK (Environment Agency / Scotland / Wales 1 m LiDAR, OGL), NZ (1 m LiDAR CC BY 4.0), Tasmania (2 m CC BY 3.0), Rwanda (10 m CC BY 4.0) and French overseas territories (RGE ALTI 1 m, Licence Ouverte). If terrain for a country is all you need, 1.2 is usually the answer; the per-country rows matter for imagery (orthophotos) and base maps, where Mapterhorn has no data.
-
 Sorted by effort, then country. Language is the language of the source material.
 
 | # | Source (language) | Access | Coverage / resolution | Auth | Licence / limits | Effort | Implementation in EarthCraft | Longevity & openness |
-|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|---|---|---|
 | 14.1 | **GSI Japan elevation tiles** 地理院標高タイル (ja) | XYZ PNG: `https://cyberjapandata.gsi.go.jp/xyz/dem5a_png/{z}/{x}/{y}.png` (also `dem1a_png`). Rust decoder crate: `demtile` (MIT) | Japan. DEM5A / 5B / 5C / 10B / DEMGM, finest first. Sea pixels are RGB (128,0,0) = no data | None | GSI terms of use (利用規約). Confirm. **Not Terrarium encoding.** Use GSI's own formula (`maps.gsi.go.jp/development/demtile.html`) | 🟢 | Tile path + per-source DEM decoder (`demtile` crate) — a second decode branch next to Terrarium | 🟣 GSI statutory free-use (with survey-law notice for derived sheets) |
 | 14.2 | **PDOK aerial photos** Luchtfoto (nl) | WMTS `https://service.pdok.nl/hwh/luchtfotorgb/wmts/v1_0/Actueel_orthoHR/{TileMatrixSet}/{TileMatrix}/{TileCol}/{TileRow}.jpeg` | Netherlands, 8 cm and 25 cm, newest year | None | CC BY (capabilities keyword "open data cc-by"). Attribution to Kadaster / PDOK | 🟢 | Tile path | 🟣 Kadaster/PDOK statutory open data |
 | 14.3 | **PDOK BRT Achtergrondkaart** (nl) | WMTS `https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0`. Also OGC API Vector Tiles | Netherlands topographic base map, EPSG:3857 available | None | CC BY 4.0 | 🟢 | Tile path | 🟣 same as 14.2 |
@@ -233,6 +218,7 @@ Sorted by effort, then country. Language is the language of the source material.
 | 14.32 | **İBB Şehir Haritası + data.ibb.gov.tr** (tr) | Tile service (`sehirharitasiapi.ibb.gov.tr`) + open-data portal | Istanbul only: uydu (satellite) imagery, building-height layer | None (viewer) | İBB open-data portal licence, attribution-style † (exact terms unverified) | 🟢 | Tile path (Istanbul only) | 🟠 municipal OGD, exact terms † |
 | 14.33 | **TKGM Ada/Parsel Sorgu / TKKG** (tr) | Parcel query API + WMS/WMTS behind registration (`parselsorgu.tkgm.gov.tr`) | Turkey: cadastral parcels, orthophoto in the TKKG viewer | Acct / registration | Government service, restricted use, no open bulk † | 🟡 | Registration-gated parcel API; no open bulk | 🔴 restricted use |
 
+## 15. Borders and administrative areas (second pass)
 **What EarthCraft uses today** (inspected from the shipping 0.2.0 binary + cache): Natural Earth **1:50m** countries (~3× coarser than the 1:10m variant on the same host), `datasets/geo-countries`, NE admin_1 states, NE populated places, live Overpass for municipal/metro layers, plus an IBGE/geodata-br special case for Brazil. All sizes and licences below were checked live on 2026-10-18.
 
 | # | Source | Access | Coverage / resolution | Auth | Licence / limits | Effort | Implementation in EarthCraft | Longevity & openness |
@@ -255,7 +241,7 @@ Sorted by effort, then country. Language is the language of the source material.
 | 15.16 | **osm-boundaries.com** | Web UI, download needs OAuth-OSM login; monthly import | All admin levels, configurable export | OAuth | ODbL passthrough; commercial operator (Ground Zero Communications AB) | 🔴 | **Not usable as an anonymous fetch path** — keep Overpass (already wired) for live OSM boundaries instead | ✗ (no server-based API) |
 
 **Disputed borders verdict:** Natural Earth map_units (15.1) is the always-renderable default with its `type`/`disp` fields; geoBoundaries per-country gives "as the country represents itself" views; Overture `perspectives` is the only first-class multi-narrative dataset. OSM has one consensus set plus unofficial `disputed=*` tags — that's what the Overpass layers see today.
-
+## 16. Traffic, night lights and second-pass extras
 **Traffic verdict:** no free, key-free, global, live traffic feed exists (OSM serves none; Google/Apple tiles are ToS-forbidden). TomTom's free tier — 200,000 flow tiles/month, no card — stays the practical live option. The rows below are free alternatives or new categories.
 
 | # | Source | Access | Coverage / resolution | Auth | Licence / limits | Effort | Implementation in EarthCraft | Longevity & openness |
@@ -273,13 +259,77 @@ Sorted by effort, then country. Language is the language of the source material.
 | 16.11 | **GeoNames gazetteer** | `https://download.geonames.org/export/dump/` (daily dumps) | 12M+ place names, feature classes, admin links | None | CC BY 4.0 | 🟡 | Great fallback/dedup layer behind Natural Earth populated places; the geonames "cities15000" subset is a nice small bundle | 🟠 single-maintainer project but CC BY, so bundle freely |
 
 **Negative results (closed):** no key-free XYZ host for Dynamic World, VIDA buildings or NASA DEM (keep as pre-bake); no free shipping-density feed; no new ocean/chlorophyll beyond GIBS/OSCAR; no on-the-fly geology raster (use 16.8/16.9).
+## 17. Archaeological LiDAR and bare-earth DEM (third pass, verified 2026-10-18)
+Scoping question: can EarthCraft ship "fly over a lost city" terrain (Maya cities, Amazonia geoglyphs/earthworks, Sahel tells, Andes, Mediterranean) from open LiDAR? Method: OpenTopography DCAT catalogue grepped live (`portal.opentopography.org/csw/catalog.json`, every record carries a licence field), dataset pages and Zenodo/Figshare/Dryad APIs read directly. Headline finding: **OpenTopography hosts genuinely archaeological collections (Caracol Belize, Middle Usumacinta, Quirigua) and a vegetation-stripped South America DTM (ANADEM), all CC BY 4.0 — but its API policy forbids embedding keys in a distributed app, so anything runtime must be user-keyed or pre-baked.** No open host exists for raw PACUNAM terrain and nothing for the Sahel. Two further sweeps the same day targeted South America and Africa specifically: verified open stacks exist in Brazil/Mexico (GeoSampa, INEGI) and municipal/insular Africa (Cape Town, Rwanda, Réunion/Mayotte), the flagship Amazon campaigns' raw LiDAR is legally or contractually closed, and North Africa / the Sahel / most of East Africa have no open airborne LiDAR at all.
 
+| # | Source | Access | Coverage / resolution | Auth | Licence / limits | Effort | Implementation in EarthCraft | Longevity & openness |
+|---|---|---|---|---|---|---|---|---|
+| 17.1 | **OpenTopography global DEM API** — incl. **ANADEM** | REST `portal.opentopography.org/API/globaldem?demtype=ANADEM…&outputFormat=GTiff` bbox cut-out; catalogue via STAC (`/stac/raster_catalog.json`) and DCAT/CSW (both live-read) | Global 30 m set: **ANADEM (South America DTM, vegetation removed from Copernicus GLO-30 — geoglyphs become visible)**, COP30/90, SRTM, NASADEM, GEDI L3 1 km; ≤450,000 km²/request | Free OT API key per user | DCAT: all listed CC BY 4.0; policy: 50 calls/24 h non-academic, keys "may not… be embedded within an application", commercial integration needs an **Enterprise API key** | 🔴 | Geo fetch — user-supplied key from config (never shipped); server-proxy or pre-bake otherwise; STAC for catalogue verification | 🟣 NSF-funded facility, DOIs pinned |
+| 17.2 | **OpenTopography archaeology LiDAR collections** | Direct DOI → public `.laz` tiles on `opentopography.s3.sdsc.edu` (Caracol verified keyless) | **Caracol/Chiquibul Belize** (10.5069/G9833Q42: 64 km², 1.5 B pts, ~24 pts/m²) · **Middle Usumacinta, Mexico** (10.5069/G95B00NF) · **Quirigua UAV, Guatemala** (10.5069/G9416V95) | None for download | CC BY 4.0 in DCAT; Caracol page itself says "Use License: Not Provided" **†** — cite PI + DOI, keep the ambiguity flag | 🟡 | Pre-bake — ground-classified DEM tiles per landmark Maya site, bundled; `.laz` too heavy for runtime | 🔵/🟠 single-project datasets on durable NSF storage; DOIs stable |
+| 17.3 | **USGS 3DEP** | National Map raster + point-query `epqs.nationalmap.gov/v1` (also via OT mirror; 1 m there is academic-only) | USA only, 10 m seamless + 1 m tiles | None | **Public domain** (US federal); the reference model for EarthCraft's licence-verified catalog | 🟡 | Tile path / point query; out of primary target area but free of every caveat | 🟣 permanent USGS archive |
+| 17.4 | **NASA GEDI L3 + ICESat-2 ATL08** (spaceborne, combined) | LP DAAC Data Pool HTTPS; GEDI L3 1 km DTM also in OT's `globaldem`; ATL08 via Earthdata/NSIDC | Global 1 km grid (GEDI) and track photon spots (ATL08) | Free Earthdata login for ATL08 | NASA EOSDIS: "full and open sharing of all data…" / GEDI CC BY 4.0 in DCAT | 🟢 | Geo fetch as background ground-elevation sanity check **only** — neither reveals earthworks or tells | 🟣 NASA archive, decades-scale |
+| 17.5 | **Figshare: ML-ready Maya remote sensing (Chactún)** | API + HTTPS verified: `api.figshare.com/v2/articles/22202395` — `Chactun_ML_ready_lidar.zip` ≈ 1.08 GB ALS raster stack + masks/CHM, ~2.1 GB total | Chactún area, Campeche, Maya lowlands; ALS-derived DTM/CHM tiles | None | **CC BY 4.0** (verified in Figshare API licence field) | 🔴 | Pre-bake — decode ALS rasters to hillshade/relief tiles offline, bundle as the first fly-over Maya landmark | 🔵 Figshare DOI permanent; files stable |
+| 17.6 | **Stonehenge LiDAR Archaeology Landscape (Zenodo)** | `10.5281/zenodo.10334054`, direct download | Stonehenge, Avenue, Cursus, barrow field | None | **CC BY 4.0**, open | 🟢 | Bundle — small pre-encoded show-case site (Neolithic/Medieval analogue for tells) | 🔵 Zenodo DOI |
+| 17.7 | **Geoglyph DTM-anomaly toolkit (Zenodo)** | `10.5281/zenodo.5087620` — code + sample data for "Fast computation of digital terrain model anomalies… for geoglyph detection" | Nazca/Peru sample; method not full coverage | None | CC BY 4.0, open | 🟡 | Offline guidance only — the algorithm EarthCraft could run over 17.1 ANADEM tiles | 🔵 Zenodo DOI |
+| 17.8 | **Dryad PACUNAM 2,144 km² Guatemala LiDAR** | `10.5061/dryad.k51j708` — only **25.04 MB** of derived shapes/stats | Northern Guatemala (the famous 2018 Science survey) **shapes only — no DTM/point cloud** | None | **CC0** † for the derived data; raw terrain closed / on request | 🔴 | Not a terrain source — cite 17.2-style pre-bakes instead | 🟣 metadata; raw stays closed |
+| 17.9 | **Archaeology Data Service (ADS)** | Catalogue + DOI archives, mostly UK (Environment-Agency-grade LiDAR) | UK-dominant; no non-UK LiDAR surfaced (search is an SPA — not exhaustive) **†** | None | "…licence conditions clearly identified within each data collection"; metadata CC BY 4.0 | 🟢 | Not a pipeline — copy its per-collection licence-tagging pattern; UK bundle-quilt option only | 🟣 CoreTrustSeal curated |
+| 17.10 | **GeoSampa — city of São Paulo LiDAR** | Download page `geosampa.prefeitura.sp.gov.br/PaginasPublicas/_SBC.aspx`; GeoNetwork record "Nuvem de pontos MDT 2020" (read directly) | ~1,522 km² city; LAS/LAZ 10 pts/m² + ground-filtered MDT 0.50 m, 2017/2020 vintages | None | Record states access "semRestricoes"; state open-data licence with attribution | 🟡 | Pre-bake MDT excerpt — the model open Brazilian municipal LiDAR stack | 🟣 PMSP institutional catalogue (ISO 19115) |
+| 17.11 | **IGC-SP — São Paulo *state* LiDAR 2023/24** | `igc.sp.gov.br` downloads + state WMS geoportal (bot-blocked to curl from here) | State-wide slices, 10 pts/m², 2023/2024 flights (1:10,000 base) | None | State open-data assumed **†** — licence wording and per-tile download unverified | 🟡 | Pre-bake via IGC download flow once reachable | 🟣 state cartographic institute **†** downloads unverified |
+| 17.12 | **INEGI MDE / historical LiDAR tiles (Mexico)** | `inegi.org.mx/programas/mde/`; Biblioteca (upc 702825796341); Continuo de Elevaciones Mexicano | National; LiDAR 2010–2017 vintages, MDT ~1:10k blocks + CEM 3.0 continuous | None | **"Libre Uso MX"** open-data terms with attribution | 🟡 | Geo fetch of tile catalogue — the workflow pattern to copy (per-tile LAS/LAZ + raster MDT) | 🟣 national statistical-agency portal |
+| 17.13 | **Acre geoglyph site vectors (de Souza 2018, Nat Commun)** | `nature.com/articles/s41467-018-03510-7` supplementary (OA) | ~47,887 km² southern rim of Amazonia; geoglyph/earthwork polygons | None | Article + supplement **CC BY 4.0**; raw LiDAR never published | 🟡 | Bundle site vectors as placemark overlay on the ANADEM (17.1) hillshade | 🔵 Springer OA, stable DOI |
+| 17.14 | **SE-Acre mound villages (Iriarte 2020, JCAA)** | `journal.caa-international.org/articles/10.5334/jcaa.45` — full OA text | 65.6 km² transects (Oct-2018 RIEGL flights); Table 1 = UTM coords of 57 mound villages | None | Article **CC BY 4.0**; DTM not published (ERC PAST/FUTURES) | 🟡 | Extract Table 1 → placemark layer; terrain stays research-held | 🔵 Ubiquity/CAA OA journal |
+| 17.15 | **Loreto sites gazetteer (Coomes 2021, Sci Data)** | figshare collection `10.6084/m9.figshare.c.5262530` (Excel + API verified) | 415 geolocated archaeological sites, Loreto, Peruvian Amazon | None | **CC BY 4.0** (verified in figshare) | 🟡 | Bundle vector placemarks — the target list for any future LiDAR there | 🔵 figshare DOI + Springer OA |
+| 17.16 | **Peru / Colombia / Ecuador national LiDAR** | None found | Ministry of Culture (Machu Picchu, Nasca): restricted heritage data; IDEAM Colombia: claim unverifiable (`datos.gov.co` Socrata search = 0 hits); Ecuador: no ministerial portal | – | Not open / not verifiable | – | No action — re-check if portals appear | 🔴 closed or non-existent |
+| 17.17 | **City of Cape Town LiDAR DEM/DTM** | ArcGIS open-data portal + MapServers `Elevation_CCT_GLM2019_5m_DEM` and `Elevation_DTM_2m` (both live-read) | ~2,400 km² municipality; 2019 LiDAR → 5 m bare-earth DEM; 2025 LiDAR → 2 m ground-only DTM (2–3 pts/m², 0.1 m v-acc) | None | City Open Data Terms of Use — free, attribution, reuse OK | 🟡 | Pre-bake or live ArcGIS REST pull — the cleanest fully-open African municipal LiDAR | 🔵 municipal program, 2019→2025 refresh cycle |
+| 17.18 | **Kruger NP river LiDAR 2012 (CEDA)** | CEDA catalogue uuid `a2e82c7f…`, direct web download + OPeNDAP | 3× 50 km river reaches (Sabie/Olifants/Letaba); Optech M200 point cloud + contours + orthos, 12 GB | Free CEDA registration | **OGL v3** — "Permitted Use: Any", citation required | 🔴 | Link-only (point cloud) — the only verified open airborne point-cloud archive on the continent | 🟣 NERC-funded permanent archive |
+| 17.19 | **Rwanda 10 m DEM (via Mapterhorn)** | `download.mapterhorn.com/sources/rw.tar` (~316 MB; origin `github.com/WASAC/rwanda-dem`) | Whole country, 10 m grid | None | **CC BY 4.0** (NLA + WASAC/UNDP — attribution string read from `attribution.json`) | 🟡 | Bundle; cross-ref the 1.2 pipeline | 🟣 open gov source, Mapterhorn mirror |
+| 17.20 | **IGN RGE ALTI + LiDAR HD — Réunion & Mayotte** | Mapterhorn tarballs (frrgealti1reunion ≈ 3.1 GB; frhd2975 LiDAR HD 0.5 m ≈ 14 GB) + `cartes.gouv.fr` | Full-island 1 m/5 m MNT both islands; Réunion LiDAR HD 0.5 m | None | **Licence Ouverte 2.0**; IGN docs name "archéologie" as an intended application | 🟡 | Bundle/mirror via Mapterhorn | 🟣 French open data, Mapterhorn mirrored |
+| 17.21 | **Kilwa Kisiwani 3D (CyArk, Zenodo)** | `10.5281/zenodo.10377387` — `.glb` meshes | Swahili port-town monuments; terrestrial LiDAR + photogrammetry | None | **CC BY-NC-SA 2.0** — non-commercial + share-alike | 🟡 | Bundle glTF as site overlay — only if the NC licence is acceptable | 🔵 Zenodo DOI stable |
+| 17.22 | **Great Zimbabwe (Zamani Project)** | `zamaniproject.org` viewer | Great Enclosure + Hill Complex terrestrial laser-scan models | Viewer public; point clouds on request **†** | Academic courtesy reuse — clarify per request | 🔴 | Link 3-D models; no bulk data | 🟠 university-hosted, request-based |
+| 17.23 | **CD:NGI South Africa + eThekwini footprints** | `ngigeoportal.dlrrd.gov.za` (email-gated downloads) + eThekwini open-data portal | SA-wide orthos/topo/25 m DEM; **nationwide 1–2 m DSM/DTM is commercial** (Hexagon/GeoSpace); Durban: LiDAR-derived building footprints only | Email handoff | Free use with attribution; hi-res elevation commercial **†** | 🟡 | On-demand pulls only; do not bundle | 🟣 long-lived custodian; portal restructures change URLs |
+
+**Archaeology verdict:** only OpenTopography plus the two small bundles are shipping-grade today: 17.2 (Caracol/Usumacinta ground DEMs) and 17.5 (Chactún) give two fly-over Maya sites as pre-bakes; 17.1 ANADEM is the only open *bare-earth* layer that could reveal Amazonia earthworks and Sahel tells at 30 m — worth a hillshade experiment before committing. Spaceborne (17.4) is not archaeology-visible, matching expectations. **South America:** GeoSampa (17.10) and INEGI (17.12) prove open LiDAR stacks exist; the free site-vector bundles (17.13–17.15) are the immediate wins — overlay the Acre/Loreto placemarks on the ANADEM hillshade for an instant "flying over the geoglyphs" demo. **Africa:** Cape Town (17.17), Rwanda (17.19) and Réunion/Mayotte (17.20) are bundleable now; Kruger (17.18) is the open point-cloud exemplar; everything prehistoric on the continent otherwise rides on ANADEM/COP30 hillshading.
+
+**Negative results (closed):** raw PACUNAM DTM tiles (17.8) not open; Santa Rosa Xtampak LiDAR DEM Zenodo 10.5281/zenodo.7983013 is "restricted"; no open Sahel-tell LiDAR on Zenodo/Dryad/Figshare; El Shincal (Inca, Argentina) Zenodo 10.5281/zenodo.7382162 is open CC BY 4.0 but a paper, not a DEM. **Amazonia flagship campaigns:** Pärssinen et al. 2026 (*Nature* 657:420–425, 20,000+ earthworks, 4,497 km²) states verbatim *"The original LiDAR raw data are restricted under Brazilian law"*; Prümers 2022 (Bolivian Mojos) shares the DTM only on request via the DAI; Rostain 2024 (Upano Valley) releases supplementary vectors only. **Federal Brazil:** IBGE has no airborne LiDAR archive. **Africa:** North Africa (Egypt/Sudan/Libya/Tunisia/Morocco) — no open archaeological LiDAR anywhere (Zenodo sweeps returned nothing; Giza is photogrammetry/GIS only); Sahel/West Africa (Benin Iya, Djenné-Djenno, Timbuktu) — the active DAI–MOWAA Benin survey uses drone photogrammetry, no LiDAR, no release; Kenya — commercial contractor only; Tanzania — no airborne archaeology LiDAR; Ethiopia (Aksum) — PDF chapter only; Madagascar — nothing.
+
+## 18. General archaeology and heritage place layers (third pass, verified 2026-10-18)
+Scoping question: beyond LiDAR terrain, what open **point/vector layers of archaeological and heritage sites** can EarthCraft overlay — on land and under water (ocean mapping: shipwrecks, submerged prehistory)? Method: live WMS/JSON/API reads. The strongest wins: **GeoNames already contains archaeology/wreck feature codes inside the existing 16.11 dumps (zero new pipeline)**, **Pleiades** is the ancient-Mediterranean gazetteer (CC BY 3.0, JSON API live-tested), and **EMODnet Human Activities** serves Cultural-Heritage shipwreck + submerged-prehistoric layers as WMS/WFS for European seas. National heritage registers (UK/Ireland/US) are the per-country-plugin pattern; UNESCO lists are display-quality only for now.
+
+| # | Source | Access | Coverage / resolution | Auth | Licence / limits | Effort | Implementation in EarthCraft | Longevity & openness |
+|---|---|---|---|---|---|---|---|---|
+| 18.1 | **GeoNames heritage feature codes** | Already-downloaded dumps (16.11): filter `featureClass=S` codes — **verified on the codes page:** `RUIN` ruins, `PYR/PYRS` pyramids, `RLG` "ancient site of significant religious importance", `WALLA` "ancient wall", `TMB` tombs, `SHRN` shrines, `HSTS` historical sites, `FT` forts/earthworks, `WRCK` wrecks | Global points; density varies by country | None | CC BY 4.0 | 🟢 | No new fetch — a filter over the 16.11 pipeline (placemark layer "archaeology"); the codes list above is the exact filter set | 🟠 GeoNames CC BY; bundle a snapshot and it is yours |
+| 18.2 | **Pleiades** (ancient Mediterranean places) | JSON per place: `pleiades.stoa.org/places/{id}/json` (live-tested); bulk "Pleiades Datasets 4.1" downloads on the site | 41,480 citable ancient places (v4.1, May 2025): Greek/Roman/Levantine sites, forts, tombs | None | Footer verified: "Creative Commons Attribution 3.0 License (cc-by)" — attribution + cite DOI per place | 🟡 | Geo fetch or bundle the v4.1 CSV/GeoJSON dumps into the placemark pipeline (one-time asset, small) | 🔵 academic consortium (NYU/ISAW), two decades running |
+| 18.3 | **EMODnet Human Activities — Cultural Heritage** | WMS verified in GetCapabilities: layers `heritageshipwrecks`, `heritageshipwrecksv2`, `wwshipwrecks`; WFS + CSV download on the portal; also **Submerged Prehistoric Archaeology and Landscapes** points | European seas: wreck positions (heritage + WWI/WWII), submerged prehistoric sites | None | EMODnet open-data (CC BY 4.0 † — confirm on the download page) | 🟢 | Tile path (WMS) or WFS one-shot into the vector overlay — zero new infrastructure | 🟣 EU/CINEA-funded service line |
+| 18.4 | **NOAA ENC chart data — WRECKS/OBSTRN** | S-57 ENC downloads (keyless) + chart-vector pipeline; wreck (`WRCK`), obstruction (`OBSTRN`) are standard S-57 object classes | US waters and coasts, chart-accurate | None | Public domain (US federal) | 🔴 | Pre-bake — S-57 → GeoJSON offline (no runtime S-57 decoder), ship as wreck placemarks | 🟣 NOAA permanent |
+| 18.5 | **NPS National Register of Historic Places** | Bulk data page `nps.gov/subjects/nationalregister/database.htm` (page live; bulk CSV link not grep-visible — JS) **†** | ~95,000 US historic places incl. archaeological districts | None | Public domain (US federal) | 🟡 | One-shot CSV into the placemark pipeline | 🟣 US federal |
+| 18.6 | **National heritage registers: UK / IE** | Historic England NHLE data services (API, free key) — Cloudflare-blocks plain clients † · Canmore (Scotland, OGL †) · Coflein (Wales) · Ireland Historic Environment Viewer / RMP shapefiles (301-redirect verified, exact open-licence text †) | UK + Ireland: listed buildings, scheduled monuments, SMR/RMP sites | Key or none | OGL / open-reuse family (attribution) — per-source text to verify before shipping | 🟡 | Per-country plugin in the 15.9–15.12 pattern (key from config if required) | 🟣 statutory heritage agencies |
+| 18.7 | **UNESCO World Heritage list** | Official list XML `whc.unesco.org/en/list/xml` — exists but **Cloudflare-gates plain HTTP clients** (verified) — browser-UA fetch or mirror needed † | 1,200+ WH sites incl. all major archaeology properties | None | UNESCO terms apply — redistribution text unverified **†** | 🟡 | Geo fetch with browser-like headers; kiosk-quality fallback: OSM `heritage=2` tag mining via Overpass (already wired) | 🟣 UNESCO institution; mirror risk low |
+| 18.8 | **UNESCO Underwater Cultural Heritage database** | Web viewer only (`unesco.org/en/underwater-cultural-heritage`); **no open API/bulk found** (fetches empty) **†** | Global designated UCH sites | None | Unclear; viewer-only | 🔴 | Not usable now — re-check if UNESCO opens bulk data | 🔴 no API — excluded for now |
+| 18.9 | **Wikidata "archaeological site" (Q839954) SPARQL** | `query.wikidata.org` SPARQL with coordinate export; also PeriodO (period definitions, CC0) for time-sliders | Global; completeness wildly uneven by country | None | **CC0** (Wikidata) — attribution-free | 🟡 | Geo fetch / SPARQL one-shot into the placemark pipeline; good cross-check layer for dedup | 🔵 Wikimedia infrastructure, CC0 |
+
+**Heritage-layer verdict:** start with 18.1 (already in the binary, just a filter), then 18.2 + 18.3 (bundle/fetch, clean licences). The national registers (18.5/18.6) are the Brazil-pattern per-country plugins. Ocean archaeology for EU waters is genuinely open via EMODnet; US via NOAA ENC pre-bakes; elsewhere there is no open global wreck list — UNESCO's stays viewer-only.
+
+## 19. Nature, science and historic-map extras (third pass, verified 2026-10-18)
+Scoping question: what remains uncovered that would make the globe feel alive — the natural and historical layers nobody ships? Live-verified: **GBIF** (keyless species-occurrence API, response read), **Paleobiology Database** (bbox JSON with lat/lon + geological age, response read), **Randolph Glacier Inventory** (site live), **timezone-boundary-builder** (licence quoted verbatim from the README). For "time-travel" mode, historical topographic maps exist as free tile/scans services in the US, UK and NL. openAIP is the one aviation dataset, but its licence is non-commercial — opt-in only.
+
+| # | Source | Access | Coverage / resolution | Auth | Licence / limits | Effort | Implementation in EarthCraft | Longevity & openness |
+|---|---|---|---|---|---|---|---|---|
+| 19.1 | **GBIF species occurrences** | Keyless REST verified: `api.gbif.org/v1/species/match?name=…` (live) + `/v1/occurrence/search?taxonKey=…&hasCoordinate=true`; also bulk occurrence snapshots on AWS S3 (`registry.opendata.aws/gbif`) | ~2.5 B geo-tagged occurrence records, all taxa, global | None | CC BY 4.0 / CC0 per contributing dataset; attribution "GBIF" | 🟡 | Geo fetch — species-search placemark layer ("where do golden eagles live"); bulk pre-bake from the S3 snapshot | 🔵 GBIF secretariat (30+ countries), permanent DOIs |
+| 19.2 | **Paleobiology Database (fossils)** | Keyless JSON verified: `paleobiodb.org/data1.2/colls/list.json?lngmin=…&latmin=…&show=full` (live — returns lat/lon + geological age per fossil collection); also `colls/geo.json` GeoJSON | ~200k fossil collections worldwide with age (Maastrichtian, Pleistocene…) | None | CC BY per PBDB terms **†** (attribution; cite collection refs) | 🟡 | Geo fetch — "fossil sites" placemark layer with epoch filter; pairs with 9.x for deep-time mode | 🔵 400+ institutions; two decades |
+| 19.3 | **Randolph Glacier Inventory (RGI 7.0) / GLIMS** | Site live (`glims.org/RGI/`); RGI 7.0 via NSIDC; GLIMS GLIMS glacier database WMS | ~215,000 glacier outlines, global, versioned snapshots | None | Freely available for research and education **†** (exact statement to re-read on the RGI page) | 🔴 | Pre-bake — glacier polygons as terrain "icing" mask or white-cap overlay | 🟣 NSIDC + GLIMS consortium |
+| 19.4 | **Movebank animal tracking** | REST `www.movebank.org/movebank/service/direct-read` (Earthdata login) | Live GPS tracks of tagged animals (birds, whales), 3B+ locations | Acct (Earthdata) | Per-study licences (CC BY / CC0 / restricted) **†** — check each study's licence flag | 🟡 | Geo fetch — animated migration overlay for flagship open-licence studies only | 🔵 Max Planck/AGB consortium |
+| 19.5 | **openAIP airspace** | Free API key; weekly airports + airspace volumes + navaids dumps | Global aviation data (airspace polygons would draw the "no-fly zones" over the globe) | Key (free) | **CC BY-NC 4.0 †** — non-commercial only | 🟡 | Key client — opt-in plugin only, like GFW 13.1; never a default layer | 🔴 NC licence + community model |
+| 19.6 | **timezone-boundary-builder** | GitHub releases: `evansiroky/timezone-boundary-builder` — simplified/full shapefile + GeoJSON, `tzid` per polygon | Global tz boundaries matching IANA identifiers | None | Verbatim: "The outputted data is licensed under the Open Data Commons Open Database License (ODbL)" | 🟡 | Bundle — one-time, replaces per-app "what time is it there" guessing; share-alike on any redistributed modifications | 🔵 active GitHub project, yearly releases |
+| 19.7 | **USGS historical topographic maps (topoView)** | Scan downloads per quad, keyless; also WMTS current-scales `basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer` for the modern equivalent | USA, 1884–2006 topographic quads | None | Public domain (US federal) | 🔴 | Pre-bake — georeferenced quad scans for "time-travel" imagery over US landmarks | 🟣 USGS permanent |
+| 19.8 | **NLS Scotland historic maps + NL Topotijdreis** | NLS georeferenced maps viewer/WMTS (`maps.nls.uk`) † · Topotijdreis WMTS via PDOK (`service.pdok.nl/hwh/topotijdreis`) — capabilities not greppable, † verify | Scotland 1840s–1960s; Netherlands 1815–today, national historic raster stack | None | NLS: free to use with attribution for most, per-collection † · Topotijdreis: open (PDOK family) † | 🟡 | Tile path with a year-parameter (time-travel mode for Europe's oldest mapped places) | 🟣 NLS + Kadaster institutions |
+| 19.9 | **GEBCO Undersea Feature Names gazetteer** | Download from GEBCO data-products page (page URL moved, re-locate on `gebco.net`) **†** | ~30k named seamounts, trenches, abyssal plains — ocean-floor placemarks | None | Public domain (same GEBCO policy as 1.5) | 🟡 | Bundle as undersea placemarks — the "Atlantis-finder" layer for ocean zoom-ins | 🟣 GEBCO/IHO |
+
+**Extras verdict:** 19.1/19.2/19.6/19.9 are cheap, licence-clean and distinctive (wildlife, fossils, time zones, seafloor names); 19.7/19.8 give EarthCraft a genuinely differentiating "time-travel" mode; 19.3/19.4 are pre-bake/fetch later; 19.5 stays opt-in due to the NC licence.
+
+**Negative results (closed):** Grottocenter cave API returned nothing on the documented v1 endpoint (re-verify before use); GEBCO data-products URL restructure broke the gazetteer link (data itself still public); PBDB `colls/geo.json` path 404s — use `colls/list.json` (verified) or `colls/geo.json` per current API docs.
 ---
-
 ## Licence watch-list
-
 ### Long-term stability risk flags (second pass, 2026-10-18)
-
 Graded for the "credible and long-term free" requirement. Sources not listed here are 🟣 institutional (NASA/NOAA/USGS/Copernicus-type, no flag needed).
 
 | Source | Risk | Mitigation |
@@ -295,20 +345,19 @@ Graded for the "credible and long-term free" requirement. Sources not listed her
 | **EWDS / GloFAS (16.10)** | Explicitly "not for time-critical operation" | WMS-T tiles for visuals; GRIB analytics offline |
 | **tile.openstreetmap.org in-app** | Faire caps heavy third-party usage of the main tile host | Prefer Protomaps PMTiles (5.3) for offline-grade basemap; keep OSM raster as light fallback |
 | **NREL→NLR rebrand (3.2, 4.4)** | Domains changed once; may change again after rename | Keep the DOI/AWS mirrors (`registry.opendata.aws`) as anchors, not developer.nlr.gov URLs |
+| **OpenTopography API (17.1)** | Free key: 50 calls/day non-academic; keys may not be embedded in an application; commercial integration requires a paid Enterprise key | Never ship a key — user-key from config or a pre-bake of ANADEM/archaeology tiles (17.2); treat the API as opt-in, not default |
+| **OT archaeology collection licences (17.2)** | DCAT says CC BY 4.0 for Caracol Belize, but the dataset page itself reads "Use License: Not Provided" | Keep the † flag; cite DOI + PI (Weishampel 2019) and re-check the dataset page before shipping |
 
 ### Classic licence constraints (unchanged)
-
-- **Non-commercial only:** Open-Meteo (2.7), RainViewer (2.4, personal / educational / small community), **Global Fishing Watch (13.1, CC BY-NC 4.0)**, **Smithsonian GVP (13.7)**. A German developer's design note reached the same conclusion and picked DWD data (CC BY 4.0, commercial use allowed) plus Bright Sky instead. If EarthCraft ever ships commercially, prefer 14.5 / 14.6 for weather in Germany.
+- **Non-commercial only:** Open-Meteo (2.7), RainViewer (2.4, personal / educational / small community), **Global Fishing Watch (13.1, CC BY-NC 4.0)**, **Smithsonian GVP (13.7)**, **openAIP (19.5, CC BY-NC 4.0 †)**. A German developer's design note reached the same conclusion and picked DWD data (CC BY 4.0, commercial use allowed) plus Bright Sky instead. If EarthCraft ever ships commercially, prefer 14.5 / 14.6 for weather in Germany.
 - **Registration or keys required (regional):** NGII and VWorld (14.8, 14.9), Tianditu (14.10, with phone verification), IGN services (14.7, unconfirmed).
 - **Restricted data:** IGN LiDAR HD withholds some zones (14.12). AW3D30 is a surface model, not bare earth (14.15).
 - **Licence conflict or unclear:** EOX Sentinel-2 cloudless (2.2), UMN resources (5.4). ~~Hansen (6.5)~~ resolved 2026-10-18: **CC BY 4.0**.
 - **Unmaintained or paused:** WRI power plants (5.2), SoilGrids REST API (6.4), AISstream (beta).
-- **Key handling:** OpenWeatherMap, AISstream, FIRMS, NLR (NSRDB, Wind Toolkit), OpenAQ (13.2), Global Fishing Watch (13.1), GFW Data API (13.5), NRSC (14.31). Never commit keys. Load from env or user config.
+- **Key handling:** OpenWeatherMap, AISstream, FIRMS, NLR (NSRDB, Wind Toolkit), OpenAQ (13.2), Global Fishing Watch (13.1), GFW Data API (13.5), NRSC (14.31), **OpenTopography (17.1: user key from config, never embedded — policy verified verbatim)**, **openAIP (19.5)**, Movebank via Earthdata login (19.4). Never commit keys. Load from env or user config.
 - **Rebrand note (verified 2026-10-18):** NREL is now the **National Laboratory of the Rockies (NLR)** — `developer.nrel.gov` and `www.nrel.gov` no longer resolve; use `developer.nlr.gov`. Affects 3.2, 4.4 and any NREL links elsewhere.
 - **Attribution:** always show the source string required by the provider in the UI footer.
-
 ## Suggested build order
-
 1. **Boundary detail upgrade (15.1 first, then 15.2 / 15.7–15.12).** One URL change (NE 50m → 10m) roughly triples country-border detail; then geoBoundaries ADM2 as the generic detailed-local layer, plus Census/France/Germany/Spain/Mexico plugins in the Brazil pattern. Overture per-country slices (15.4) can replace the fragile Overpass metro layer.
 2. **Terrarium terrain (1.1).** Closes the "real 3D terrain" gap with the existing tile and cache code.
 3. **GIBS (2.1) and weather overlays (16.3 night lights, 2.3 / 2.4, 14.5).** Reuse the imagery path, add a layer picker and timeline.
@@ -318,13 +367,11 @@ Graded for the "credible and long-term free" requirement. Sources not listed her
 7. **Other worlds (9.x)** after a body and projection abstraction exists.
 8. **Regional terrain and imagery (section 14).** Start with 14.1 (Japan, plain XYZ), 14.2 / 14.3 (Netherlands) and 14.4 (Switzerland). They need no key and reuse the tile path. Add a per-source decoder for terrain, because encodings differ (Terrarium vs GSI).
 9. **Cheap wins last:** 16.3 (night lights — plain GIBS layer), lightning via 16.7 with 16.5 as fallback.
-
+10. **Archaeology pre-bakes (17.2, 17.5, 17.6, plus 17.17 Cape Town / 17.19 Rwanda / 17.20 Réunion-Mayotte)** with the same offline GDAL step, and the free site-vector overlays (17.13–17.15) on top; prototype the ANADEM hillshade (17.1) for Amazonia/Sahel before committing to any runtime key handling.
+11. **Life and history layers (18, 19):** 18.1 (GeoNames filter — already downloaded), then 18.2/18.3 + 19.1/19.2 (placemark fetches), 19.6 (bundle time zones), 19.9 (seafloor names); time-travel imagery (19.7/19.8) after a tile-layer year-parameter exists.
 ---
-
 ## Source links
-
 Where I could not confirm a URL directly, the row is marked † in its section instead.
-
 ### Sections 1–11
 
 | # | Links |
@@ -460,3 +507,54 @@ Where I could not confirm a URL directly, the row is marked † in its section i
 | 16.11 | https://download.geonames.org/export/dump/ |
 
 Esri terms (2.9): https://www.esri.com/en-us/legal/terms/web-site-service (§2.2) · Wayback ToU via https://github.com/Esri/wayback-core · attribution string from item `10df2279f9684e4a9f6a7f08febac2a9`.
+
+### Section 17 (archaeological LiDAR, third pass)
+
+| # | Links |
+|---|---|
+| 17.1 / 17.2 | https://opentopography.org/developers (API keys, rate limits and embedding ban quoted verbatim, read 2026-10-18) · https://portal.opentopography.org/apidocs/ · https://portal.opentopography.org/stac/raster_catalog.json · https://portal.opentopography.org/csw/catalog.json (DCAT licence fields grepped live) |
+| 17.1 | https://doi.org/10.5069/G9736P4G (ANADEM South America DTM) · https://doi.org/10.5069/G9028PQB (Copernicus GLO-30) · https://doi.org/10.5069/G9V12301 (GEDI L3) |
+| 17.2 | https://doi.org/10.5069/G9833Q42 (Caracol/Chiquibul Belize LiDAR; S3 `.laz` verified keyless) · https://doi.org/10.5069/G95B00NF (Middle Usumacinta) · https://doi.org/10.5069/G9416V95 (Quirigua UAV) |
+| 17.3 | https://epqs.nationalmap.gov/v1/docs · https://portal.opentopography.org/apidocs/#/Public/getUsgsDem |
+| 17.4 | https://www.earthdata.nasa.gov/engage/open-data-services-software ("full and open sharing" policy) · https://nsidc.org/data/atl08 |
+| 17.5 | https://api.figshare.com/v2/articles/22202395 · https://figshare.com/articles/dataset/…/22202395 (CC BY 4.0, files and sizes verified via API) |
+| 17.6 / 17.7 | https://doi.org/10.5281/zenodo.10334054 (Stonehenge LiDAR landscape, CC BY 4.0) · https://doi.org/10.5281/zenodo.5087620 (DTM-anomaly geoglyph toolkit, CC BY 4.0) |
+| 17.8 | https://datadryad.org/dataset/doi:10.5061/dryad.k51j708 (PACUNAM derived data, CC0, 25.04 MB total) · https://doi.org/10.5281/zenodo.7983013 (Santa Rosa Xtampak — restricted) |
+| 17.9 | https://archaeologydataservice.ac.uk/terms-and-conditions/ (per-collection licence wording quoted verbatim) |
+| 17.10 / 17.11 | https://geosampa.prefeitura.sp.gov.br/PaginasPublicas/_SBC.aspx · GeoNetwork record "Nuvem de pontos MDT 2020" (`metadados.geosampa.prefeitura.sp.gov.br`, licence read directly) · https://igc.sp.gov.br (downloads; bot-blocked to curl) · geoportal.igc.sp.gov.br:6080 WMS |
+| 17.12 | https://www.inegi.org.mx/programas/mde/ · https://www.inegi.org.mx/app/biblioteca/ficha.html?upc=702825796341 · https://www.inegi.org.mx/app/geo2/elevacionesmex/ |
+| 17.13 / 17.14 | https://www.nature.com/articles/s41467-018-03510-7 (supplementary geoglyph vectors) · https://journal.caa-international.org/articles/10.5334/jcaa.45 (Table 1 UTM coords of 57 mound villages) |
+| 17.15 | https://doi.org/10.6084/m9.figshare.c.5262530 (Loreto 415-site collection, CC BY 4.0) |
+| 17.16 | Negative evidence: Pärssinen et al. 2026, *Nature* 657:420–425 (raw LiDAR "restricted under Brazilian law") · Prümers 2022 OA copy https://ore.exeter.ac.uk/29787914 (DTM on request) · Rostain 2024 AAM https://archimer.ifremer.fr/doc/00872/98412 (supplementary only) |
+| 17.17 | https://odp-cctegis.opendata.arcgis.com/search?tags=dem · https://cityimg.capetown.gov.za/erdas-iws/esri/GeoSpatial%20Datasets/rest/services/Elevation_CCT_GLM2019_5m_DEM/MapServer · …/Elevation_DTM_2m/MapServer (both live-read) · specs via https://gis.westerncape.gov.za/server2/rest/services/SpatialDataWarehouse/Elevation/MapServer/layers |
+| 17.18 | https://catalogue.ceda.ac.uk/uuid/a2e82c7f92dc4f389a7fb7e4e6629c9e/ (OGL v3, fetched directly) |
+| 17.19 | https://download.mapterhorn.com/sources/rw.tar · https://github.com/WASAC/rwanda-dem (licence string from `attribution.json`) |
+| 17.20 | https://cartes.gouv.fr/rechercher-une-donnee/dataset/IGNF_RGE-ALTI · https://www.data.gouv.fr/datasets/mnt-lidar-hd · download.mapterhorn.com tarballs (frrgealti1reunion, frhd2975) |
+| 17.21 / 17.22 | https://zenodo.org/records/10377387 (Kilwa Kisiwani, CC BY-NC-SA 2.0) · https://www.zamaniproject.org/site-zimbabwe-Great-Zimbabwe.html (point clouds on request) |
+| 17.23 | https://ngigeoportal.dlrrd.gov.za/cdngiportal/ (portal state read) · https://gis-ethekwini.opendata.arcgis.com/ · commercial GeoSpace/Hexagon note per LIDAR Magazine 2026-02-16 |
+### Section 18 (general archaeology / heritage layers, third pass)
+
+| # | Links |
+|---|---|
+| 18.1 | https://www.geonames.org/export/codes.html (S-class codes `RUIN`, `PYR(S)`, `RLG`, `WALLA`, `TMB`, `SHRN`, `HSTS`, `FT`, `WRCK` read verbatim 2026-10-18) |
+| 18.2 | https://pleiades.stoa.org/places/423025/json (API live-tested) · https://pleiades.stoa.org/datasets/4.1 · https://pleiades.stoa.org/about/license (footer "Creative Commons Attribution 3.0 License (cc-by)" quoted verbatim) |
+| 18.3 | https://ows.emodnet-humanactivities.eu/wms?SERVICE=WMS&REQUEST=GetCapabilities (layers `heritageshipwrecks`, `heritageshipwrecksv2`, `wwshipwrecks` verified) · https://www.emodnet-humanactivities.eu/view-data |
+| 18.4 | https://www.nauticalcharts.noaa.gov/ (ENC downloads; S-57 `WRECKS`/`OBSTRN` object classes) |
+| 18.5 | https://www.nps.gov/subjects/nationalregister/database.htm |
+| 18.6 | https://historicengland.org.uk/listing/the-list/ (Cloudflare-gates plain clients, verified) · https://canmore.org.uk · https://coflein.gov.uk · https://maps.archaeology.ie (301 verified) |
+| 18.7 / 18.8 | https://whc.unesco.org/en/list/xml (Cloudflare-gated to plain curl, verified) · https://www.unesco.org/en/underwater-cultural-heritage (no API found) |
+| 18.9 | https://query.wikidata.org (Q839954 "archaeological site") · https://perio.do (CC0) |
+
+### Section 19 (nature, science and historic maps, third pass)
+
+| # | Links |
+|---|---|
+| 19.1 | https://api.gbif.org/v1/species/match?name=Aquila%20chrysaetos (live-tested) · https://www.gbif.org/developer/summary · https://registry.opendata.aws/gbif |
+| 19.2 | https://paleobiodb.org/data1.2/colls/list.json?lngmin=10&lngmax=15&latmin=50&latmax=55&limit=3&show=full (live-tested) · https://paleobiodb.org |
+| 19.3 | https://www.glims.org/RGI/ (site live) · https://nsidc.org/data/nsidc-0770 (RGI 7.0) · https://www.glims.org |
+| 19.4 | https://www.movebank.org (terms-of-use page live) |
+| 19.5 | https://www.openaip.net (licence per site †) |
+| 19.6 | https://github.com/evansiroky/timezone-boundary-builder (README licence paragraph quoted verbatim: ODbL for data, MIT for code) |
+| 19.7 | https://www.usgs.gov/programs/national-geospatial-program/topoview · https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer |
+| 19.8 | https://maps.nls.uk (licence per collection †) · https://service.pdok.nl/hwh/topotijdreis/wmts/v1_0 (capabilities not greppable — verify in browser) |
+| 19.9 | https://www.gebco.net/data-products/ (locate the Undersea Feature Names gazetteer download; URL restructured) |
