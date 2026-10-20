@@ -62,6 +62,7 @@ pub(super) async fn load_overture_metro(iso3: &str) -> Result<Patch, crate::Erro
         lines_big: vec![],
         labels: detail.labels,
         regions: vec![],
+        replace: false,
     })
 }
 

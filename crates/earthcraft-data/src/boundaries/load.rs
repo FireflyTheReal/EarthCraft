@@ -1,13 +1,15 @@
 use super::brazil::load_brazil;
 use super::geojson::{collect_country_geometry, collect_geojson_lines, feature_name, label_center};
 use super::local;
+use super::lod::DetailLevel;
 use super::overture;
+use super::sources::{self, FeatureSource, first_features};
 use super::{
     CountryRegion, LabelKind, Layer, Line, MapLabel, Patch, StatusLog, is_big_country, log_status,
 };
 use std::sync::{
     Arc,
-    atomic::{AtomicBool, AtomicUsize, Ordering},
+    atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering},
     mpsc,
 };
 const LOCAL_MAX_ALTITUDE_KM: f64 = 110.0;
@@ -17,7 +19,6 @@ const LOCAL_REFRESH_SECS: u64 = 600;
 const LOCAL_COUNTRY_REFRESH_SECS: u64 = 6 * 60 * 60;
 const LOCAL_MOVEMENT_DEG: f64 = 0.15;
 const OVERTURE_REFRESH_SECS: u64 = 600;
-const NE: &str = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson";
 
 type Repaint = Arc<dyn Fn() + Send + Sync>;
 struct ActiveJob(Arc<AtomicUsize>, Repaint);
@@ -25,6 +26,13 @@ impl Drop for ActiveJob {
     fn drop(&mut self) {
         self.0.fetch_sub(1, Ordering::Relaxed);
         (self.1)();
+    }
+}
+/// Clears the "detail job running" flag when the job finishes, however it ends.
+struct RunningFlag(Arc<AtomicBool>);
+impl Drop for RunningFlag {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::Release);
     }
 }
 #[derive(Default)]
@@ -51,10 +59,55 @@ pub struct BoundaryLoader {
     local_attempt: Option<std::time::Instant>,
     metro_iso3: Option<String>,
     metro_attempt: Option<std::time::Instant>,
+    /// Highest round-detail level already applied to the world layers.
+    world_detail: Arc<AtomicU8>,
+    /// Highest level requested by the camera; the job loads this one.
+    world_target: Arc<AtomicU8>,
+    world_running: Arc<AtomicBool>,
 
     repaint: Repaint,
 }
 impl BoundaryLoader {
+    /// Raise the world detail level as the camera approaches the surface.
+    /// Repeated requests coalesce; the running job always loads the latest level.
+    pub fn request_world_detail(&mut self, altitude_km: f64) {
+        let wanted = DetailLevel::for_altitude(altitude_km) as u8;
+        if wanted <= self.world_detail.load(Ordering::Acquire) {
+            return;
+        }
+        self.world_target.fetch_max(wanted, Ordering::AcqRel);
+        if self.world_running.swap(true, Ordering::AcqRel) {
+            return;
+        }
+        let (log, tx) = (self.log.clone(), self.tx.clone());
+        let active = self.active.clone();
+        let repaint = self.repaint.clone();
+        let target = self.world_target.clone();
+        let detail = self.world_detail.clone();
+        let running = self.world_running.clone();
+        active.fetch_add(1, Ordering::Relaxed);
+        self.runtime.spawn(async move {
+            let _job = ActiveJob(active, repaint);
+            let _running = RunningFlag(running);
+            loop {
+                let level = DetailLevel::from_code(target.load(Ordering::Acquire));
+                if (level as u8) <= detail.load(Ordering::Acquire) {
+                    break;
+                }
+                if let Some(p) = load_countries(&log, level).await {
+                    let _ = tx.send(p);
+                }
+                if let Some(p) = load_states(&log, level).await {
+                    let _ = tx.send(p);
+                }
+                if let Some(p) = load_places(&log, &sources::place_sources(level)).await {
+                    let _ = tx.send(p);
+                }
+                detail.store(level as u8, Ordering::Release);
+            }
+        });
+    }
+
     fn take_request(
         &mut self,
         cities: bool,
@@ -235,19 +288,7 @@ impl BoundaryLoader {
         });
     }
 }
-// Country outlines in descending detail. Natural Earth is public domain, so the
-// on-disk feature cache can retain whichever set succeeded.
-fn country_urls() -> [String; 4] {
-    [
-        format!("{NE}/ne_10m_admin_0_countries.geojson"),
-        format!("{NE}/ne_50m_admin_0_countries.geojson"),
-        "https://raw.githubusercontent.com/datasets/geo-countries/main/data/countries.geojson"
-            .to_string(),
-        format!("{NE}/ne_110m_admin_0_countries.geojson"),
-    ]
-}
-
-// Load coarse world layers at startup; municipal geometry starts on demand.
+// World layers start at the bundled low detail, then rise with the camera.
 // Background async tasks deliver each completed layer through the application channel.
 pub fn load_boundaries_async(
     log: StatusLog,
@@ -256,28 +297,14 @@ pub fn load_boundaries_async(
 ) -> (mpsc::Receiver<Patch>, BoundaryLoader) {
     let (tx, rx) = mpsc::channel();
     let repaint: Repaint = Arc::new(repaint);
-    let active = Arc::new(AtomicUsize::new(4));
+    let active = Arc::new(AtomicUsize::new(2));
 
+    // The 1:110m set is compiled into the binary, so a cold start needs no network.
     let (t, l) = (tx.clone(), log.clone());
     let job = ActiveJob(active.clone(), repaint.clone());
     runtime.spawn(async move {
         let _job = job;
-        // 1:10m triples country-border detail; the coarser sets remain offline/failure fallbacks.
-        let urls = country_urls();
-        if let Some(p) = load_polygon_layer(
-            &l,
-            &urls,
-            PolygonLayer {
-                what: "Countries",
-                layer: Layer::Countries,
-                kind: LabelKind::Country,
-                en_keys: &["NAME", "ADMIN", "name"],
-                pt_keys: &["NAME_PT", "name_pt", "NAME", "ADMIN"],
-                rank: 0,
-            },
-        )
-        .await
-        {
+        if let Some(p) = load_countries(&l, DetailLevel::Low).await {
             let _ = t.send(p);
         }
     });
@@ -286,50 +313,7 @@ pub fn load_boundaries_async(
     let job = ActiveJob(active.clone(), repaint.clone());
     runtime.spawn(async move {
         let _job = job;
-        let urls = [
-            format!("{NE}/ne_10m_admin_0_map_units.geojson"),
-            format!("{NE}/ne_50m_admin_0_map_units.geojson"),
-        ];
-        if let Some(p) = load_disputed(&l, &urls).await {
-            let _ = t.send(p);
-        }
-    });
-
-    let (t, l) = (tx.clone(), log.clone());
-    let job = ActiveJob(active.clone(), repaint.clone());
-    runtime.spawn(async move {
-        let _job = job;
-        let urls = [
-            format!("{NE}/ne_10m_admin_1_states_provinces.geojson"),
-            format!("{NE}/ne_50m_admin_1_states_provinces.geojson"),
-        ];
-        if let Some(p) = load_polygon_layer(
-            &l,
-            &urls,
-            PolygonLayer {
-                what: "States",
-                layer: Layer::States,
-                kind: LabelKind::State,
-                en_keys: &["name_en", "name", "NAME_1", "gn_name"],
-                pt_keys: &["name_pt", "name", "name_en", "NAME_1"],
-                rank: 0,
-            },
-        )
-        .await
-        {
-            let _ = t.send(p);
-        }
-    });
-
-    let (t, l) = (tx.clone(), log.clone());
-    let job = ActiveJob(active.clone(), repaint.clone());
-    runtime.spawn(async move {
-        let _job = job;
-        let urls = [
-            format!("{NE}/ne_10m_populated_places.geojson"),
-            format!("{NE}/ne_50m_populated_places.geojson"),
-        ];
-        if let Some(p) = load_places(&l, &urls).await {
+        if let Some(p) = load_places(&l, &sources::place_sources(DetailLevel::Low)).await {
             let _ = t.send(p);
         }
     });
@@ -349,26 +333,14 @@ pub fn load_boundaries_async(
             local_attempt: None,
             metro_iso3: None,
             metro_attempt: None,
+            world_detail: Arc::new(AtomicU8::new(DetailLevel::Low as u8)),
+            world_target: Arc::new(AtomicU8::new(DetailLevel::Low as u8)),
+            world_running: Arc::new(AtomicBool::new(false)),
             repaint,
         },
     )
 }
 
-async fn first_features<T, F>(log: &StatusLog, what: &str, urls: &[String], consume: F) -> Option<T>
-where
-    T: Default + Send + 'static,
-    F: Fn(&serde_json::Value, &mut T) + Clone + Send + 'static,
-{
-    let mut last = String::new();
-    for url in urls {
-        match crate::features::fetch(url, consume.clone()).await {
-            Ok(value) => return Some(value),
-            Err(error) => last = format!("{url}: {error}"),
-        }
-    }
-    log_status(log, format!("✖ {what}: {last}"));
-    None
-}
 #[derive(Clone, Copy)]
 struct PolygonLayer {
     what: &'static str,
@@ -400,7 +372,7 @@ fn country_iso3(feature: &serde_json::Value) -> Option<String> {
 }
 async fn load_polygon_layer(
     log: &StatusLog,
-    urls: &[String],
+    sources: &[FeatureSource],
     options: PolygonLayer,
 ) -> Option<Patch> {
     let PolygonLayer {
@@ -414,7 +386,7 @@ async fn load_polygon_layer(
     let output = first_features(
         log,
         what,
-        urls,
+        sources,
         move |f: &serde_json::Value, out: &mut PolygonOutput| {
             let Some(geometry) = f.get("geometry") else {
                 return;
@@ -468,13 +440,14 @@ async fn load_polygon_layer(
         lines_big: output.lines_big,
         labels: output.labels,
         regions: output.regions,
+        replace: false,
     })
 }
-async fn load_places(log: &StatusLog, urls: &[String]) -> Option<Patch> {
+async fn load_places(log: &StatusLog, sources: &[FeatureSource]) -> Option<Patch> {
     let labels = first_features(
         log,
         "Cities",
-        urls,
+        sources,
         |f: &serde_json::Value, labels: &mut Vec<MapLabel>| {
             let coords = f.pointer("/geometry/coordinates");
             let (Some(coords), Some(en)) =
@@ -511,6 +484,7 @@ async fn load_places(log: &StatusLog, urls: &[String]) -> Option<Patch> {
         lines_big: vec![],
         labels,
         regions: vec![],
+        replace: false,
     })
 }
 
@@ -525,11 +499,11 @@ fn disputed_type(feature: &serde_json::Value) -> bool {
     )
 }
 
-async fn load_disputed(log: &StatusLog, urls: &[String]) -> Option<Patch> {
+async fn load_disputed(log: &StatusLog, sources: &[FeatureSource]) -> Option<Patch> {
     let lines = first_features(
         log,
         "Disputed boundaries",
-        urls,
+        sources,
         |f: &serde_json::Value, out: &mut Vec<Line>| {
             if disputed_type(f)
                 && let Some(coords) = f.pointer("/geometry/coordinates")
@@ -546,18 +520,66 @@ async fn load_disputed(log: &StatusLog, urls: &[String]) -> Option<Patch> {
         lines_big: vec![],
         labels: vec![],
         regions: vec![],
+        replace: false,
     })
+}
+
+async fn load_countries(log: &StatusLog, level: DetailLevel) -> Option<Patch> {
+    let mut patch = load_polygon_layer(
+        log,
+        &sources::country_sources(level),
+        PolygonLayer {
+            what: "Countries",
+            layer: Layer::Countries,
+            kind: LabelKind::Country,
+            en_keys: &["NAME", "ADMIN", "name"],
+            pt_keys: &["NAME_PT", "name_pt", "NAME", "ADMIN"],
+            rank: 0,
+        },
+    )
+    .await?;
+    // A detail upgrade replaces the previous outlines, so disputed linework must
+    // travel in the same patch or it would be discarded with them.
+    patch.replace = true;
+    let disputed = sources::map_unit_sources(level);
+    if !disputed.is_empty()
+        && let Some(more) = load_disputed(log, &disputed).await
+    {
+        patch.lines.extend(more.lines);
+    }
+    Some(patch)
+}
+
+async fn load_states(log: &StatusLog, level: DetailLevel) -> Option<Patch> {
+    let sources = sources::state_sources(level);
+    if sources.is_empty() {
+        return None;
+    }
+    let mut patch = load_polygon_layer(
+        log,
+        &sources,
+        PolygonLayer {
+            what: "States",
+            layer: Layer::States,
+            kind: LabelKind::State,
+            en_keys: &["name_en", "name", "NAME_1", "gn_name"],
+            pt_keys: &["name_pt", "name", "name_en", "NAME_1"],
+            rank: 0,
+        },
+    )
+    .await?;
+    patch.replace = true;
+    Some(patch)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
-    fn country_urls_prefer_10m_detail_with_coarser_fallbacks() {
-        let urls = country_urls();
-        assert!(urls[0].ends_with("ne_10m_admin_0_countries.geojson"));
-        assert!(urls[1].ends_with("ne_50m_admin_0_countries.geojson"));
-        assert!(urls[3].ends_with("ne_110m_admin_0_countries.geojson"));
+    fn bundled_low_detail_is_the_cold_start_path() {
+        let countries = sources::country_sources(DetailLevel::Low);
+        assert!(matches!(countries.as_slice(), [FeatureSource::Bundled(_)]));
+        assert!(!countries.iter().any(|s| matches!(s, FeatureSource::Url(_))));
     }
 
     #[test]
@@ -598,6 +620,9 @@ mod tests {
             local_attempt: None,
             metro_iso3: None,
             metro_attempt: None,
+            world_detail: Arc::new(AtomicU8::new(DetailLevel::Low as u8)),
+            world_target: Arc::new(AtomicU8::new(DetailLevel::Low as u8)),
+            world_running: Arc::new(AtomicBool::new(false)),
             repaint: Arc::new(|| {}),
         };
         assert_eq!(loader.take_request(false, false, true, 14000.0), None);

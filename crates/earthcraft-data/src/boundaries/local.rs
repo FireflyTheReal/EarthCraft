@@ -13,6 +13,7 @@ fn detail_patch(detail: Detail) -> Patch {
         lines_big: vec![],
         labels: detail.labels,
         regions: vec![],
+        replace: false,
     }
 }
 

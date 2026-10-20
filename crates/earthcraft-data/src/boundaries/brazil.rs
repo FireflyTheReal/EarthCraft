@@ -140,6 +140,7 @@ pub(super) async fn load_brazil(log: &StatusLog, tx: &mpsc::Sender<Patch>, inclu
         lines_big: vec![],
         labels,
         regions: vec![],
+        replace: false,
     });
 
     if !include_geometry {
@@ -182,6 +183,7 @@ pub(super) async fn load_brazil(log: &StatusLog, tx: &mpsc::Sender<Patch>, inclu
             lines_big: vec![],
             labels: mlabels,
             regions: vec![],
+            replace: false,
         });
     }
 }
@@ -228,6 +230,7 @@ fn metropolitan_patch(munis: &[Muni], json: &serde_json::Value) -> Patch {
         lines_big: Vec::new(),
         labels: mlabels,
         regions: vec![],
+        replace: false,
     }
 }
 

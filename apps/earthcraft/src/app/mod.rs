@@ -537,6 +537,7 @@ impl eframe::App for App {
             self.show_place_labels && is_brazil,
             self.cam.alt,
         );
+        self.boundary_loader.request_world_detail(self.cam.alt);
         if self.boundary_loader.is_loading() {
             ui.request_repaint_after(BOUNDARY_POLL_INTERVAL);
         }

@@ -4,6 +4,25 @@ Status: **proposed**. This document records the decision to rebuild the
 map-data subsystem while keeping `main.rs`, `earthcraft-core` and the render
 engine as they are. It does not describe code that exists yet.
 
+## Implemented so far
+
+The first migration step landed ahead of the rebuild:
+
+- The 1:110m Natural Earth country and place sets are compiled into
+  `earthcraft-data` and drawn on every cold start, with no network request.
+- World detail now follows camera altitude: 1:110m above 10,000 km, 1:50m down
+  to 1,500 km, 1:10m below that. Each upgrade replaces the previous level.
+- `Patch` carries a `replace` flag so an upgrade swaps outlines and labels
+  instead of appending to them. Disputed linework travels inside the country
+  patch, so a replacement cannot silently drop it.
+- Admin-1 outlines and disputed linework are withdrawn at the lowest level:
+  the 1:110m edition has no admin-1, so nothing is drawn rather than drawing a
+  coarser fake.
+
+Behaviour that changed deliberately: a cold start draws coarser borders until
+the camera approaches, instead of blocking on ~83 MB of 1:10m downloads.
+
+
 ## Problem
 
 The boundary/overlay path grew one feature at a time and now has three

@@ -5,8 +5,10 @@ mod brazil;
 mod geojson;
 mod load;
 mod local;
+mod lod;
 mod national;
 mod overture;
+mod sources;
 mod updates;
 mod world;
 pub use geojson::dedupe_city_labels;
@@ -244,6 +246,10 @@ pub struct Patch {
     pub lines_big: Vec<Line>,
     pub labels: Vec<MapLabel>,
     pub(crate) regions: Vec<CountryRegion>,
+    /// Replace the layer's current content instead of appending to it.
+    /// A coarser detail level is upgraded to a finer one through this flag, so
+    /// the two sets never accumulate.
+    pub replace: bool,
 }
 
 #[derive(Default)]
