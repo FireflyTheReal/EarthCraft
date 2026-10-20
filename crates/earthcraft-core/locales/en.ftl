@@ -596,3 +596,8 @@ sky-short-credit = Sky: NASA SVS · Gaia DR2 (ESA/Gaia/DPAC)
 sky-combined-credit = { $map }
     { $sky }
 sky-software-credits = Celestial transform software licenses
+
+# Native Rust renderer terrain (no browser)
+layers-terrain-toggle = ⛰ Real 3D terrain (Mapterhorn)
+layers-terrain-exaggeration = Vertical exaggeration
+layers-terrain-help = Terrain on the globe. Zoom below 150 km altitude; elevation tiles need internet.

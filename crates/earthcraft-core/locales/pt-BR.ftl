@@ -596,3 +596,8 @@ sky-short-credit = Céu: NASA SVS · Gaia DR2 (ESA/Gaia/DPAC)
 sky-combined-credit = { $map }
     { $sky }
 sky-software-credits = Licenças do software de transformação celeste
+
+# Relevo diretamente no motor Rust (sem navegador)
+layers-terrain-toggle = ⛰ Relevo 3D real (Mapterhorn)
+layers-terrain-exaggeration = Exagero vertical
+layers-terrain-help = Relevo na superfície do globo. Aproxime para até 150 km de altitude; os dados precisam de internet.

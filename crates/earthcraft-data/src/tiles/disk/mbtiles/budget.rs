@@ -19,7 +19,7 @@ struct Victim {
 }
 impl Budget {
     pub(super) fn scan(root: &Path) -> Result<Self, crate::Error> {
-        let mut pending: Vec<_> = super::super::Provider::ALL
+        let mut pending: Vec<_> = super::super::Provider::CACHE_ALL
             .iter()
             .map(|p| root.join(p.dir()))
             .collect();

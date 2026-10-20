@@ -58,7 +58,7 @@ impl Address {
             .next()
             .and_then(|c| c.as_os_str().to_str())
             .ok_or_else(fail)?;
-        if !super::Provider::ALL.iter().any(|p| p.dir() == provider) {
+        if !super::Provider::CACHE_ALL.iter().any(|p| p.dir() == provider) {
             return Err(fail());
         }
         let overview = provider == "esri_sat" && zoom <= 4;
@@ -176,7 +176,7 @@ impl Mbtiles {
         let budget = self.budget.clone();
         self.call(move |_| {
             *budget.lock().unwrap() = None;
-            for provider in super::Provider::ALL {
+            for provider in super::Provider::CACHE_ALL {
                 let path = root.join(provider.dir());
                 let metadata = match std::fs::symlink_metadata(&path) {
                     Ok(m) => m,

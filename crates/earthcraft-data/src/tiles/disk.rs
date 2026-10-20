@@ -100,7 +100,7 @@ impl DiskCache {
 // File lengths are a snapshot of encoded cache data, excluding filesystem
 // allocation overhead. Never follow links into unrelated directories.
 fn count_file_bytes(root: &Path) -> io::Result<u64> {
-    let mut pending: Vec<PathBuf> = Provider::ALL
+    let mut pending: Vec<PathBuf> = Provider::CACHE_ALL
         .iter()
         .map(|provider| root.join(provider.dir()))
         .collect();

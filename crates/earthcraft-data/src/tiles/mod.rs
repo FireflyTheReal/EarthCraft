@@ -21,6 +21,8 @@ pub enum Provider {
     Wayback,
     Streets,
     Topo,
+    /// Mapterhorn Terrarium WebP elevation, for the native globe only.
+    TerrainDem,
 }
 impl Provider {
     pub const ALL: [Provider; 4] = [
@@ -29,12 +31,17 @@ impl Provider {
         Provider::Streets,
         Provider::Topo,
     ];
+    /// All cached providers, including the non-imagery elevation source.
+    pub const CACHE_ALL: [Provider; 5] = [
+        Provider::Satellite, Provider::Wayback, Provider::Streets, Provider::Topo, Provider::TerrainDem,
+    ];
     pub fn id(self) -> u64 {
         match self {
             Provider::Satellite => 0,
             Provider::Streets => 1,
             Provider::Topo => 2,
             Provider::Wayback => 3,
+            Provider::TerrainDem => 4,
         }
     }
     fn from_id(i: u64) -> Provider {
@@ -42,6 +49,7 @@ impl Provider {
             0 => Provider::Satellite,
             1 => Provider::Streets,
             3 => Provider::Wayback,
+            4 => Provider::TerrainDem,
             _ => Provider::Topo,
         }
     }
@@ -55,6 +63,7 @@ impl Provider {
             Provider::Wayback => lg.text("provider-wayback-label"),
             Provider::Streets => lg.text("provider-streets-label"),
             Provider::Topo => lg.text("provider-topography-label"),
+            Provider::TerrainDem => "Mapterhorn DEM",
         }
     }
     fn dir(self) -> &'static str {
@@ -63,6 +72,7 @@ impl Provider {
             Provider::Wayback => "wayback",
             Provider::Streets => "osm",
             Provider::Topo => "opentopo",
+            Provider::TerrainDem => "mapterhorn_dem",
         }
     }
     pub fn max_zoom(self) -> u8 {
@@ -70,6 +80,7 @@ impl Provider {
             Provider::Satellite | Provider::Wayback => 17,
             Provider::Streets => 19,
             Provider::Topo => 17,
+            Provider::TerrainDem => 17,
         }
     }
     fn url(self, z: u8, x: u32, y: u32, rel: u16) -> String {
@@ -80,6 +91,7 @@ impl Provider {
             ),
             Provider::Streets => format!("https://tile.openstreetmap.org/{z}/{x}/{y}.png"),
             Provider::Topo => format!("https://tile.opentopomap.org/{z}/{x}/{y}.png"),
+            Provider::TerrainDem => format!("https://tiles.mapterhorn.com/{z}/{x}/{y}.webp"),
         }
     }
     pub fn attribution(self, lg: Lang) -> &'static str {
@@ -87,6 +99,7 @@ impl Provider {
             Provider::Satellite | Provider::Wayback => lg.text("provider-imagery-attribution"),
             Provider::Streets => lg.text("provider-streets-attribution"),
             Provider::Topo => "© OpenTopoMap (CC-BY-SA), © OpenStreetMap",
+            Provider::TerrainDem => "© Mapterhorn (mapterhorn.com/attribution)",
         }
     }
 }
@@ -151,6 +164,30 @@ impl Tile {
         (self.w, self.h, &self.px)
     }
 
+
+    /// Bilinear elevation in metres, decoded at each pixel *before* blending.
+    /// Mapterhorn uses Terrarium: (R * 256 + G + B / 256) - 32768.
+    pub fn sample_terrarium_m(&self, u: f64, v: f64) -> f64 {
+        let x = (u.clamp(0.0, 1.0) * self.w as f64 - 0.5).max(0.0);
+        let y = (v.clamp(0.0, 1.0) * self.h as f64 - 0.5).max(0.0);
+        let x0 = (x as usize).min(self.w - 1);
+        let y0 = (y as usize).min(self.h - 1);
+        let x1 = (x0 + 1).min(self.w - 1);
+        let y1 = (y0 + 1).min(self.h - 1);
+        let fx = (x - x0 as f64).min(1.0);
+        let fy = (y - y0 as f64).min(1.0);
+        let height = |xx: usize, yy: usize| {
+            let idx = (yy * self.w + xx) * 4;
+            let r = self.px[idx] as f64;
+            let g = self.px[idx + 1] as f64;
+            let b = self.px[idx + 2] as f64;
+            r * 256.0 + g + b / 256.0 - 32768.0
+        };
+        let top = height(x0, y0) * (1.0 - fx) + height(x1, y0) * fx;
+        let bottom = height(x0, y1) * (1.0 - fx) + height(x1, y1) * fx;
+        top * (1.0 - fy) + bottom * fy
+    }
+
     /// Bilinear RGB in SIMD lanes, with the unused fourth lane set to zero.
     pub fn sample(&self, u: f64, v: f64) -> Vec4 {
         let x = (u * self.w as f64 - 0.5).max(0.0);
@@ -182,6 +219,20 @@ pub use warmup::TileWarmup;
 #[cfg(test)]
 mod sampling_tests {
     use super::*;
+    #[test]
+    fn terrarium_elevation_decodes_before_bilinear_interpolation() {
+        // 0 metres = [128,0,0], 1000 metres = [131,232,0].
+        let tile = Tile {
+            w: 2,
+            h: 2,
+            px: vec![128,0,0,255, 131,232,0,255,
+                     128,0,0,255, 131,232,0,255],
+        };
+        assert_eq!(tile.sample_terrarium_m(0.25, 0.5), 0.0);
+        assert_eq!(tile.sample_terrarium_m(0.75, 0.5), 1000.0);
+        assert_eq!(tile.sample_terrarium_m(0.50, 0.5), 500.0);
+    }
+
     #[test]
     fn simd_sampling_preserves_pixel_centers_bilinear_weights_and_unused_lane() {
         let tile = Tile {
