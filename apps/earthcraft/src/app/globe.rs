@@ -161,6 +161,9 @@ impl App {
             release_index: self.wayback_idx,
             grid: self.show_grid,
             atmosphere: self.show_atmo,
+            terrain: self.show_terrain && self.cam.alt <= 150.0
+                && self.explorer.active == earthcraft_core::body::Body::Earth,
+            terrain_exaggeration: self.terrain_exaggeration,
             sunlight: self.show_sun,
             sky: self.sky_ready(),
             cinematic_sky: self.settings.sky.cinematic,
