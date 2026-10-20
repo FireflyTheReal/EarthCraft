@@ -45,7 +45,7 @@ pub(super) fn pixels(
                                 &request.cfg,
                                 request.basis.model.geometry(),
                             );
-                            crate::shade_surface(surface, &request.cfg, &mut local)
+                            crate::shade_surface(surface, &request.cfg, &mut local, 1.0)
                         } else {
                             crate::sky(&ray, rays.camera_len_squared, &request.cfg)
                         };

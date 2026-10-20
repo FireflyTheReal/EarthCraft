@@ -272,6 +272,7 @@ mod native_fallback_tests {
             cfg: crate::RenderCfg {
                 sky: None,
                 provider: earthcraft_data::tiles::Provider::Satellite,
+                terrain: None,
                 rel: 0,
                 grid: false,
                 grid_step: 10.0,

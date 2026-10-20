@@ -36,6 +36,7 @@ fn earth_model_kernel_time() {
     let cfg = RenderCfg {
         sky: None,
         provider: Provider::Satellite,
+        terrain: None,
         rel: 0,
         grid: true,
         grid_step: 10.0,
@@ -141,6 +142,7 @@ fn earth_model_raster_capture() {
                 let cfg = RenderCfg {
                     sky: None,
                     provider: cfg_provider,
+                    terrain: None,
                     rel: 0,
                     grid: true,
                     grid_step: 10.0,

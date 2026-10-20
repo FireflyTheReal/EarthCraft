@@ -61,6 +61,7 @@ fn request(longitude: f64, presentation: u64) -> RenderRequest {
         cfg: RenderCfg {
             sky: None,
             provider: Provider::Satellite,
+            terrain: None,
             rel: 0,
             grid: false,
             grid_step: 10.0,

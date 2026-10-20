@@ -111,6 +111,7 @@ fn warm_cpu_frame_for_model(model: earthcraft_core::earth_model::EarthModel) {
     let config = RenderCfg {
         sky: None,
         provider: Provider::Satellite,
+        terrain: None,
         rel: 0,
         grid: true,
         grid_step: 10.0,
@@ -217,6 +218,7 @@ fn warm_gpu_frame_time() {
             cfg: RenderCfg {
                 sky: None,
                 provider: Provider::Satellite,
+                terrain: None,
                 rel: 0,
                 grid: false,
                 grid_step: 10.0,
@@ -348,6 +350,7 @@ fn warm_gpu_frame_time() {
             cfg: RenderCfg {
                 sky: None,
                 provider: Provider::Satellite,
+                terrain: None,
                 rel: 0,
                 grid: false,
                 grid_step: 10.0,

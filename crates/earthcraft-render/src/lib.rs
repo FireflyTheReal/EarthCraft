@@ -8,6 +8,7 @@ mod gpu;
 pub mod overlays;
 mod pixel;
 mod rays;
+mod terrain;
 use pixel::{Surface, sky, surface};
 mod tuning;
 pub mod worker;
@@ -49,9 +50,15 @@ pub fn grid_step(altitude_km: f64, width: usize, height: usize) -> f64 {
 
 // ───────────────────────────── Rendering ─────────────────────────────
 
+#[derive(Clone, Copy, Debug)]
+pub struct TerrainCfg {
+    pub exaggeration: f32,
+}
+
 pub struct RenderCfg {
     pub sky: Option<celestial::SkyBackdrop>,
     pub provider: Provider,
+    pub terrain: Option<TerrainCfg>,
     pub rel: u16,
     pub grid: bool,
     pub grid_step: f64,
@@ -120,6 +127,7 @@ fn shade_surface(
     surface: Surface,
     cfg: &RenderCfg,
     loc: &mut Local<impl Fn(TileKey) -> Lookup>,
+    terrain_light: f32,
 ) -> Vec4 {
     let mut col;
     col = sample_chain(
@@ -146,7 +154,7 @@ fn shade_surface(
     if surface.grid {
         col = col.lerp_monotonic(GRID_COLOR, GRID_BLEND);
     }
-    col = col * surface.shade + Vec4::new(0.0, 0.0, surface.night, 0.0);
+    col = col * (surface.shade * terrain_light) + Vec4::new(0.0, 0.0, surface.night, 0.0);
     col = col.lerp_monotonic(RIM_COLOR, surface.rim);
     col
 }
@@ -171,8 +179,21 @@ fn render_row<const ELLIPSOID: bool>(
             let bb = ray.camera_dot;
             let disc = ray.discriminant;
             let col = if disc >= 0.0 && bb < 0.0 {
-                let surface = surface::<ELLIPSOID>(x, y, w, h, &ray, cfg, rays.model_geometry());
-                shade_surface(surface, cfg, loc)
+                let initial = surface::<ELLIPSOID>(x, y, w, h, &ray, cfg, rays.model_geometry());
+                let (ray, light) = if cfg.terrain.is_some() {
+                    terrain::displace(
+                        &ray, (initial.u, initial.v), initial.z0,
+                        initial.dist, rays.model_geometry(), cfg, loc,
+                    )
+                } else {
+                    (ray, 1.0)
+                };
+                let final_surface = if cfg.terrain.is_some() {
+                    surface::<ELLIPSOID>(x, y, w, h, &ray, cfg, rays.model_geometry())
+                } else {
+                    initial
+                };
+                shade_surface(final_surface, cfg, loc, light)
             } else {
                 sky(&ray, cc, cfg)
             };

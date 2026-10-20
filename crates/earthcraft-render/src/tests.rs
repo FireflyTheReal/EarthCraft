@@ -21,6 +21,7 @@ fn raster_matches_regression_fixtures() {
     let config = |grid, atmo, sun| RenderCfg {
         sky: None,
         provider: Provider::Satellite,
+        terrain: None,
         rel: 0,
         grid,
         grid_step: 10.0,
@@ -186,6 +187,7 @@ fn batch_reference_config(provider: Provider) -> RenderCfg {
     RenderCfg {
         sky: None,
         provider,
+        terrain: None,
         rel: 7,
         grid: true,
         grid_step: 10.0,

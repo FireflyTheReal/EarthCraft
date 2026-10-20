@@ -31,6 +31,8 @@ pub struct RasterView {
     pub release_index: usize,
     pub grid: bool,
     pub atmosphere: bool,
+    pub terrain: bool,
+    pub terrain_exaggeration: f32,
     pub sunlight: bool,
     pub sky: bool,
     pub cinematic_sky: bool,
@@ -60,6 +62,8 @@ impl RasterView {
             ),
             (
                 self.atmosphere,
+                self.terrain,
+                self.terrain_exaggeration.to_bits(),
                 sun_key,
                 self.release_index,
                 self.sky,
@@ -77,6 +81,8 @@ impl RasterView {
             self.release_index,
             self.grid,
             self.atmosphere,
+            self.terrain,
+            self.terrain_exaggeration.to_bits(),
             sun_key,
             (self.model.code(), self.sky, self.cinematic_sky),
         )
@@ -108,6 +114,8 @@ mod tests {
             release_index: 0,
             grid: false,
             atmosphere: false,
+            terrain: false,
+            terrain_exaggeration: 1.0,
             sunlight: false,
             sky: false,
             cinematic_sky: false,
@@ -138,6 +146,8 @@ mod tests {
             release_index: 0,
             grid: false,
             atmosphere: true,
+            terrain: false,
+            terrain_exaggeration: 1.0,
             sunlight: true,
             sky: false,
             cinematic_sky: false,
@@ -160,6 +170,26 @@ mod tests {
         assert_ne!(view.keys(120.0).state, before_resize.state);
         assert_ne!(view.keys(120.0).presentation, before_resize.presentation);
     }
+    #[test]
+    fn terrain_toggle_and_exaggeration_invalidate_presentation() {
+        let mut view = RasterView {
+            camera: Cam { lat: 0.0, lon: 0.0, alt: 10.0, heading: 0.0 },
+            model: earthcraft_core::earth_model::EarthModel::Wgs84,
+            width: 80, height: 60, aspect: 4.0 / 3.0,
+            provider: Provider::Satellite, release_index: 0,
+            grid: false, atmosphere: false, sunlight: false,
+            sky: false, cinematic_sky: false,
+            terrain: false, terrain_exaggeration: 1.0,
+        };
+        let flat = view.keys(120.0);
+        view.terrain = true;
+        let mountain = view.keys(120.0);
+        assert_ne!(mountain.state, flat.state);
+        assert_ne!(mountain.presentation, flat.presentation);
+        view.terrain_exaggeration = 2.0;
+        assert_ne!(view.keys(120.0).presentation, mountain.presentation);
+    }
+
     #[test]
     fn interaction_resolution_and_size_limits_are_preserved() {
         assert_eq!(

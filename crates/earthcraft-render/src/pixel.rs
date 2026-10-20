@@ -189,6 +189,7 @@ mod tests {
         let cfg = RenderCfg {
             sky: None,
             provider: Provider::Satellite,
+            terrain: None,
             rel: 0,
             grid: false,
             grid_step: 10.0,
@@ -239,6 +240,7 @@ mod tests {
         let cfg = RenderCfg {
             sky: None,
             provider: Provider::Satellite,
+            terrain: None,
             rel: 0,
             grid: true,
             grid_step: 1.0,

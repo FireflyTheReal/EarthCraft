@@ -18,6 +18,7 @@ pub(super) struct RayCaster {
     height: f64,
 }
 
+#[derive(Clone, Copy)]
 pub(super) struct RaySample {
     pub(super) direction: DVec3,
     pub(super) camera_dot: f64,

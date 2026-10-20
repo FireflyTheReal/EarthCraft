@@ -52,6 +52,7 @@ fn gpu_overview_matches_cpu() {
                             .unwrap()
                         }),
                         provider,
+                        terrain: None,
                         rel: 7,
                         grid: false,
                         grid_step: 10.0,
@@ -161,6 +162,7 @@ fn unsupported_views_choose_precision_instead_of_truncating_gpu_work() {
         cfg: crate::RenderCfg {
             sky: None,
             provider: Provider::Satellite,
+            terrain: None,
             rel: 0,
             grid: false,
             grid_step: 10.0,
