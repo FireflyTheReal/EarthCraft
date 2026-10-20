@@ -83,11 +83,12 @@ The existing frame coordinator and repaint callback stay in charge of pacing.
 
 Default policy: **consume upstream, ship as little as possible, host nothing.**
 
-- Bundled with the app: a small `world-low` pack (countries, first-order
-  places). The app must draw a correct globe on first launch, offline.
+- Bundled with the app: a small `world-low` dataset (countries, first-order
+  places) as plain GeoJSON, not a pack. The app must draw a correct globe on
+  first launch, offline. See the spike results for the size.
 - Fetched at runtime from the provider: everything else.
-- Baked offline and shipped to the user by hand: Overture slices, until a
-  hosting decision exists.
+- Overture detailed divisions: upstream PMTiles at runtime. No offline slice is
+  required unless per-tile size or provider limits prove otherwise.
 
 The runtime therefore accepts three source kinds, not one:
 
@@ -119,11 +120,25 @@ archive.
 
 Overture's own documentation states these tilesets exist for inspection and are
 **not** a production cartographic basemap, and that the default profiles carry
-all properties to aid inspection. Per-tile byte size was not measured. That
-matters: if a division tile is fat, a slimmed offline extract still beats the
-upstream archive for first-load time even though upstream is technically tiled.
-Treat upstream Overture as usable-but-unverified until a tile is decoded and
-measured.
+all properties to aid inspection.
+
+Measured tile payloads (release `2026-09-23.1`, read with a minimal PMTiles v3
+reader over HTTP Range):
+
+| Tile | Stored | Decoded MVT |
+| --- | --- | --- |
+| `divisions` z6 over Iberia | 43.1 KB | 272.4 KB |
+| `divisions` z8 over Madrid | 13.5 KB | 60.2 KB |
+| `divisions` z10 over Madrid | 14.3 KB | 60.7 KB |
+
+`divisions` covers z0–z12 with 12,068,596 addressed tiles. A cold tile costs
+four range requests (header, root directory, leaf directory, payload) and about
+14 KB of directory bytes; the header and root directory are cached after the
+first read, leaving two requests per tile.
+
+`places` is **z14 only** — its lowest addressed tile id maps to zoom 14. It
+cannot supply world-scale or mid-zoom labels, so Natural Earth places remain the
+label source below street zoom.
 
 ### Consequences of hosting nothing
 
@@ -205,26 +220,67 @@ license per layer so the UI can show the right attribution.
 Decode and projection run off the UI thread; final font layout and shapes stay
 on it. The frame coordinator keeps pacing tiles and overlays together.
 
+## Spike results
+
+Measured on 2026-10-20. Natural Earth GeoJSON came from the upstream
+`natural-earth-vector` repository; sizes are uncompressed bytes on disk, point
+counts are coordinate pairs in the geometry, and parse timings are Python
+`json` and therefore an upper bound for Rust.
+
+| Dataset | Size | Features | Points |
+| --- | ---: | ---: | ---: |
+| `ne_110m_admin_0_countries` | 0.80 MB | 177 | 10,654 |
+| `ne_50m_admin_0_countries` | 2.94 MB | 242 | 99,613 |
+| `ne_10m_admin_0_countries` | 12.67 MB | 258 | 548,471 |
+| `ne_110m_populated_places` | 0.62 MB | 243 | 243 |
+| `ne_50m_populated_places` | 3.20 MB | 1,251 | 1,251 |
+| `ne_10m_admin_0_map_units` | 12.90 MB | — | — |
+| `ne_10m_admin_1_states_provinces` | 38.84 MB | — | — |
+| `ne_10m_populated_places` | 18.46 MB | — | — |
+
+Three findings change the plan.
+
+**1. `world-low` needs no tiling.** 110m countries plus 110m places is 1.42 MB
+of plain GeoJSON, 10,897 points, and parses in ~17 ms in Python. Every tile
+below zoom 5 would contain most of that data anyway. Bundle it as GeoJSON and
+keep the pack format for detailed layers only. This removes a format from the
+first milestone.
+
+**2. LOD by zoom is the largest single win, and it is independent of tiling.**
+Startup currently fetches four 10m layers unconditionally: countries, map units,
+states and places, totalling ~82.9 MB uncompressed, at every zoom. The same
+frame at low zoom needs ~1.4 MB, already on disk. Selecting 110m → 50m → 10m by
+zoom costs a table lookup and removes nearly all startup network work. This
+should ship before any tile machinery, because it is smaller, safer and pays
+more.
+
+**3. Tiles matter for detail, not for the basics.** The layers that genuinely
+need tiles are the detailed national and Overture ones, where a viewport touches
+a small fraction of a large dataset. At 14 KB per division tile, upstream
+Overture is viable. It is not a replacement for Natural Earth labels.
+
+Visual parity was **not** checked by eye. The 110m set has 1.9% of the 10m
+vertex count, which is the right order for a globe view but must be confirmed on
+screen before it replaces the current startup path.
+
 ## Migration
 
-1. Bake `world-low` and `world-high`; measure size, decode time, visual parity,
-   dateline and pole behaviour. Stop here if parity fails.
+1. Select detail by zoom and bundle the 110m set. No new format, largest win.
+   Confirm visual parity on screen first.
 2. Introduce the seams (`LayerId`, `LayerSpec`, `TileKey`, `LayerTile`,
    `MapSnapshot`, `CountryIndex`) behind the existing crate contract, with the
    current whole-dataset path still producing identical output.
 3. Move source knowledge into adapters; make the layer list a registry.
 4. Switch the app to the registry; the UI gains a data-driven layer list and
    loses the per-layer booleans.
-5. Enable per-tile refresh, then attempt cross-fade.
+5. Enable per-tile refresh for the detailed layers, then attempt cross-fade.
 
 Each step must pass the existing fixture comparisons and the desktop smoke
-checklist. Step 1 is a spike and may be discarded.
+checklist. The bake step is dropped for `world-low`: it is already small enough
+as upstream GeoJSON.
 
 ## Open questions
 
-- Do Overture's published PMTiles tiles carry sane per-tile sizes, or is a
-  slimmed offline extract required for usable first-load time? Archive sizes and
-  range support are verified; tile payloads are not.
 - Do we accept the first-load cost of national `FeatureCollection` sources, or
   bootstrap them from a bundled low-detail pack?
 - Is a dedicated pole map wanted, or is the cap layer sufficient?
