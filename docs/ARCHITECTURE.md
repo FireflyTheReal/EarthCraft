@@ -169,9 +169,35 @@ is retired while active work and coarse overview jobs remain.
 
 Boundary processors stream GeoJSON feature collections, share immutable coordinate
 lines, merge/deduplicate patches, and publish immutable geometry/name snapshots.
-Municipal geometry loads when its layers are enabled; labels can load independently.
-Loaded-name prefix search uses background-built Unicode-normalized FST indexes,
-with scanning during rebuilds. Ranking and remote-result merging remain explicit.
+Countries load from Natural Earth 1:10m (with 1:50m, geo-countries and 1:110m
+fallbacks). The country loader also retains each feature's outer rings in memory,
+so the app can identify the country under the camera without a second dataset; holes
+are drawn but excluded from point-in-polygon lookup. Natural Earth `map_units`
+supplies the `Disputed`, `Indeterminate`, `Lease` and `Overlay` linework on the
+country layer. States load from Natural Earth admin-1 and cities from populated
+places.
+
+Detailed municipal geometry loads only while its layer is enabled and only below
+110 km. Brazil keeps the IBGE state/municipality path. Other countries try a national
+source first (US Census TIGERweb counties, Statistics Canada census divisions, IGN
+ADMIN EXPRESS communes, BKG VG250 municipalities, Spain's IGN municipios), then a
+per-country geoBoundaries gbOpen file at the deepest available ADM level, then a
+bounded OSM/Overpass request. The France, Germany and Spain services are queried by
+camera bbox and refreshed after 0.15° of movement; the US, Canada and Mexico files
+are country-wide and loaded once per visit. Viewport queries bypass the persistent
+feature cache, while country files and fallbacks keep the normal cached path. The
+local layer replaces its previous lines and rank-10 labels, so switching countries
+does not accumulate stale geometry. Labels can load independently. Loaded-name
+prefix search uses background-built Unicode-normalized FST indexes, with scanning
+during rebuilds. Ranking and remote-result merging remain explicit.
+
+Optional Overture Divisions slices are pre-baked outside the app by
+`scripts/prebake_overture_divisions.py` into
+`<cache>/overture/{ISO3}.geojson`; the metro layer reads that file when present and
+reports a clear status when it is absent. Overture data is ODbL 1.0 and is never
+downloaded implicitly. Boundary attribution (Natural Earth public domain,
+geoBoundaries CC BY 4.0, national statistical agencies, OSM ODbL) is shown under
+the layer controls.
 
 GeoRust `kml` owns XML reading/writing. A bounded quick-xml preparation pass skips
 empty Points, balances incomplete containers and wraps bare-coordinate fragments.

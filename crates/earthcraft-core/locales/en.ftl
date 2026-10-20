@@ -112,12 +112,15 @@ layers-state-borders-toggle = States / provinces (worldwide)
 
 layers-place-labels-toggle = Country, state and city names
 
-layers-municipal-borders-toggle = Municipal borders worldwide (OSM), Brazil (IBGE)
+layers-municipal-borders-toggle = Municipal borders (Brazil IBGE; national sources; geoBoundaries/OSM fallback)
 
-layers-metro-borders-toggle = Metropolitan regions (Brazil only)
+layers-metro-borders-toggle = Metropolitan regions (Brazil IBGE; Overture slice when installed)
+
+layers-boundary-attribution = Borders: Natural Earth (public domain), geoBoundaries (CC BY 4.0), national statistical agencies, OpenStreetMap (ODbL).
 
 boundaries-loading-status = ⏳ Loading borders and names…
-boundaries-osm-loading-status = ⏳ Loading nearby municipal borders from OSM…
+boundaries-osm-loading-status = ⏳ Loading detailed municipal borders…
+boundaries-overture-loading-status = ⏳ Loading the installed Overture metro slice…
 
 layers-atmosphere-toggle = Atmosphere and stars
 

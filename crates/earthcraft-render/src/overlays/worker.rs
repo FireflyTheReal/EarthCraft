@@ -171,19 +171,18 @@ mod tests {
     use std::{sync::mpsc, time::Duration};
     #[test]
     fn background_geometry_matches_direct_projection_and_dataset_identity() {
-        let data = Arc::new(BoundaryData {
-            countries: vec![Arc::new(vec![(0.0, 0.0), (1.0, 1.0)])],
-            labels: vec![MapLabel {
-                lat: 0.0,
-                lon: 0.0,
-                en: "Center".into(),
-                pt: "Centro".into(),
-                kind: LabelKind::Country,
-                rank: 0,
-                big: false,
-            }],
-            ..Default::default()
-        });
+        let mut boundary_data = BoundaryData::default();
+        boundary_data.countries = vec![Arc::new(vec![(0.0, 0.0), (1.0, 1.0)])];
+        boundary_data.labels = vec![MapLabel {
+            lat: 0.0,
+            lon: 0.0,
+            en: "Center".into(),
+            pt: "Centro".into(),
+            kind: LabelKind::Country,
+            rank: 0,
+            big: false,
+        }];
+        let data = Arc::new(boundary_data);
         let view = OverlayView {
             basis: Cam {
                 lat: 0.0,

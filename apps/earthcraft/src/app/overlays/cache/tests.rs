@@ -29,11 +29,9 @@ fn scene() -> (OverlayView, OverlayStyle, BoundaryData) {
         map_scale: 1.0,
         lang: Lang::En,
     };
-    let data = BoundaryData {
-        countries: vec![Arc::new(vec![(0.0, 0.0), (1.0, 1.0)])],
-        labels: vec![label("Country", LabelKind::Country, 0)],
-        ..Default::default()
-    };
+    let mut data = BoundaryData::default();
+    data.countries = vec![Arc::new(vec![(0.0, 0.0), (1.0, 1.0)])];
+    data.labels = vec![label("Country", LabelKind::Country, 0)];
     (view, style, data)
 }
 

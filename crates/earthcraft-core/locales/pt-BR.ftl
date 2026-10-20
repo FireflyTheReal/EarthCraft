@@ -112,12 +112,15 @@ layers-state-borders-toggle = Estados / províncias (mundo todo)
 
 layers-place-labels-toggle = Nomes de países, estados e cidades
 
-layers-municipal-borders-toggle = Limites de municípios do mundo (OSM) e Brasil (IBGE)
+layers-municipal-borders-toggle = Limites de municípios (Brasil IBGE; fontes nacionais; geoBoundaries/OSM como alternativa)
 
-layers-metro-borders-toggle = Regiões metropolitanas (disponível apenas para o Brasil)
+layers-metro-borders-toggle = Regiões metropolitanas (Brasil IBGE; recorte Overture quando instalado)
+
+layers-boundary-attribution = Limites: Natural Earth (domínio público), geoBoundaries (CC BY 4.0), institutos nacionais de estatística e OpenStreetMap (ODbL).
 
 boundaries-loading-status = ⏳ Carregando limites e nomes…
-boundaries-osm-loading-status = ⏳ Carregando limites municipais próximos do OSM…
+boundaries-osm-loading-status = ⏳ Carregando limites municipais detalhados…
+boundaries-overture-loading-status = ⏳ Carregando o recorte de metrópoles Overture instalado…
 
 layers-atmosphere-toggle = Atmosfera e estrelas
 

@@ -58,34 +58,32 @@ fn overlay_projection_and_label_occupancy_time() {
         );
     }
 
-    let data = BoundaryData {
-        countries: (0..10_000)
-            .map(|i| {
-                Arc::new(
-                    (0..32)
-                        .map(|step| {
-                            (
-                                -75.0 + (i % 150) as f64,
-                                -179.0 + (i % 358) as f64 + step as f64 * 0.1,
-                            )
-                        })
-                        .collect(),
-                )
-            })
-            .collect(),
-        labels: (0..8000)
-            .map(|i| MapLabel {
-                lat: -75.0 + (i % 150) as f64,
-                lon: -179.0 + (i % 358) as f64,
-                en: format!("Place {i}"),
-                pt: format!("Lugar {i}"),
-                kind: LabelKind::Country,
-                rank: (i % 10) as u8,
-                big: true,
-            })
-            .collect(),
-        ..Default::default()
-    };
+    let mut data = BoundaryData::default();
+    data.countries = (0..10_000)
+        .map(|i| {
+            Arc::new(
+                (0..32)
+                    .map(|step| {
+                        (
+                            -75.0 + (i % 150) as f64,
+                            -179.0 + (i % 358) as f64 + step as f64 * 0.1,
+                        )
+                    })
+                    .collect(),
+            )
+        })
+        .collect();
+    data.labels = (0..8000)
+        .map(|i| MapLabel {
+            lat: -75.0 + (i % 150) as f64,
+            lon: -179.0 + (i % 358) as f64,
+            en: format!("Place {i}"),
+            pt: format!("Lugar {i}"),
+            kind: LabelKind::Country,
+            rank: (i % 10) as u8,
+            big: true,
+        })
+        .collect();
     let cam = Cam {
         lat: 0.0,
         lon: 0.0,

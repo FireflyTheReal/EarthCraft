@@ -513,18 +513,28 @@ impl eframe::App for App {
         self.ruler_points_window(ui);
         self.live_maps
             .update(ui, &self.runtime, self.show_clouds, self.show_weather);
-        self.boundary_loader.request_world_cities(
-            self.show_city_boundaries
-                && self.explorer.active == earthcraft_core::body::Body::Earth
-                && !self.flat_earth.open,
+        let earth_visible =
+            self.explorer.active == earthcraft_core::body::Body::Earth && !self.flat_earth.open;
+        let country = self
+            .boundaries
+            .country_at(self.cam.lat, self.cam.lon)
+            .map(str::to_owned);
+        let is_brazil = earth_visible && country.as_deref() == Some("BRA");
+        self.boundary_loader.request_local_boundaries(
+            self.show_city_boundaries && earth_visible,
             self.cam.alt,
             self.cam.lat,
             self.cam.lon,
+            country.as_deref(),
+        );
+        self.boundary_loader.request_overture_metro(
+            self.show_metro_boundaries && earth_visible,
+            country.as_deref(),
         );
         self.boundary_loader.request_visible_layers(
-            self.show_city_boundaries,
-            self.show_metro_boundaries,
-            self.show_place_labels,
+            self.show_city_boundaries && is_brazil,
+            self.show_metro_boundaries && is_brazil,
+            self.show_place_labels && is_brazil,
             self.cam.alt,
         );
         if self.boundary_loader.is_loading() {

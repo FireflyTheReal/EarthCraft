@@ -34,6 +34,7 @@ pub(super) async fn load_osm_cities(lat: f64, lon: f64) -> Result<Patch, crate::
         lines,
         lines_big: vec![],
         labels: vec![],
+        regions: vec![],
     })
 }
 fn parse_overpass(v: &serde_json::Value) -> Vec<Line> {

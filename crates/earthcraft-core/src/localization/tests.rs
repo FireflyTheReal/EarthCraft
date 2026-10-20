@@ -90,10 +90,16 @@ fn all_original_labels_keep_exact_wording_and_help_newlines() {
             // Upstream added worldwide OSM municipal borders after the original fixture.
             let expected = match (id.as_str(), lang) {
                 ("layers-municipal-borders-toggle", Lang::En) => {
-                    "Municipal borders worldwide (OSM), Brazil (IBGE)"
+                    "Municipal borders (Brazil IBGE; national sources; geoBoundaries/OSM fallback)"
                 }
                 ("layers-municipal-borders-toggle", Lang::PtBr) => {
-                    "Limites de municípios do mundo (OSM) e Brasil (IBGE)"
+                    "Limites de municípios (Brasil IBGE; fontes nacionais; geoBoundaries/OSM como alternativa)"
+                }
+                ("layers-metro-borders-toggle", Lang::En) => {
+                    "Metropolitan regions (Brazil IBGE; Overture slice when installed)"
+                }
+                ("layers-metro-borders-toggle", Lang::PtBr) => {
+                    "Regiões metropolitanas (Brasil IBGE; recorte Overture quando instalado)"
                 }
                 // KMZ support intentionally updates the file-format labels.
                 ("kml-open-dialog-title", Lang::En) => "Open KML or KMZ",

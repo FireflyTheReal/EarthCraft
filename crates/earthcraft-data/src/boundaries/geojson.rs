@@ -1,4 +1,4 @@
-use super::{LabelKind, Line, MapLabel};
+use super::{CountryRing, LabelKind, Line, MapLabel};
 use earthcraft_core::language::fold_name;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -111,6 +111,15 @@ pub fn dedupe_city_labels(labels: &mut Vec<MapLabel>) {
     labels.retain(|_| !it.next().unwrap_or(false));
 }
 
+fn line_from_points(value: &serde_json::Value) -> Option<Line> {
+    let line: Vec<(f64, f64)> = value
+        .as_array()?
+        .iter()
+        .filter_map(crate::json_fields::coordinates)
+        .collect();
+    (line.len() >= 2).then(|| Arc::new(line))
+}
+
 // Recursively extracts GeoJSON coordinate sequences. GeoJSON order is [longitude, latitude].
 pub(super) fn collect_geojson_lines(value: &serde_json::Value, out: &mut Vec<Line>) {
     let Some(items) = value.as_array() else {
@@ -121,18 +130,48 @@ pub(super) fn collect_geojson_lines(value: &serde_json::Value, out: &mut Vec<Lin
         .and_then(|v| v.as_array())
         .is_some_and(|pair| pair.len() >= 2 && pair[0].is_number() && pair[1].is_number());
     if is_line {
-        let line: Vec<(f64, f64)> = items
-            .iter()
-            .filter_map(crate::json_fields::coordinates)
-            .collect();
-        if line.len() >= 2 {
-            out.push(Arc::new(line));
+        if let Some(line) = line_from_points(value) {
+            out.push(line);
         }
     } else {
         for child in items {
             collect_geojson_lines(child, out);
         }
     }
+}
+
+/// Country outlines plus their outer rings. Holes stay in `lines` for drawing but are not
+/// used for country lookup, so a point on an inland lake still belongs to its country.
+pub(super) fn collect_country_geometry(
+    geometry: &serde_json::Value,
+) -> (Vec<Line>, Vec<CountryRing>) {
+    let mut lines = Vec::new();
+    let mut rings = Vec::new();
+    let Some(coords) = geometry.get("coordinates") else {
+        return (lines, rings);
+    };
+    let polygons: Vec<&serde_json::Value> = match geometry.get("type").and_then(|t| t.as_str()) {
+        Some("Polygon") => vec![coords],
+        Some("MultiPolygon") => coords.as_array().into_iter().flatten().collect(),
+        _ => {
+            collect_geojson_lines(coords, &mut lines);
+            return (lines, rings);
+        }
+    };
+    for polygon in polygons {
+        for (index, ring) in polygon.as_array().into_iter().flatten().enumerate() {
+            let Some(line) = line_from_points(ring) else {
+                continue;
+            };
+            if index == 0
+                && let Some(ring) = CountryRing::new(line.clone())
+            {
+                rings.push(ring);
+            }
+            lines.push(line);
+        }
+    }
+    (lines, rings)
 }
 
 #[cfg(test)]
@@ -146,6 +185,20 @@ mod tests {
         let mut lines = Vec::new();
         collect_geojson_lines(&value, &mut lines);
         assert_eq!(lines, vec![Arc::new(vec![(20.0, 10.0), (21.0, 11.0)])]);
+    }
+
+    #[test]
+    fn country_geometry_keeps_outer_rings_separate_from_holes() {
+        let geometry = json!({
+            "type": "Polygon",
+            "coordinates": [
+                [[0.0, 0.0], [0.0, 10.0], [10.0, 10.0], [10.0, 0.0], [0.0, 0.0]],
+                [[2.0, 2.0], [2.0, 3.0], [3.0, 3.0], [2.0, 2.0]]
+            ]
+        });
+        let (lines, rings) = collect_country_geometry(&geometry);
+        assert_eq!(lines.len(), 2);
+        assert_eq!(rings.len(), 1);
     }
 
     #[test]

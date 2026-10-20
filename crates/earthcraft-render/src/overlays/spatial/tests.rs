@@ -13,10 +13,8 @@ fn conservative_bounds_keep_visible_interiors_across_poles_dateline_and_horizon(
     .into_iter()
     .map(Arc::new)
     .collect();
-    let data = BoundaryData {
-        countries: lines.clone(),
-        ..Default::default()
-    };
+    let mut data = BoundaryData::default();
+    data.countries = lines.clone();
     let index = BoundaryIndex::new(&data);
     for model in earthcraft_core::earth_model::EarthModel::ALL {
         for latitude in [-89.9, -40.0, 0.0, 40.0, 89.9] {
@@ -69,17 +67,15 @@ fn conservative_bounds_keep_visible_interiors_across_poles_dateline_and_horizon(
 
 #[test]
 fn hidden_and_offscreen_lines_are_rejected_without_reordering_survivors() {
-    let data = BoundaryData {
-        countries: [
-            vec![(0.0, 0.0), (0.1, 0.1)],
-            vec![(0.0, 179.0), (0.1, 179.1)],
-            vec![(0.0, 20.0), (0.1, 20.1)],
-        ]
-        .into_iter()
-        .map(Arc::new)
-        .collect(),
-        ..Default::default()
-    };
+    let mut data = BoundaryData::default();
+    data.countries = [
+        vec![(0.0, 0.0), (0.1, 0.1)],
+        vec![(0.0, 179.0), (0.1, 179.1)],
+        vec![(0.0, 20.0), (0.1, 20.1)],
+    ]
+    .into_iter()
+    .map(Arc::new)
+    .collect();
     let index = BoundaryIndex::new(&data);
     let basis = Cam {
         lat: 0.0,
@@ -111,20 +107,18 @@ fn hidden_and_offscreen_lines_are_rejected_without_reordering_survivors() {
 #[ignore = "manual static boundary-index benchmark"]
 fn static_boundary_index_time() {
     use std::{hint::black_box, time::Instant};
-    let data = BoundaryData {
-        countries: (0..10000)
-            .map(|id| {
-                let lat = (id % 150) as f64 - 75.0;
-                let lon = ((id * 97) % 360) as f64 - 180.0;
-                Arc::new(
-                    (0..32)
-                        .map(|step| (lat + step as f64 * 0.01, lon + step as f64 * 0.01))
-                        .collect(),
-                )
-            })
-            .collect(),
-        ..Default::default()
-    };
+    let mut data = BoundaryData::default();
+    data.countries = (0..10000)
+        .map(|id| {
+            let lat = (id % 150) as f64 - 75.0;
+            let lon = ((id * 97) % 360) as f64 - 180.0;
+            Arc::new(
+                (0..32)
+                    .map(|step| (lat + step as f64 * 0.01, lon + step as f64 * 0.01))
+                    .collect(),
+            )
+        })
+        .collect();
     let start = Instant::now();
     let index = BoundaryIndex::new(&data);
     let construction = start.elapsed();

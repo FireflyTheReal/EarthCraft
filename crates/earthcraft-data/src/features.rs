@@ -66,7 +66,7 @@ impl<'de, T, F: Fn(&serde_json::Value, &mut T)> Visitor<'de> for Features<'_, T,
         Ok(())
     }
 }
-fn project<T: Default, F: Fn(&serde_json::Value, &mut T)>(
+pub(crate) fn project<T: Default, F: Fn(&serde_json::Value, &mut T)>(
     reader: impl std::io::Read,
     consume: F,
 ) -> Result<T, crate::Error> {
@@ -118,6 +118,23 @@ where
     T: Default + Send + 'static,
     F: Fn(&serde_json::Value, &mut T) + Clone + Send + 'static,
 {
+    fetch_inner(url, consume, true).await
+}
+
+/// Fetch a one-off viewport query without growing the on-disk feature cache.
+pub(crate) async fn fetch_ephemeral<T, F>(url: &str, consume: F) -> Result<T, crate::Error>
+where
+    T: Default + Send + 'static,
+    F: Fn(&serde_json::Value, &mut T) + Clone + Send + 'static,
+{
+    fetch_inner(url, consume, false).await
+}
+
+async fn fetch_inner<T, F>(url: &str, consume: F, cache: bool) -> Result<T, crate::Error>
+where
+    T: Default + Send + 'static,
+    F: Fn(&serde_json::Value, &mut T) + Clone + Send + 'static,
+{
     // Bound concurrent downloads and projection, including readers of cached files.
     static PERMITS: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(2);
     static NEXT_TEMP: AtomicU64 = AtomicU64::new(0);
@@ -126,13 +143,14 @@ where
         .await
         .expect("feature semaphore remains open");
     let path = crate::http::geo_cache_path(url);
-    if let Ok(out) = read(path.clone(), consume.clone()).await {
+    if cache && let Ok(out) = read(path.clone(), consume.clone()).await {
         return Ok(out);
     }
-    let cache_writable = match path.parent() {
-        Some(dir) => tokio::fs::create_dir_all(dir).await.is_ok(),
-        None => false,
-    };
+    let cache_writable = cache
+        && match path.parent() {
+            Some(dir) => tokio::fs::create_dir_all(dir).await.is_ok(),
+            None => false,
+        };
     let mut last = None;
     for _ in 0..crate::http::JSON_REQUEST_ATTEMPTS {
         let name = format!(

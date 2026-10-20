@@ -114,14 +114,18 @@ impl App {
         if self.boundary_loader.is_loading_base_layers() {
             ui.weak(lg.text("boundaries-loading-status"));
         }
-        if self.boundary_loader.is_loading_world_cities() {
+        if self.boundary_loader.is_loading_local() {
             ui.weak(lg.text("boundaries-osm-loading-status"));
+        }
+        if self.boundary_loader.is_loading_overture_metro() {
+            ui.weak(lg.text("boundaries-overture-loading-status"));
         }
         if let Ok(log) = self.boundary_log.lock() {
             for line in log.iter() {
                 ui.weak(egui::RichText::new(line).small());
             }
         }
+        ui.small(lg.text("layers-boundary-attribution"));
         ui.checkbox(&mut self.show_grid, lg.text("layers-grid-toggle"));
         if self.show_grid {
             ui.indent("grid_numbers", |ui| {

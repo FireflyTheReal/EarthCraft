@@ -65,12 +65,37 @@ Workers limitados separam parsing de dados, decodificação de tiles e arquivos.
 Um panic em um desses jobs volta como erro do próprio job, sem encerrar o pool
 nem a aplicação.
 GeoJSON é processado por feature, com coordenadas compartilhadas e snapshots
-imutáveis. Geometria municipal carrega quando suas camadas são usadas. Busca
+imutáveis. Países usam o Natural Earth 1:10m (com fallbacks 1:50m, geo-countries e
+1:110m). O carregador de países mantém os anéis externos em memória para identificar
+o país sob a câmera sem um segundo conjunto de dados; buracos são desenhados mas
+ficam fora da busca ponto-em-polígono. O `map_units` do Natural Earth fornece as
+linhas `Disputed`, `Indeterminate`, `Lease` e `Overlay` na camada de países. Estados
+usam o admin-1 e cidades usam os populated places.
+
+Geometria municipal detalhada carrega apenas com a camada ativa e abaixo de 110 km.
+O Brasil mantém o caminho IBGE por estado/município. Outros países tentam primeiro
+uma fonte nacional (condados do US Census TIGERweb, divisões censitárias do
+Statistics Canada, comunas do IGN ADMIN EXPRESS, municípios do BKG VG250 e
+municípios do IGN espanhol), depois um arquivo geoBoundaries gbOpen por país no
+nível ADM mais profundo disponível e, por fim, uma consulta OSM/Overpass limitada.
+Os serviços de França, Alemanha e Espanha usam a bbox da câmera e são atualizados
+após 0,15° de movimento; os arquivos dos EUA, Canadá e México cobrem o país inteiro
+e carregam uma vez por visita. Consultas de viewport não entram no cache persistente
+de features; arquivos nacionais e fallbacks usam o caminho cacheado normal. A camada
+local substitui as linhas e rótulos de rank 10 anteriores, então trocar de país não
+acumula geometria antiga. Busca
 local usa índices FST com normalização Unicode e fallback por varredura durante
 reconstrução. GeoRust `kml` lê/escreve XML após uma preparação limitada com
 quick-xml. Diálogos e aplicação dos resultados pertencem à aplicação; KML, PNG e
 persistência de preferências ficam em workers. Preferências são gravadas de forma
 coalescida e descarregadas ao encerrar.
+
+Recortes opcionais do Overture Divisions são pré-gerados fora do app por
+`scripts/prebake_overture_divisions.py` em `<cache>/overture/{ISO3}.geojson`; a
+camada de metrópoles lê esse arquivo quando existe e informa claramente quando ele
+falta. Dados Overture são ODbL 1.0 e nunca são baixados implicitamente. A atribuição
+dos limites (Natural Earth domínio público, geoBoundaries CC BY 4.0, institutos
+nacionais de estatística e OSM ODbL) aparece sob os controles de camadas.
 
 O Explorer também usa o serviço de arquivos para decodificar imagens, inclusive
 a Lua incorporada, e ler/gravar documentos de planetas. O upload de texturas

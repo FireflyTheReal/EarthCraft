@@ -1,5 +1,5 @@
 //! Ordered patch preparation; the UI swaps one latest immutable dataset.
-use super::{BoundaryData, Layer, MapLabel, Patch, dedupe_city_labels};
+use super::{BoundaryData, LabelKind, Layer, MapLabel, Patch, dedupe_city_labels};
 use std::sync::{Arc, Mutex, mpsc};
 
 pub struct BoundarySnapshot {
@@ -13,14 +13,26 @@ pub struct BoundaryUpdates {
 
 fn apply(data: &mut BoundaryData, patch: Patch) {
     match patch.layer {
-        Layer::Countries => data.countries.extend(patch.lines),
+        Layer::Countries => {
+            data.countries.extend(patch.lines);
+            data.country_regions.extend(patch.regions);
+            data.countries_loaded = true;
+        }
         Layer::States => {
             data.states.extend(patch.lines);
             data.states_big.extend(patch.lines_big);
         }
         Layer::Cities => data.cities.extend(patch.lines),
-        Layer::WorldCities => data.world_cities = patch.lines,
-        Layer::Metro => data.metro.extend(patch.lines),
+        Layer::WorldCities => {
+            data.world_cities = patch.lines;
+            data.labels.retain(|label| {
+                !(label.kind == LabelKind::City && label.rank == super::LOCAL_LABEL_RANK)
+            });
+        }
+        Layer::Metro => {
+            data.metro = patch.lines;
+            data.labels.retain(|label| label.kind != LabelKind::Metro);
+        }
     }
     data.labels.extend(patch.labels);
     dedupe_city_labels(&mut data.labels);
@@ -93,6 +105,7 @@ mod tests {
                 rank,
                 big: false,
             }],
+            regions: vec![],
         };
         tx.send(patch("First", 5)).unwrap();
         wakes.recv_timeout(Duration::from_secs(10)).unwrap();
@@ -108,5 +121,59 @@ mod tests {
             &first.data.countries[0],
             &second.data.countries[0]
         ));
+    }
+
+    #[test]
+    fn local_and_metro_patches_replace_their_previous_labels() {
+        fn label(name: &str, kind: LabelKind, rank: u8) -> MapLabel {
+            MapLabel {
+                lat: 10.0,
+                lon: 10.0,
+                en: name.into(),
+                pt: name.into(),
+                kind,
+                rank,
+                big: false,
+            }
+        }
+        let mut data = BoundaryData {
+            labels: vec![
+                label("Base city", LabelKind::City, 5),
+                label("Old local", LabelKind::City, super::super::LOCAL_LABEL_RANK),
+                label("Old metro", LabelKind::Metro, 0),
+            ],
+            ..Default::default()
+        };
+        apply(
+            &mut data,
+            Patch {
+                layer: Layer::WorldCities,
+                lines: vec![],
+                lines_big: vec![],
+                labels: vec![label(
+                    "New local",
+                    LabelKind::City,
+                    super::super::LOCAL_LABEL_RANK,
+                )],
+                regions: vec![],
+            },
+        );
+        assert!(data.labels.iter().any(|label| label.en == "Base city"));
+        assert!(data.labels.iter().any(|label| label.en == "Old metro"));
+        assert!(data.labels.iter().any(|label| label.en == "New local"));
+        assert!(!data.labels.iter().any(|label| label.en == "Old local"));
+
+        apply(
+            &mut data,
+            Patch {
+                layer: Layer::Metro,
+                lines: vec![],
+                lines_big: vec![],
+                labels: vec![label("New metro", LabelKind::Metro, 0)],
+                regions: vec![],
+            },
+        );
+        assert!(!data.labels.iter().any(|label| label.en == "Old metro"));
+        assert!(data.labels.iter().any(|label| label.en == "New metro"));
     }
 }
