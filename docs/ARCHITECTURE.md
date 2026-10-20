@@ -169,13 +169,18 @@ is retired while active work and coarse overview jobs remain.
 
 Boundary processors stream GeoJSON feature collections, share immutable coordinate
 lines, merge/deduplicate patches, and publish immutable geometry/name snapshots.
-Countries load from Natural Earth 1:10m (with 1:50m, geo-countries and 1:110m
-fallbacks). The country loader also retains each feature's outer rings in memory,
-so the app can identify the country under the camera without a second dataset; holes
-are drawn but excluded from point-in-polygon lookup. Natural Earth `map_units`
-supplies the `Disputed`, `Indeterminate`, `Lease` and `Overlay` linework on the
-country layer. States load from Natural Earth admin-1 and cities from populated
-places.
+World detail follows the camera. A cold start draws the 1:110m country and place
+sets compiled into the data crate, so no network request is needed to see the
+globe. Below 10,000 km the world layers reload from Natural Earth 1:50m and
+below 1,500 km from 1:10m; each upgrade replaces the previous outlines and
+labels instead of appending to them. The country loader also retains each
+feature's outer rings in memory, so the app can identify the country under the
+camera without a second dataset; holes are drawn but excluded from
+point-in-polygon lookup. Natural Earth `map_units` supplies the `Disputed`,
+`Indeterminate`, `Lease` and `Overlay` linework on the country layer and travels
+in the same patch as the outlines. Admin-1 states and disputed linework are
+absent at the lowest level because the 1:110m edition has no admin-1; states
+load from 1:50m upwards and cities from populated places at the matching level.
 
 Detailed municipal geometry loads only while its layer is enabled and only below
 110 km. Brazil keeps the IBGE state/municipality path. Other countries try a national

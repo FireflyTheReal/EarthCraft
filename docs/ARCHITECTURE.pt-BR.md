@@ -65,12 +65,18 @@ Workers limitados separam parsing de dados, decodificação de tiles e arquivos.
 Um panic em um desses jobs volta como erro do próprio job, sem encerrar o pool
 nem a aplicação.
 GeoJSON é processado por feature, com coordenadas compartilhadas e snapshots
-imutáveis. Países usam o Natural Earth 1:10m (com fallbacks 1:50m, geo-countries e
-1:110m). O carregador de países mantém os anéis externos em memória para identificar
-o país sob a câmera sem um segundo conjunto de dados; buracos são desenhados mas
-ficam fora da busca ponto-em-polígono. O `map_units` do Natural Earth fornece as
-linhas `Disputed`, `Indeterminate`, `Lease` e `Overlay` na camada de países. Estados
-usam o admin-1 e cidades usam os populated places.
+imutáveis. O detalhe mundial acompanha a câmera: a inicialização desenha os
+conjuntos 1:110m de países e lugares embutidos no crate de dados, sem requisição
+de rede. Abaixo de 10.000 km as camadas recarregam do Natural Earth 1:50m e abaixo
+de 1.500 km do 1:10m; cada atualização substitui os contornos e rótulos anteriores
+em vez de acumulá-los. O carregador de países mantém os anéis externos em memória
+para identificar o país sob a câmera sem um segundo conjunto de dados; buracos são
+desenhados mas ficam fora da busca ponto-em-polígono. O `map_units` do Natural
+Earth fornece as linhas `Disputed`, `Indeterminate`, `Lease` e `Overlay` na camada
+de países e viaja no mesmo patch dos contornos. Estados admin-1 e linhas
+disputadas não aparecem no nível mais baixo, porque a edição 1:110m não tem
+admin-1; estados carregam a partir do 1:50m e cidades nos populated places do nível
+correspondente.
 
 Geometria municipal detalhada carrega apenas com a camada ativa e abaixo de 110 km.
 O Brasil mantém o caminho IBGE por estado/município. Outros países tentam primeiro
